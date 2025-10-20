@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     // No longer needed, serverActions are enabled by default.
+    outputFileTracingRoot: __dirname,
   },
   images: {
     remotePatterns: [

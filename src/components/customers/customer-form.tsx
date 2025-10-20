@@ -33,7 +33,6 @@ const customerSchema = z.object({
     state: z.string().optional(),
     zip: z.string().optional(),
   }).optional(),
-  tags: z.array(z.string()).optional(),
   credit: z.object({
     terms: z.string().optional(),
     limit: z.coerce.number().optional(),
@@ -68,7 +67,6 @@ export function CustomerForm({ customer, onSubmit, onClose }: CustomerFormProps)
       ...customer,
       address: customer.address || {},
       credit: customer.credit || {},
-      tags: customer.tags || [],
       emailContacts: customer.emailContacts || [],
     } : {
       companyName: '',
@@ -77,7 +75,6 @@ export function CustomerForm({ customer, onSubmit, onClose }: CustomerFormProps)
       email: '',
       phone: '',
       address: { line1: '', line2: '', city: '', state: '', zip: '' },
-      tags: [],
       credit: { terms: '', limit: 0, balance: 0, onHold: false },
       notes: '',
       emailContacts: [],

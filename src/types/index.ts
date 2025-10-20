@@ -1,3 +1,4 @@
+
 export type ProductCategory = string;
 export type CustomerType = 'Fence Contractor' | 'Landscaper' | 'Home Owner' | 'Government' | 'Commercial' | 'Other';
 export type EmailContactType = 'Main Contact' | 'Accounts Payable' | 'Owner' | 'Billing' | 'Shipping' | 'Other';
@@ -57,7 +58,6 @@ export interface Customer {
     state?: string;
     zip?: string;
   };
-  tags?: CustomerType[];
   credit?: {
     terms?: string;
     limit?: number;
@@ -69,7 +69,7 @@ export interface Customer {
   specificMarkups?: { categoryName: string; markupPercentage: number }[];
   createdAt?: string; // ISO String from serverTimestamp
   updatedAt?: string; // ISO string from serverTimestamp
-  searchIndex?: string; // company + contact + email lowercased
+  searchIndex?: string | null; // company + contact + email lowercased
 }
 
 export interface EmailContact {
