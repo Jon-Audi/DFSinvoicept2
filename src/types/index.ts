@@ -50,7 +50,7 @@ export interface Customer {
   lastName?: string;
   email?: string;
   phone?: string;
-  emailContacts: EmailContact[];
+  emailContacts?: EmailContact[];
   address?: {
     line1?: string;
     line2?: string;

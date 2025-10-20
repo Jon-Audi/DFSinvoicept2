@@ -15,14 +15,16 @@ import {
 
 interface ProductDialogProps {
   product?: Product;
-  allProducts?: Product[]; // Make this optional
+  allProducts?: Product[];
   triggerButton: React.ReactElement;
   onSave?: (product: Product) => void;
   productCategories: string[];
   onAddNewCategory: (category: string) => void;
+  productSubcategories: string[];
+  onAddNewSubcategory: (subcategory: string) => void;
 }
 
-export function ProductDialog({ product, allProducts, triggerButton, onSave, productCategories, onAddNewCategory }: ProductDialogProps) {
+export function ProductDialog({ product, allProducts, triggerButton, onSave, productCategories, onAddNewCategory, productSubcategories, onAddNewSubcategory }: ProductDialogProps) {
   const [open, setOpen] = React.useState(false);
 
   const handleSubmit = (data: Omit<Product, 'id'>) => {
@@ -55,7 +57,9 @@ export function ProductDialog({ product, allProducts, triggerButton, onSave, pro
           onSubmit={handleSubmit} 
           onClose={() => setOpen(false)}
           productCategories={productCategories}
-          onAddNewCategory={onAddNewCategory} 
+          onAddNewCategory={onAddNewCategory}
+          productSubcategories={productSubcategories}
+          onAddNewSubcategory={onAddNewSubcategory}
         />
       </DialogContent>
     </Dialog>
