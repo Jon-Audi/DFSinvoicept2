@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProductionTask, ProductionTaskName, ProductionHistoryItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, setDoc, addDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
@@ -309,5 +309,3 @@ export default function ProductionPage() {
     </>
   );
 }
-
-    

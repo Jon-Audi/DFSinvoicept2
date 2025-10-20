@@ -9,7 +9,7 @@ import { UserTable } from '@/components/users/user-table';
 import { UserDialog } from '@/components/users/user-dialog';
 import type { User } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function UsersSettingsPage() {

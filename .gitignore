@@ -3,12 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.pnp.js
 
 # testing
 /coverage
@@ -16,9 +11,6 @@
 # next.js
 /.next/
 /out/
-
-# production
-/build
 
 # misc
 .DS_Store
@@ -28,19 +20,35 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# vercel
-.vercel
+# local env files
+.env*.local
+.env
+# End of https://www.toptal.com/developers/gitignore/api/nextjs,react,node,firebase
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Firebase
+*firebase-debug.log
+*firebase-debug.*.log
+*firestore-debug.log
+*firestore-debug.*.log
+*ui-debug.log
+*ui-debug.*.log
 
-.genkit/*
-.env*
+# Emulator
+.firebase/emulators/
+*.snap
 
-# firebase
-firebase-debug.log
-firestore-debug.logworkspace/
-workspace/
+# iOS
+ios/App/App/GoogleService-Info.plist
+
+# Android
+# This file should be downloaded from the Firebase console and is unique to your app
+# It's generally recommended to keep it in version control if it's for a public/template repo,
+# but for private apps, you might choose to ignore it. For this project, we'll keep it.
+# android/app/google-services.json
+
+# VSCode
+.vscode/
+
+# Project IDX
+.idx/

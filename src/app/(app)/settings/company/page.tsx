@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import type { CompanySettings } from '@/types';
 import { Icon } from '@/components/icons';

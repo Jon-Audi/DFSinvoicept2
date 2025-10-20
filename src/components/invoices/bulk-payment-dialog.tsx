@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { Customer, Invoice, PaymentMethod } from '@/types';
 import { PAYMENT_METHODS } from '@/lib/constants';

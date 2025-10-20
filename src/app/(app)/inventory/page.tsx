@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -5,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Icon } from '@/components/icons';
 import type { Product } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { InventoryTable } from '@/components/inventory/inventory-table';

@@ -11,7 +11,8 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth as firebaseAuthInstance, db } from '@/lib/firebase'; // Renamed imported auth to firebaseAuthInstance
+// CORRECTED IMPORT: Use the new client-specific firebase file
+import { auth, db } from '@/lib/firebase-client'; 
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { ROLE_PERMISSIONS } from '@/lib/constants';
@@ -42,14 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    if (!firebaseAuthInstance) {
-      console.error("[AuthContext] Firebase Auth instance is not available.");
-      setLoading(false);
-      setError("Firebase Auth service is not available.");
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(firebaseAuthInstance, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, "users", firebaseUser.uid);
         const userDoc = await getDoc(userDocRef);
@@ -77,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(firebaseAuthInstance, email, pass);
+      await signInWithEmailAndPassword(auth, email, pass);
       toast({ title: "Logged In", description: "Successfully logged in." });
       router.push('/dashboard');
     } catch (e: any) {
@@ -92,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      await firebaseSignOut(firebaseAuthInstance);
+      await firebaseSignOut(auth);
       toast({ title: "Logged Out", description: "Successfully logged out." });
       router.push('/login');
     } catch (e: any) {
@@ -111,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // a secure backend (like a Firebase Function) is strongly recommended.
     // This client-side implementation is for demonstration.
     try {
-      const userCredential = await createUserWithEmailAndPassword(firebaseAuthInstance, email, pass);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const newUser = userCredential.user;
 
       await updateProfile(newUser, { displayName: `${firstName} ${lastName}` });
