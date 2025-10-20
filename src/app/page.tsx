@@ -6,5 +6,3 @@ export default function HomePage() {
   // to the "/dashboard" path.
   redirect('/dashboard');
 }
-
-    

@@ -73,16 +73,6 @@ export default function DashboardPage() {
       unsubscribeActiveEstimates();
     };
   }, [toast]);
-  
-  if (authLoading) {
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-            <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-        </div>
-    );
-  }
-
 
   return (
     <>
@@ -218,5 +208,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

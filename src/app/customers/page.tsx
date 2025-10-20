@@ -277,7 +277,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-    
-
-    
