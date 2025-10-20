@@ -1,8 +1,8 @@
-export default function Home() {
-  return (
-    <main style={{ padding: 48 }}>
-      <h1>✅ DFS Invoicing App is Running</h1>
-      <p>If you see this, App Router is active.</p>
-    </main>
-  );
+
+import { redirect } from 'next/navigation';
+
+export default function HomePage() {
+  // This will automatically redirect any visits to the root path "/"
+  // to the "/dashboard" path.
+  redirect('/dashboard');
 }
