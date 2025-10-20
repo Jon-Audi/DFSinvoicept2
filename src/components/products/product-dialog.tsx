@@ -58,8 +58,6 @@ export function ProductDialog({ product, allProducts, triggerButton, onSave, pro
           onClose={() => setOpen(false)}
           productCategories={productCategories}
           onAddNewCategory={onAddNewCategory}
-          productSubcategories={productSubcategories}
-          onAddNewSubcategory={onAddNewSubcategory}
         />
       </DialogContent>
     </Dialog>

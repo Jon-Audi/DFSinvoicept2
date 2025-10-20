@@ -3,7 +3,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: __dirname,
+  experimental: {
+    outputFileTracingRoot: __dirname,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "firebasestorage.googleapis.com", pathname: "/v0/b/**" },
