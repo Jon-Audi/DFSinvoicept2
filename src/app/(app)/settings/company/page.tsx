@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import type { CompanySettings } from '@/types';
 import { Icon } from '@/components/icons';
@@ -39,6 +39,7 @@ type CompanySettingsFormData = z.infer<typeof companySettingsSchema>;
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function CompanySettingsPage() {
+  const { db } = useFirebase();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -63,6 +64,7 @@ export default function CompanySettingsPage() {
   });
 
   useEffect(() => {
+    if (!db) return;
     const fetchCompanySettings = async () => {
       setIsLoading(true);
       try {
@@ -100,9 +102,10 @@ export default function CompanySettingsPage() {
       }
     };
     fetchCompanySettings();
-  }, [form, toast]);
+  }, [db, form, toast]);
 
   const onSubmit = async (data: CompanySettingsFormData) => {
+    if (!db) return;
     setIsLoading(true);
     try {
       const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);

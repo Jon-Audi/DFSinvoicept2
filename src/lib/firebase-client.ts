@@ -17,28 +17,24 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Singleton pattern to ensure a single Firebase instance
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
-let analytics: Analytics | undefined;
-
-
-function initializeFirebase() {
-    if (!getApps().length) {
-        if (!firebaseConfig.projectId) {
-            throw new Error("[Firebase] Project ID is not defined in environment variables.");
-        }
+// This function acts as a singleton provider for Firebase services
+function getFirebaseClient() {
+    let app: FirebaseApp;
+    let auth: Auth;
+    let db: Firestore;
+    let storage: FirebaseStorage;
+    let analytics: Analytics | undefined;
+    
+    if (getApps().length === 0) {
         app = initializeApp(firebaseConfig);
     } else {
         app = getApp();
     }
+    
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-    
-    // Initialize Analytics only on the client side if supported
+
     if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
         isSupported().then(supported => {
             if(supported) {
@@ -46,9 +42,14 @@ function initializeFirebase() {
             }
         });
     }
+
+    return { app, auth, db, storage, analytics };
 }
 
-// Initialize on first load of this module.
-initializeFirebase();
+// You can export the function if you need to call it explicitly,
+// but for direct use in components, we'll export the initialized services.
+// Note: This approach might still have issues in SSR if modules are loaded before initialization.
+// A better approach is using a context provider.
+const { app, auth, db, storage, analytics } = getFirebaseClient();
 
-export { app, db, auth, storage, analytics };
+export { app, auth, db, storage, analytics, getFirebaseClient };

@@ -11,7 +11,7 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase-client'; 
+import { useFirebase } from '@/components/firebase-provider';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { ROLE_PERMISSIONS } from '@/lib/constants';
@@ -35,6 +35,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { auth, db } = useFirebase();
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
+    if (!auth || !db) {
+        // Firebase not ready yet, wait for the provider to initialize it.
+        return;
+    };
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, "users", firebaseUser.uid);
@@ -55,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(appUser);
         } else {
-          // Fallback if firestore doc doesn't exist, though it should.
           setUser(firebaseUser);
         }
       } else {
@@ -64,9 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [auth, db]);
 
   const login = async (email: string, pass: string) => {
+    if (!auth) return;
     setLoading(true);
     setError(null);
     try {
@@ -82,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    if (!auth) return;
     setLoading(true);
     setError(null);
     try {
@@ -97,12 +103,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signup = async (email: string, pass: string, firstName: string, lastName: string) => {
+    if (!auth || !db) return;
     setLoading(true);
     setError(null);
-
-    // This function is intended for initial user signup. For creating users as an admin,
-    // a secure backend (like a Firebase Function) is strongly recommended.
-    // This client-side implementation is for demonstration.
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const newUser = userCredential.user;
@@ -115,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: newUser.email!,
         firstName: firstName,
         lastName: lastName,
-        role: 'User', // New users default to 'User' role
+        role: 'User',
         isActive: true,
         permissions: ROLE_PERMISSIONS['User'],
         createdAt: new Date().toISOString(),

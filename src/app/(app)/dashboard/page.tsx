@@ -8,13 +8,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
+  const { db } = useFirebase();
   const { toast } = useToast();
   const [orderCount, setOrderCount] = useState<number | null>(null);
   const [isLoadingOrderCount, setIsLoadingOrderCount] = useState(true);
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [isLoadingActiveEstimateCount, setIsLoadingActiveEstimateCount] = useState(true);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingOrderCount(true);
     const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
       setOrderCount(snapshot.size);
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       unsubscribeCustomers();
       unsubscribeActiveEstimates();
     };
-  }, [toast]);
+  }, [db, toast]);
 
   return (
     <>

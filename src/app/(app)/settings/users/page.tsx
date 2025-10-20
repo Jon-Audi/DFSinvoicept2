@@ -9,15 +9,17 @@ import { UserTable } from '@/components/users/user-table';
 import { UserDialog } from '@/components/users/user-dialog';
 import type { User } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function UsersSettingsPage() {
+  const { db } = useFirebase();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'users'), 
       (snapshot) => {
@@ -35,15 +37,12 @@ export default function UsersSettingsPage() {
       }
     );
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   const handleSaveUser = async (userToSave: User) => {
-    // In a real app, creating/updating Firebase Auth user is complex from client-side.
-    // This example focuses on updating the Firestore user document.
-    // A Firebase Function would be needed to securely manage Auth users.
+    if (!db) return;
     const { id, ...userData } = userToSave;
 
-    // Create a copy to modify for Firestore, ensuring no 'undefined' values.
     const dataToSave: Omit<User, 'id'> = { ...userData };
     if (dataToSave.lastLogin === undefined) {
       delete (dataToSave as Partial<User>).lastLogin;
@@ -63,9 +62,7 @@ export default function UsersSettingsPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    // Deleting a user from Firestore.
-    // IMPORTANT: This does NOT delete the user from Firebase Authentication.
-    // A Firebase Function is required for that.
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'users', userId));
       toast({

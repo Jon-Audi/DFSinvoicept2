@@ -11,13 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { auth, storage } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
-  const { user: authUser, loading: authLoading, setUser: setAuthUser } = useAuth(); // Get setUser to manually refresh context if needed
+  const { user: authUser, loading: authLoading, setUser: setAuthUser } = useAuth();
+  const { auth, storage } = useFirebase();
   const { toast } = useToast();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -44,7 +45,7 @@ export default function ProfilePage() {
   };
 
   const handleSaveName = async () => {
-    if (!auth.currentUser) {
+    if (!auth?.currentUser) {
       toast({ title: "Error", description: "Not logged in.", variant: "destructive" });
       return;
     }
@@ -60,7 +61,6 @@ export default function ProfilePage() {
         displayName: newName === '' ? null : newName,
       });
       
-      // Manually update the context user to reflect the change immediately
       if(setAuthUser) {
         setAuthUser(auth.currentUser);
       }
@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
   const handlePhotoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !authUser) return;
+    if (!file || !authUser || !storage || !auth?.currentUser) return;
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       toast({ title: "File Too Large", description: "Profile pictures must be under 5MB.", variant: "destructive" });
@@ -94,7 +94,7 @@ export default function ProfilePage() {
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      await updateProfile(auth.currentUser!, { photoURL: downloadURL });
+      await updateProfile(auth.currentUser, { photoURL: downloadURL });
 
       if (setAuthUser) {
         setAuthUser(auth.currentUser);
@@ -107,13 +107,13 @@ export default function ProfilePage() {
     } finally {
       setIsUploadingPhoto(false);
       if(fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset file input
+        fileInputRef.current.value = "";
       }
     }
   };
   
   const handlePasswordReset = async () => {
-    if (!authUser?.email) {
+    if (!authUser?.email || !auth) {
       toast({ title: "Error", description: "No email address associated with this account.", variant: "destructive" });
       return;
     }
@@ -132,7 +132,6 @@ export default function ProfilePage() {
       setIsSendingResetEmail(false);
     }
   };
-
 
   if (authLoading) {
     return (
