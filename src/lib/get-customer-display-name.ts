@@ -1,22 +1,31 @@
-// Adjust this import if your Customer type lives elsewhere
-export type Customer = {
-    id: string;
-    companyName?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    // add any other fields you actually have
-  };
+import type { Customer } from '@/types';
   
-  export function getCustomerDisplayName(c: Customer): string {
-    if (c.companyName && c.companyName.trim()) return c.companyName.trim();
+  export function getCustomerDisplayName(customer: Customer | null | undefined): string {
+    if (!customer) {
+        return "Customer";
+    }
+
+    const companyName = customer.companyName?.trim();
+    if (companyName) {
+        return companyName;
+    }
   
-    const full = [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
-    if (full) return full;
+    const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+    if (fullName) {
+        return fullName;
+    }
   
-    if (c.email && c.email.trim()) return c.email.trim();
-    if (c.phone && c.phone.trim()) return c.phone.trim();
+    const primaryEmail = customer.email?.trim() 
+    || customer.emailContacts?.find(c => c.type === 'Main Contact')?.email?.trim() 
+    || customer.emailContacts?.[0]?.email?.trim();
+
+    if (primaryEmail) {
+        return primaryEmail;
+    }
+
+    if (customer.phone?.trim()) {
+        return customer.phone.trim();
+    }
   
     return "Customer";
   }

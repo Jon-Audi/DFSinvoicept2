@@ -1,11 +1,96 @@
-
 rules_version = '2';
+
+// Helper functions to check user authentication and roles.
+// Best practice is to read user roles from custom claims, not Firestore.
+// For this app, we will check the /users/{uid} document.
+function isSignedIn() {
+  return request.auth != null;
+}
+
+// Check if the user has a specific role by reading their user document.
+// This requires the requesting user to have read access to their own user document.
+function hasRole(role) {
+  return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+}
+
+// Check if the user is an Admin.
+function isAdmin() {
+  return hasRole('Admin');
+}
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read and write access to any document if the user is authenticated
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    
+    // Users Collection
+    // Users can read their own profile.
+    // Admins can read/write any user profile.
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow write: if isAdmin();
+
+      // Users can add notes to their own profile (if this feature existed).
+      // For this app, customer notes are separate.
+    }
+    
+    // Customers Collection
+    // Signed-in users can view all customers (for selection in forms).
+    // Admins can create, update, and delete customers.
+    // Notes subcollection: Admins and authenticated users can add notes.
+    match /customers/{customerId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      match /notes/{noteId} {
+        allow read, create: if isSignedIn();
+        allow update, delete: if isAdmin(); // Or based on authorId if needed
+      }
+    }
+
+    // Products Collection
+    // All signed-in users can read products.
+    // Admins can create, update, and delete products.
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Estimates, Orders, Invoices
+    // All signed-in users can read/write these documents.
+    // In a more complex app, this would be restricted to Admins or specific user roles.
+    // For this app's current logic, broad access is required for users to create/manage their own.
+    match /estimates/{estimateId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /orders/{orderId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Emails Collection (for Firebase Trigger Email extension)
+    // Only allow creating new email documents. Deny reads/updates/deletes from the client.
+    match /emails/{emailId} {
+      allow read, update, delete: if false;
+      allow create: if isSignedIn(); // Any signed-in user can trigger an email send.
+    }
+
+    // Company Settings
+    // Only Admins can read or write the single company settings document.
+    match /companySettings/{docId} {
+        allow read, write: if isAdmin();
+    }
+    
+    // Production Tasks and History
+    // Any signed-in user can update tasks and create history items.
+    match /productionTasks/{taskId} {
+      allow read, write: if isSignedIn();
+    }
+    match /productionHistory/{historyId} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
   }
 }

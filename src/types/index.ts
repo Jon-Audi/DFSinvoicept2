@@ -45,26 +45,31 @@ export interface Product {
 export interface Customer {
   id: string; // doc id
   companyName?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
   emailContacts: EmailContact[];
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
   };
-  customerType: CustomerType;
-  specificMarkups?: { categoryName: string; markupPercentage: number }[];
+  tags?: CustomerType[];
   credit?: {
     terms?: string;
     limit?: number;
+    balance?: number;
     onHold?: boolean;
   };
-  createdAt?: string;
-  searchIndex?: string;
+  customerType?: CustomerType;
+  notes?: string;
+  specificMarkups?: { categoryName: string; markupPercentage: number }[];
+  createdAt?: string; // ISO String from serverTimestamp
+  updatedAt?: string; // ISO string from serverTimestamp
+  searchIndex?: string; // company + contact + email lowercased
 }
 
 export interface EmailContact {

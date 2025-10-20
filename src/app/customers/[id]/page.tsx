@@ -19,17 +19,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
-import { getCustomerDisplayName } from "@/lib/get-customer-display-name"; // adjust path if needed
-
-// ...
-const customerName = getCustomerDisplayName(customer);
-
-const conversionData = {
-  customerId: customer.id,
-  customerName,                // ✅ no more contactName
-  lineItems: [],
-  date: new Date(),
-};
+import { getCustomerDisplayName } from "@/lib/get-customer-display-name";
 
 
 export default function CustomerDetailPage() {
@@ -76,19 +66,16 @@ export default function CustomerDetailPage() {
         const estimatesQuery = query(collection(db, "estimates"), where("customerId", "==", customerId), orderBy("date", "desc"));
         const ordersQuery = query(collection(db, "orders"), where("customerId", "==", customerId), orderBy("date", "desc"));
         const invoicesQuery = query(collection(db, "invoices"), where("customerId", "==", customerId), orderBy("date", "desc"));
-        const notesQuery = query(collection(db, "customers", customerId, "notes"), orderBy("createdAt", "desc"));
-
-        const [estSnap, ordSnap, invSnap, notesSnap] = await Promise.all([
+        
+        const [estSnap, ordSnap, invSnap] = await Promise.all([
           getDocs(estimatesQuery),
           getDocs(ordersQuery),
           getDocs(invoicesQuery),
-          getDocs(notesQuery),
         ]);
 
         setEstimates(estSnap.docs.map(d => ({ id: d.id, ...d.data() } as Estimate)));
         setOrders(ordSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
         setInvoices(invSnap.docs.map(d => ({ id: d.id, ...d.data() } as Invoice)));
-        setNotes(notesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Note)));
 
       } catch (error) {
         console.error("Error fetching customer documents:", error);
@@ -97,11 +84,16 @@ export default function CustomerDetailPage() {
         setIsLoadingDocs(false);
       }
     };
+    
     fetchDocs();
     
-    // Also set up listeners for real-time updates if desired
-    const unsubNotes = onSnapshot(query(collection(db, "customers", customerId, "notes"), orderBy("createdAt", "desc")), (snap) => {
+    // Set up a listener for notes
+    const notesQuery = query(collection(db, "customers", customerId, "notes"), orderBy("createdAt", "desc"));
+    const unsubNotes = onSnapshot(notesQuery, (snap) => {
         setNotes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Note)))
+    }, (error) => {
+        console.error("Error fetching customer notes:", error);
+        toast({ title: "Error", description: "Could not load customer notes.", variant: "destructive" });
     });
     
     return () => unsubNotes();
@@ -111,19 +103,14 @@ export default function CustomerDetailPage() {
   const handleCreateDocument = (type: 'estimate' | 'invoice' | 'order') => {
     if (!customer) return;
 
-    const customerName =
-    customer.companyName
-    || [customer.firstName, customer.lastName].filter(Boolean).join(' ')
-    || (customer as any).displayName  // optional fallback if you have it
-    || customer.email
-    || "Customer";
+    const customerName = getCustomerDisplayName(customer);
   
-  const conversionData = {
-    customerId: customer.id,
-    customerName,
-    lineItems: [],
-    date: new Date(),
-  };
+    const conversionData = {
+      customerId: customer.id,
+      customerName,
+      lineItems: [],
+      date: new Date().toISOString(),
+    };
     
     localStorage.setItem(`customerToConvert_${type}`, JSON.stringify(conversionData));
     router.push(`/${type}s`);
@@ -176,7 +163,7 @@ export default function CustomerDetailPage() {
 
   return (
     <>
-      <PageHeader title={customer.companyName || customer.contactName || 'Customer'} description={customer.email || 'Customer Profile'}>
+      <PageHeader title={getCustomerDisplayName(customer)} description={customer.email || 'Customer Profile'}>
         <div className="flex gap-2">
             <Button onClick={() => handleCreateDocument('estimate')} variant="outline"><Icon name="FileText" className="mr-2"/> New Estimate</Button>
             <Button onClick={() => handleCreateDocument('invoice')}><Icon name="FileDigit" className="mr-2"/> New Invoice</Button>
@@ -190,7 +177,7 @@ export default function CustomerDetailPage() {
                       <CardTitle>Customer Profile</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                      <p><strong>Contact:</strong> {customer.contactName || 'N/A'}</p>
+                      <p><strong>Contact:</strong> {`${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A'}</p>
                       <p><strong>Email:</strong> {customer.email || 'N/A'}</p>
                       <p><strong>Phone:</strong> {customer.phone || 'N/A'}</p>
                       <Separator />
