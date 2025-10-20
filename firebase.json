@@ -43,18 +43,14 @@
       },
       "hosting": {
         "site": "delfenceinvoice",
-        "ignore": [
-          "firebase.json",
-          "**/.*",
-          "**/node_modules/**"
-        ],
+        "cleanUrls": true,
+        "trailingSlash": false,
         "rewrites": [
           {
             "source": "**",
             "run": {
               "serviceId": "delfencebackend",
-              "region": "us-central1",
-              "pinTag": true
+              "region": "us-central1"
             }
           }
         ]
