@@ -19,6 +19,18 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
+import { getCustomerDisplayName } from "@/lib/get-customer-display-name"; // adjust path if needed
+
+// ...
+const customerName = getCustomerDisplayName(customer);
+
+const conversionData = {
+  customerId: customer.id,
+  customerName,                // ✅ no more contactName
+  lineItems: [],
+  date: new Date(),
+};
+
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -99,12 +111,19 @@ export default function CustomerDetailPage() {
   const handleCreateDocument = (type: 'estimate' | 'invoice' | 'order') => {
     if (!customer) return;
 
-    const conversionData = {
-        customerId: customer.id,
-        customerName: customer.companyName || `${customer.contactName}`,
-        lineItems: [],
-        date: new Date(),
-    };
+    const customerName =
+    customer.companyName
+    || [customer.firstName, customer.lastName].filter(Boolean).join(' ')
+    || (customer as any).displayName  // optional fallback if you have it
+    || customer.email
+    || "Customer";
+  
+  const conversionData = {
+    customerId: customer.id,
+    customerName,
+    lineItems: [],
+    date: new Date(),
+  };
     
     localStorage.setItem(`customerToConvert_${type}`, JSON.stringify(conversionData));
     router.push(`/${type}s`);

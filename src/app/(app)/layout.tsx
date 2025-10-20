@@ -42,6 +42,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // If user is logged in, but tries to access /login or /signup, redirect to dashboard
+  if (user && (pathname === '/login' || pathname === '/signup')) {
+      router.replace('/dashboard');
+      return (
+         <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+            <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Redirecting to dashboard...</p>
+         </div>
+      );
+  }
+  
+  // Render login/signup pages without the main app layout
+  if (!user && (pathname === '/login' || pathname === '/signup')) {
+      return <>{children}</>;
+  }
+  
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen bg-background">
