@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css';
-import { FirebaseProvider } from '@/components/firebase-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -22,10 +21,8 @@ export default function RootLayout({
     <html lang="en" className={cn(inter.variable)} suppressHydrationWarning>
       <body className="font-body bg-background text-foreground">
         <Providers>
-          <FirebaseProvider>
-            {children}
-            <Toaster />
-          </FirebaseProvider>
+          {children}
+          <Toaster />
         </Providers>
       </body>
     </html>

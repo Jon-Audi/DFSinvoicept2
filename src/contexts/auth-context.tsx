@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -44,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!auth || !db) {
-        // Firebase not ready yet, wait for the provider to initialize it.
+        setLoading(true);
         return;
     };
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -60,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(appUser);
         } else {
+          // Fallback for users that exist in Auth but not in Firestore 'users' collection
           setUser(firebaseUser);
         }
       } else {

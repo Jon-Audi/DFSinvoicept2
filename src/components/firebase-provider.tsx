@@ -1,10 +1,10 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
+import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,9 +20,10 @@ interface FirebaseContextType {
   app: FirebaseApp | null;
   db: Firestore | null;
   auth: Auth | null;
+  storage: FirebaseStorage | null;
 }
 
-const FirebaseContext = createContext<FirebaseContextType>({ app: null, db: null, auth: null });
+const FirebaseContext = createContext<FirebaseContextType>({ app: null, db: null, auth: null, storage: null });
 
 export const useFirebase = () => {
   const context = useContext(FirebaseContext);
@@ -33,14 +34,15 @@ export const useFirebase = () => {
 };
 
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [firebase, setFirebase] = useState<FirebaseContextType>({ app: null, db: null, auth: null });
+  const [firebase, setFirebase] = useState<FirebaseContextType>({ app: null, db: null, auth: null, storage: null });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
       const db = getFirestore(app);
       const auth = getAuth(app);
-      setFirebase({ app, db, auth });
+      const storage = getStorage(app);
+      setFirebase({ app, db, auth, storage });
     }
   }, []);
 
