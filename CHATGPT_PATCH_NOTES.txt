@@ -1,0 +1,14 @@
+Applied fixes:
+
+1) Confirmed customers helpers (buildSearchIndex, hasName, sortKey) use firstName/lastName/companyName (no contactName).
+2) Verified utils.ts already contains fullName and customerDisplayName helpers.
+3) Confirmed EstimateDialog and EstimateForm declare and pass productSubcategories.
+4) Confirmed OrderDialog and OrderForm declare and pass productSubcategories.
+5) Removed stray public/index.html (can cause 404 on Next.js App Router with App Hosting).
+
+Next steps locally:
+  npm ci
+  npm run build
+  npm run start
+Verify routes, then:
+  firebase deploy --only hosting
