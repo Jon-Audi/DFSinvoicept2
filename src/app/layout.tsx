@@ -51,7 +51,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/dashboard');
       return (
          <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-            <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
+            <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
             <p className="mt-4 text-muted-foreground">Redirecting to dashboard...</p>
          </div>
       );
