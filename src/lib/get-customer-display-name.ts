@@ -1,3 +1,4 @@
+
 import type { Customer } from '@/types';
   
   export function getCustomerDisplayName(customer: Customer | null | undefined): string {
