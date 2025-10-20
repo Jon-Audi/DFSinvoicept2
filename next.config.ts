@@ -1,6 +1,10 @@
 
 // next.config.ts
 import type { NextConfig } from 'next';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config();
 
 // This function safely parses the server-side Firebase config
 // and prepares it for the client-side.
