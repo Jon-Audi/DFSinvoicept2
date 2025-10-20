@@ -37,7 +37,7 @@ import type {
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import type { InvoiceFormData } from "@/components/invoices/invoice-form";
 import { InvoiceTable } from "@/components/invoices/invoice-table";
-import { db } from "@/lib/firebase";
+import { db } from '@/lib/firebase-client';
 import {
   collection,
   addDoc,
@@ -1089,5 +1089,3 @@ export default function InvoicesPage() {
 const FormFieldWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
-
-    
