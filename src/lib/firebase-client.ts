@@ -1,9 +1,6 @@
 
 "use client";
 
-// This file is for CLIENT-SIDE Firebase initialization and exports.
-// It should only be imported in client components.
-
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -20,37 +17,35 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
-let analytics: Analytics | undefined;
+// Singleton pattern to initialize and get Firebase services
+const initializeClientApp = () => {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+  
+  if (!firebaseConfig.projectId) {
+     // This will only be thrown in the browser during development if the .env file is missing
+     throw new Error("[Firebase] Project ID is not defined. Check your .env.local file.");
+  }
+  
+  const app = initializeApp(firebaseConfig);
 
-if (!firebaseConfig.projectId) {
-  const errMsg = "Firebase project ID is not defined. Please ensure your .env.local file is correctly set up with NEXT_PUBLIC_FIREBASE_PROJECT_ID.";
-  console.error(`[FirebaseInit] ${errMsg}`);
-  // We throw an error on the client to make it obvious during development.
-  // The server-side build will no longer crash.
-  throw new Error(`CRITICAL RUNTIME ERROR: ${errMsg}`);
-}
-
-if (getApps().length) {
-  app = getApp();
-} else {
-  app = initializeApp(firebaseConfig);
-}
-
-auth = getAuth(app);
-db = getFirestore(app);
-storage = getStorage(app);
-
-if (typeof window !== "undefined" && firebaseConfig.measurementId) {
+  // Initialize Analytics only on the client side
+  if (typeof window !== "undefined" && firebaseConfig.measurementId) {
     try {
-        analytics = getAnalytics(app);
+      getAnalytics(app);
     } catch (error) {
-        console.error("Failed to initialize Analytics", error);
-        // Analytics might not be supported in all environments (e.g., extensions)
+      console.error("[Firebase] Failed to initialize Analytics", error);
     }
-}
+  }
+  return app;
+};
+
+const app: FirebaseApp = initializeClientApp();
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
+const analytics: Analytics | undefined = (typeof window !== 'undefined' && firebaseConfig.measurementId) ? getAnalytics(app) : undefined;
+
 
 export { app, db, auth, storage, analytics };
