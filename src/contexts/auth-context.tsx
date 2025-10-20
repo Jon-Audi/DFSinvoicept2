@@ -11,7 +11,6 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-// CORRECTED IMPORT: Use the new client-specific firebase file
 import { auth, db } from '@/lib/firebase-client'; 
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Order, Invoice, Customer, Product, LineItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import { InvoiceDialog } from '@/components/invoices/invoice-dialog';

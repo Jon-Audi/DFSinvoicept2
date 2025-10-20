@@ -5,7 +5,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
-import { getAnalytics, type Analytics } from "firebase/analytics";
+import { getAnalytics, type Analytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,35 +17,38 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Singleton pattern to initialize and get Firebase services
-const initializeClientApp = () => {
-  if (getApps().length > 0) {
-    return getApp();
-  }
-  
-  if (!firebaseConfig.projectId) {
-     // This will only be thrown in the browser during development if the .env file is missing
-     throw new Error("[Firebase] Project ID is not defined. Check your .env.local file.");
-  }
-  
-  const app = initializeApp(firebaseConfig);
+// Singleton pattern to ensure a single Firebase instance
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
+let analytics: Analytics | undefined;
 
-  // Initialize Analytics only on the client side
-  if (typeof window !== "undefined" && firebaseConfig.measurementId) {
-    try {
-      getAnalytics(app);
-    } catch (error) {
-      console.error("[Firebase] Failed to initialize Analytics", error);
+
+function initializeFirebase() {
+    if (!getApps().length) {
+        if (!firebaseConfig.projectId) {
+            throw new Error("[Firebase] Project ID is not defined in environment variables.");
+        }
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
     }
-  }
-  return app;
-};
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    
+    // Initialize Analytics only on the client side if supported
+    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+        isSupported().then(supported => {
+            if(supported) {
+                analytics = getAnalytics(app);
+            }
+        });
+    }
+}
 
-const app: FirebaseApp = initializeClientApp();
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
-const analytics: Analytics | undefined = (typeof window !== 'undefined' && firebaseConfig.measurementId) ? getAnalytics(app) : undefined;
-
+// Initialize on first load of this module.
+initializeFirebase();
 
 export { app, db, auth, storage, analytics };

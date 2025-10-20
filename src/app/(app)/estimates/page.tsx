@@ -53,7 +53,7 @@ import { estimateEmailDraft } from '@/ai/flows/estimate-email-draft';
 import type { Estimate, Product, Customer, CompanySettings, EmailContact } from '@/types';
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, deleteField } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -719,7 +719,7 @@ export default function EstimatesPage() {
               <div className="space-y-4 py-4">
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Recipients</Label>
-                  {targetCustomerForEmail && targetCustomerForEmail.emailContacts.length > 0 ? (
+                  {targetCustomerForEmail && targetCustomerForEmail.emailContacts && targetCustomerForEmail.emailContacts.length > 0 ? (
                     <ScrollArea className="h-24 w-full rounded-md border p-2 mb-2">
                       {targetCustomerForEmail.emailContacts.map((contact: EmailContact) => (
                         <div key={contact.id} className="flex items-center space-x-2 mb-1">
