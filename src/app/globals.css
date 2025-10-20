@@ -1,0 +1,191 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 120 25% 65%; /* Muted Green: #8FBC8F */
+    --primary-foreground: 0 0% 10%; /* Dark text for Muted Green */
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 140 38% 73%; /* Soft Blue/Greenish: #A0D6B4 */
+    --accent-foreground: 0 0% 10%; /* Dark text for Soft Blue/Greenish */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 120 25% 65%; /* Muted Green for ring */
+
+    --radius: 0.5rem;
+
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+
+    /* Sidebar specific vars for dark theme */
+    --sidebar-background: 0 0% 15%; /* Slightly lighter than main dark background */
+    --sidebar-foreground: 0 0% 80%; 
+    --sidebar-primary: 120 25% 65%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 30%;
+    --sidebar-ring: 120 25% 65%;
+  }
+
+  .dark {
+    --background: 0 0% 20%; /* Dark Gray: #333333 */
+    --foreground: 0 0% 98%; /* Light text for Dark Gray */
+
+    --card: 0 0% 25%; /* Slightly lighter than background for cards */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 25%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 120 25% 65%; /* Muted Green: #8FBC8F */
+    --primary-foreground: 0 0% 10%; /* Dark text for Muted Green */
+
+    --secondary: 0 0% 30%; /* Another shade for secondary elements */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 30%;
+    --muted-foreground: 0 0% 60%; /* Lighter gray for muted text */
+
+    --accent: 140 38% 73%; /* Soft Blue/Greenish: #A0D6B4 */
+    --accent-foreground: 0 0% 10%; /* Dark text for Soft Blue/Greenish */
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 35%;
+    --input: 0 0% 35%;
+    --ring: 120 25% 65%; /* Muted Green for ring */
+    
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --sidebar-background: 0 0% 15%; 
+    --sidebar-foreground: 0 0% 80%; 
+    --sidebar-primary: 120 25% 65%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 30%;
+    --sidebar-ring: 120 25% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+  }
+}
+
+@media print {
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background-color: white !important;
+    color: black !important;
+    font-size: 10pt !important;
+    box-sizing: border-box !important;
+  }
+
+  body > *:not(.print-only-container) {
+    display: none !important;
+  }
+  
+  .print-only-container, .print-only-container * {
+    display: revert !important; /* Allow children to display normally if hidden by other means */
+    visibility: visible !important; /* Ensure visibility if previously hidden by it */
+  }
+
+  .print-only-container {
+    display: block !important; /* Ensure the container itself is block */
+    position: static !important; /* Change from absolute to static for flow */
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0.5in !important; /* This acts as the page margin */
+    background-color: white !important;
+    color: black !important;
+    z-index: auto !important; /* Not critical for static positioning */
+    box-sizing: border-box !important;
+  }
+
+  .print-only {
+    display: block !important;
+    font-family: Arial, sans-serif !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background-color: white !important;
+    color: black !important;
+    box-sizing: border-box !important;
+    padding: 0 !important; /* Padding is on container */
+  }
+  
+  .print-only *, .print-only *::before, .print-only *::after {
+    background-color: transparent !important;
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    border-color: #ccc !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-only table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    page-break-inside: auto !important;
+  }
+  .print-only th, .print-only td {
+    border: 1px solid #ccc !important;
+    padding: 6px !important;
+    page-break-inside: avoid !important;
+  }
+  .print-only th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+  
+  @page {
+    size: auto;
+    margin: 0; /* Margins handled by .print-only-container padding */
+  }
+}
