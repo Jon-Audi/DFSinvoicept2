@@ -13,7 +13,7 @@ import { generateOrderEmailDraft } from '@/ai/flows/order-email-draft';
 import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact } from '@/types';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
