@@ -10,7 +10,7 @@ import { ProductTable } from '@/components/products/product-table';
 import { ProductDialog } from '@/components/products/product-dialog';
 import type { Product, CompanySettings } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, writeBatch, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { customerDisplayName, buildSearchIndex } from '@/lib/utils';
 import { BulkAddProductsDialog } from '@/components/products/bulk-add-products-dialog';
@@ -20,6 +20,7 @@ import { SelectCategoriesDialog } from '@/components/products/select-categories-
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function ProductsPage() {
+  const { db } = useFirebase();
   const [products, setProducts] = useState<Product[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
   const [productSubcategories, setProductSubcategories] = useState<string[]>([]);
@@ -33,6 +34,7 @@ export default function ProductsPage() {
 
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const fetchedProducts: Product[] = [];
@@ -57,9 +59,10 @@ export default function ProductsPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
   
   const handleSaveProduct = async (productToSave: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    if (!db) return;
     const { id, ...productData } = productToSave;
     
     try {
@@ -78,6 +81,7 @@ export default function ProductsPage() {
   };
 
   const handleBulkSaveProducts = async (productsToSave: Omit<Product, 'id'>[]) => {
+      if (!db) return;
       const batch = writeBatch(db);
       productsToSave.forEach(productData => {
           const docRef = doc(collection(db, 'products'));
@@ -94,6 +98,7 @@ export default function ProductsPage() {
   };
   
   const handleDeleteProduct = async (productId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'products', productId));
       toast({ title: "Product Deleted", description: "The product has been removed." });
@@ -118,6 +123,7 @@ export default function ProductsPage() {
   };
   
   const handleApplyCategoryMarkup = async (categoryName: string, markupPercentage: number) => {
+    if (!db) return;
     const productsToUpdate = products.filter(p => p.category === categoryName);
     if (productsToUpdate.length === 0) {
         toast({ title: "No Products", description: `No products found in category "${categoryName}" to update.`});
@@ -164,6 +170,7 @@ export default function ProductsPage() {
   };
   
   const handleBulkUpdate = async (updatedProducts: Product[]) => {
+    if (!db) return;
     const batch = writeBatch(db);
     updatedProducts.forEach(product => {
       const { id, ...data } = product;
@@ -181,6 +188,7 @@ export default function ProductsPage() {
   };
 
   const handleBulkStockUpdate = async (productsToUpdate: {id: string; quantityInStock: number}[]) => {
+      if (!db) return;
       const batch = writeBatch(db);
       productsToUpdate.forEach(p => {
           const docRef = doc(db, 'products', p.id);
@@ -196,6 +204,7 @@ export default function ProductsPage() {
   };
   
   const handleBulkSubcategoryUpdate = async (updatedProducts: Pick<Product, 'id' | 'subcategory'>[]) => {
+    if (!db) return;
     const batch = writeBatch(db);
     updatedProducts.forEach(p => {
         const docRef = doc(db, 'products', p.id);
@@ -211,6 +220,7 @@ export default function ProductsPage() {
   };
 
   const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
+    if (!db) return null;
     try {
       const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
       const docSnap = await getDoc(docRef);

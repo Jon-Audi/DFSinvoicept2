@@ -10,13 +10,14 @@ import { CustomerTable } from '@/components/customers/customer-table';
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import type { Customer } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog';
 import { buildSearchIndex, customerDisplayName, fullName } from '@/lib/utils';
 import { PrintableCustomerList } from '@/components/customers/printable-customer-list';
 
 export default function CustomersPage() {
+  const { db } = useFirebase();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +26,7 @@ export default function CustomersPage() {
   const [customersToPrint, setCustomersToPrint] = useState<Customer[] | null>(null);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
       const fetchedCustomers: Customer[] = [];
@@ -40,9 +42,10 @@ export default function CustomersPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
   
   const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => {
+    if (!db) return;
     const { id, ...customerData } = customerToSave;
     
     const searchIndex = buildSearchIndex({
@@ -76,6 +79,7 @@ export default function CustomersPage() {
   };
 
   const handleDeleteCustomer = async (customerId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'customers', customerId));
       toast({ title: "Customer Deleted", description: "The customer has been removed." });
@@ -86,6 +90,7 @@ export default function CustomersPage() {
   };
 
   const handleImportCustomers = async (importedCustomers: Omit<Customer, 'id'>[]) => {
+    if (!db) return;
     const batch = [];
     for (const cust of importedCustomers) {
         const searchIndex = buildSearchIndex({

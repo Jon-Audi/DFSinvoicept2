@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { Order, Invoice, LineItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, query, where, doc, runTransaction } from 'firebase/firestore';
 import {
   Dialog,
@@ -122,6 +123,7 @@ const PackingSlipDialogContent = ({ doc, onStatusChange, onPartialPackSave, isUp
 
 
 export default function PackingPage() {
+  const { db } = useFirebase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,6 +132,7 @@ export default function PackingPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!db) return;
     const unsubscribes: (() => void)[] = [];
     setIsLoading(true);
 
@@ -157,10 +160,10 @@ export default function PackingPage() {
     ]).finally(() => setIsLoading(false));
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [toast]);
+  }, [db, toast]);
   
   const handleStatusChange = async (newStatus: 'Ready for pick up' | 'Packed') => {
-    if (!selectedDoc) return;
+    if (!db || !selectedDoc) return;
     setIsUpdating(true);
     
     try {
@@ -194,7 +197,7 @@ export default function PackingPage() {
   };
 
   const handlePartialPackSave = async (packedItemsStatus: Record<string, boolean>, newStatus: 'Partial Packed') => {
-    if (!selectedDoc) return;
+    if (!db || !selectedDoc) return;
     setIsUpdating(true);
 
     try {
