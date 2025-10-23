@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -43,7 +44,7 @@ const productSchema = z.object({
   components: z.array(assemblyComponentSchema).optional(),
 });
 
-type ProductFormData = z.infer<typeof productSchema>;
+export type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   product?: Product;
@@ -110,7 +111,7 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
     if (formCategoryValue !== inputValue) {
       setInputValue(formCategoryValue);
     }
-  }, [formCategoryValue]);
+  }, [formCategoryValue, inputValue]);
 
   useEffect(() => {
     if (lastEditedField === 'markup' && cost > 0 && markupPercentage >= 0) {
