@@ -68,8 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               permissions: userData.permissions,
             };
 
-            // HARDCODED FIX: Ensure specific user has admin permissions
-            if (firebaseUser.uid === 'BpLtCifhXjRC97Lr6zZCg2l2w412') {
+            // HARDCODED FIX: Ensure specific users have admin permissions
+            if (firebaseUser.uid === 'BpLtCifhXjRC97Lr6zZCg2l2w412' || firebaseUser.uid === '3vtLM2BSqLPKGJ73tyZvPeiJexv2') {
               appUser.role = 'Admin';
               appUser.permissions = ROLE_PERMISSIONS['Admin'];
             }
