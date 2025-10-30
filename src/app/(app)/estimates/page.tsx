@@ -53,7 +53,7 @@ import { estimateEmailDraft } from '@/ai/flows/estimate-email-draft';
 import type { Estimate, Product, Customer, CompanySettings, EmailContact } from '@/types';
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, deleteField } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -67,6 +67,7 @@ export default function EstimatesPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const { db } = useFirebase();
 
   const [isLoadingEstimates, setIsLoadingEstimates] = useState(true);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
@@ -109,22 +110,11 @@ export default function EstimatesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (conversionHandled.current) return;
-     if (typeof window !== 'undefined') {
-      const pendingEstimateRaw = localStorage.getItem("estimateToConvert_invoice");
-      if (pendingEstimateRaw) {
-        conversionHandled.current = true;
-        // Clear the item to prevent re-triggering, but don't parse if empty
-        localStorage.removeItem("estimateToConvert_invoice");
-        if (pendingEstimateRaw.trim()) {
-           // Conversion logic to invoice is handled on the invoice page
-        }
-      }
-    }
   }, []);
 
   useEffect(() => {
     setIsLoadingEstimates(true);
+    if (!db) return;
     const unsubscribe = onSnapshot(collection(db, 'estimates'), (snapshot) => {
       const fetchedEstimates: Estimate[] = [];
       snapshot.forEach((docSnap) => {
@@ -137,10 +127,11 @@ export default function EstimatesPage() {
       setIsLoadingEstimates(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
     setIsLoadingCustomers(true);
+    if (!db) return;
     const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
       const fetchedCustomers: Customer[] = [];
       snapshot.forEach((docSnap) => {
@@ -153,10 +144,11 @@ export default function EstimatesPage() {
       setIsLoadingCustomers(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
     setIsLoadingProducts(true);
+    if (!db) return;
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const fetchedProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
@@ -169,7 +161,7 @@ export default function EstimatesPage() {
       setIsLoadingProducts(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -200,6 +192,7 @@ export default function EstimatesPage() {
   }, [products]);
 
   const handleSaveEstimate = async (estimateToSave: Estimate) => {
+    if (!db) return;
     const { id, ...estimateData } = estimateToSave;
 
     // Create a clean payload object, only including defined and non-empty values
@@ -227,6 +220,7 @@ export default function EstimatesPage() {
   };
 
   const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+    if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
       if (id && customers.some(c => c.id === id)) {
@@ -246,6 +240,7 @@ export default function EstimatesPage() {
   };
 
   const handleSaveProduct = async (productToSave: Omit<Product, 'id'>): Promise<string | void> => {
+    if (!db) return;
       try {
         const docRef = await addDoc(collection(db, 'products'), productToSave);
         toast({
@@ -265,6 +260,7 @@ export default function EstimatesPage() {
 
 
   const handleDeleteEstimate = async (estimateId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'estimates', estimateId));
       toast({ title: "Estimate Deleted", description: "The estimate has been removed." });
@@ -341,7 +337,7 @@ export default function EstimatesPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!selectedEstimateForEmail || !editableSubject || !editableBody) {
+    if (!selectedEstimateForEmail || !editableSubject || !editableBody || !db) {
         toast({ title: "Error", description: "Email content or estimate details missing.", variant: "destructive"});
         return;
     }
@@ -478,6 +474,7 @@ export default function EstimatesPage() {
   };
 
   const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
+    if (!db) return null;
     try {
       const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
       const docSnap = await getDoc(docRef);
@@ -815,5 +812,7 @@ export default function EstimatesPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
+
+    
 
     
