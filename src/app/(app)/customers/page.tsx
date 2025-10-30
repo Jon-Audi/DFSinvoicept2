@@ -174,29 +174,29 @@ export default function CustomersPage() {
 
   const filteredAndSortedCustomers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
-
+  
     const matches = (c: Customer) => {
       if (!q) return true;
       const idx = c.searchIndex ?? buildSearchIndex(c);
-      return idx?.includes(q);
+      return idx ? idx.includes(q) : false;
     };
-
+  
     const filtered = customersWithLastInteraction.filter(matches);
-
+  
     return filtered.sort((a, b) => {
       if (sortConfig.key === 'companyName' || sortConfig.key === 'firstName') {
         const aHas = hasName(a);
         const bHas = hasName(b);
         if (aHas && !bHas) return -1;
         if (!aHas && bHas) return 1;
-
+  
         const comparison = sortKey(a).localeCompare(sortKey(b), undefined, { sensitivity: "base" });
         return sortConfig.direction === 'asc' ? comparison : -comparison;
       }
-
+  
       const valA = a[sortConfig.key as keyof typeof a];
       const valB = b[sortConfig.key as keyof typeof b];
-
+  
       let comparison = 0;
       if (valA === null || valA === undefined) {
           comparison = 1;

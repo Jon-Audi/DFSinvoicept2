@@ -23,7 +23,7 @@ const PrintableOrder = React.forwardRef<HTMLDivElement, PrintableOrderProps>(
       return includeTime ? date.toLocaleString() : date.toLocaleDateString();
     };
 
-    const customerEmail = customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email;
+    const customerEmail = customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email || '';
 
     return (
       <div ref={ref} className="print-only-container">

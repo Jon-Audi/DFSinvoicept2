@@ -17,10 +17,10 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 let analytics: Analytics | undefined;
 
 
@@ -53,10 +53,6 @@ if (typeof window !== 'undefined' && getApps().length === 0) {
     });
   }
 }
-
-// @ts-ignore
-export { app, auth, db, storage, analytics };
-
 
 export function getFirebaseClient() {
     if (!app) {

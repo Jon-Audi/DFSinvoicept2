@@ -23,7 +23,7 @@ const PrintableInvoice = React.forwardRef<HTMLDivElement, PrintableInvoiceProps>
       return new Date(dateString).toLocaleDateString();
     };
 
-    const customerEmail = customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email;
+    const customerEmail = customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email || '';
 
     return (
       <div ref={ref} className="print-only-container">
@@ -179,5 +179,3 @@ const PrintableInvoice = React.forwardRef<HTMLDivElement, PrintableInvoiceProps>
 
 PrintableInvoice.displayName = "PrintableInvoice";
 export { PrintableInvoice };
-
-    
