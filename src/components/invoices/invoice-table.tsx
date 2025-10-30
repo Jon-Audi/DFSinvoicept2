@@ -83,8 +83,7 @@ export function InvoiceTable({
   const [invoiceToDelete, setInvoiceToDelete] = React.useState<Invoice | null>(null);
   const { user } = useAuth();
   // A simple permission check, assuming user object has a 'role' or 'permissions' array
-  // This would be more robust with a proper authorization context/hook
-  const canViewPricing = user && (user.role === 'Admin' || user.role === 'User');
+  const canViewPricing = user && user.permissions?.includes('view_pricing');
 
 
   const getStatusVariant = (
