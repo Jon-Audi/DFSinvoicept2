@@ -126,14 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await updateProfile(newUser, { displayName: `${firstName} ${lastName}` });
       
       const userDocRef = doc(db, 'users', newUser.uid);
+      // New users will be created as Admins by default.
       const newUserProfile: User = {
         id: newUser.uid,
         email: newUser.email!,
         firstName,
         lastName,
-        role: 'User', 
+        role: 'Admin', 
         isActive: true, 
-        permissions: ROLE_PERMISSIONS['User'],
+        permissions: ROLE_PERMISSIONS['Admin'],
         createdAt: new Date().toISOString(),
       };
       await setDoc(userDocRef, newUserProfile);

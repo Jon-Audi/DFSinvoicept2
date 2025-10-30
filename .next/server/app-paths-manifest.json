@@ -1,8 +1,7 @@
 {
-  "/(app)/inventory/page": "app/(app)/inventory/page.js",
-  "/(app)/estimates/page": "app/(app)/estimates/page.js",
-  "/(app)/orders/page": "app/(app)/orders/page.js",
+  "/page": "app/page.js",
+  "/(app)/customers/page": "app/(app)/customers/page.js",
   "/(app)/invoices/page": "app/(app)/invoices/page.js",
-  "/(app)/reports/page": "app/(app)/reports/page.js",
-  "/(app)/customers/page": "app/(app)/customers/page.js"
+  "/(app)/settings/page": "app/(app)/settings/page.js",
+  "/(app)/settings/users/page": "app/(app)/settings/users/page.js"
 }
