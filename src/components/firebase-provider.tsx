@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -59,10 +60,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         isSupported().then(supported => {
           if (supported) {
             analytics = getAnalytics(app);
-            setServices({ app, auth, db, storage, analytics });
-          } else {
-            setServices({ app, auth, db, storage, analytics: null });
           }
+          setServices({ app, auth, db, storage, analytics });
           setLoading(false);
         });
       } else {
@@ -76,19 +75,17 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = { ...services, loading };
-  
-  if (loading) {
-     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-        <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Connecting to services...</p>
-      </div>
-    );
-  }
 
   return (
     <FirebaseContext.Provider value={value}>
-      {children}
+      {loading ? (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+          <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Connecting to services...</p>
+        </div>
+      ) : (
+        children
+      )}
     </FirebaseContext.Provider>
   );
 }

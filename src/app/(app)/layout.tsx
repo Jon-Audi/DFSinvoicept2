@@ -42,7 +42,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  return (
+  // Only render the main layout if the user is authenticated
+  return user ? (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen bg-background">
         <AppSidebar />
@@ -56,5 +57,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </SidebarProvider>
-  );
+  ) : null; // or a login-specific layout if you had one that wasn't full screen
 }
