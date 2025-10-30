@@ -115,7 +115,9 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
       }
     };
 
-    fetchInvoices();
+    if (db) {
+        fetchInvoices();
+    }
   }, [selectedCustomerId, form, db]);
 
   const totalBalanceDue = useMemo(() => {
@@ -285,3 +287,5 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
     </Dialog>
   );
 }
+
+    

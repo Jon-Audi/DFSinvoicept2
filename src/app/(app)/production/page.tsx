@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProductionTask, ProductionTaskName, ProductionHistoryItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc, addDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
@@ -138,11 +138,13 @@ const ProductionTaskCard: React.FC<{
 
 
 export default function ProductionPage() {
+  const { db } = useFirebase();
   const [tasks, setTasks] = useState<Map<ProductionTaskName, ProductionTask>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'productionTasks'), (snapshot) => {
       const fetchedTasks = new Map<ProductionTaskName, ProductionTask>();
@@ -165,10 +167,11 @@ export default function ProductionPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
 
   const handleTaskUpdate = async (task: ProductionTask) => {
+    if (!db) return;
     try {
       const taskRef = doc(db, 'productionTasks', task.id);
       
@@ -225,6 +228,7 @@ export default function ProductionPage() {
   };
   
   const handleStopAndSave = async (task: ProductionTask) => {
+    if (!db) return;
      let finalTaskState = { ...task };
      let finalElapsedSeconds = task.elapsedSeconds;
      const HOURLY_RATE = 20; // $20 per hour
@@ -309,3 +313,5 @@ export default function ProductionPage() {
     </>
   );
 }
+
+    

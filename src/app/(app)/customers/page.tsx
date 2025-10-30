@@ -10,7 +10,7 @@ import { CustomerTable } from '@/components/customers/customer-table';
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import type { Customer, Estimate, Order, Invoice } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, writeBatch } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { PrintableCustomerList } from '@/components/customers/printable-customer-list';
@@ -85,6 +85,7 @@ const sortKey = (c: Partial<Customer>) => {
 
 
 export default function CustomersPage() {
+  const { db } = useFirebase();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -99,6 +100,7 @@ export default function CustomersPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribes: (() => void)[] = [];
 
@@ -127,9 +129,10 @@ export default function CustomersPage() {
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [toast]);
+  }, [db, toast]);
 
   const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => {
+    if (!db) return;
     const { id, ...customerData } = customerToSave;
     const now = new Date();
     
@@ -155,6 +158,7 @@ export default function CustomersPage() {
 
 
   const handleDeleteCustomer = async (customerId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'customers', customerId));
       toast({ title: "Customer Deleted", description: "The customer has been removed." });
@@ -313,3 +317,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
+    

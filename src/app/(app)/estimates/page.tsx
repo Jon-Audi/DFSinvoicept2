@@ -113,8 +113,8 @@ export default function EstimatesPage() {
   }, []);
 
   useEffect(() => {
-    setIsLoadingEstimates(true);
     if (!db) return;
+    setIsLoadingEstimates(true);
     const unsubscribe = onSnapshot(collection(db, 'estimates'), (snapshot) => {
       const fetchedEstimates: Estimate[] = [];
       snapshot.forEach((docSnap) => {
@@ -130,8 +130,8 @@ export default function EstimatesPage() {
   }, [db, toast]);
 
   useEffect(() => {
-    setIsLoadingCustomers(true);
     if (!db) return;
+    setIsLoadingCustomers(true);
     const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
       const fetchedCustomers: Customer[] = [];
       snapshot.forEach((docSnap) => {
@@ -147,8 +147,8 @@ export default function EstimatesPage() {
   }, [db, toast]);
 
   useEffect(() => {
-    setIsLoadingProducts(true);
     if (!db) return;
+    setIsLoadingProducts(true);
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const fetchedProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
@@ -275,7 +275,6 @@ export default function EstimatesPage() {
       ...estimateToClone,
       estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`,
       customerId: '', // Clear customer so user has to select a new one
-      customerName: '',
       date: new Date(),
       status: 'Draft',
       validUntil: undefined, // Or adjust as needed, e.g., date + 30 days
@@ -812,7 +811,5 @@ export default function EstimatesPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
-
-    
 
     

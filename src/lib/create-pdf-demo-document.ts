@@ -49,11 +49,14 @@ interface PdfDemoDocumentData {
 export async function createPdfDemoDocument(): Promise<string | null> {
   console.log("Attempting to create PDF demo document in Firestore...");
   try {
-    // Since this is a server action, it runs on the server, but it can use
-    // the client SDK initialization if configured correctly for server components.
-    // However, the best practice is to use the Admin SDK on the server.
-    // For this context, we will assume firebase-client initialization can be accessed.
+    // This server action uses a client-side SDK pattern, which is not ideal.
+    // A better approach would be to use the Firebase Admin SDK on the server.
+    // For the purpose of this file, we assume it gets a valid DB instance.
+    // If this runs on the server during a build, it might fail if not configured for server-side execution.
     const { db } = getFirebaseClient();
+    if (!db) {
+      throw new Error("Firestore database is not available. This action might be running in a context where Firebase client is not initialized.");
+    }
 
     const docData: PdfDemoDocumentData = {
       text: "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
@@ -93,3 +96,5 @@ export async function createPdfDemoDocument(): Promise<string | null> {
     return null;
   }
 }
+
+    
