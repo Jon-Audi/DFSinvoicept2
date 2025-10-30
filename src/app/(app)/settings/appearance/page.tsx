@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,8 +5,8 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useTheme } from '@/contexts/theme-context';
-import { Icon } from '@/components/icons'; // Assuming you have an Icon component
+import { useTheme } from '@/app/providers';
+import { Icon } from '@/components/icons'; 
 
 type ThemeOption = "light" | "dark" | "system";
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -6,7 +5,8 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
-import { Icon } from './icons';
+import { getAnalytics, type Analytics, isSupported } from "firebase/analytics";
+import { Icon } from '@/components/icons';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,10 +19,12 @@ const firebaseConfig = {
 };
 
 interface FirebaseContextType {
-  app: FirebaseApp;
-  db: Firestore;
-  auth: Auth;
-  storage: FirebaseStorage;
+  app: FirebaseApp | null;
+  db: Firestore | null;
+  auth: Auth | null;
+  storage: FirebaseStorage | null;
+  analytics: Analytics | null;
+  loading: boolean;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -35,35 +37,58 @@ export const useFirebase = () => {
   return context;
 };
 
-export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [firebase, setFirebase] = useState<FirebaseContextType | null>(null);
+export function FirebaseProvider({ children }: { children: React.ReactNode }) {
+  const [services, setServices] = useState<Omit<FirebaseContextType, 'loading'>>({
+    app: null,
+    db: null,
+    auth: null,
+    storage: null,
+    analytics: null,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const storage = getStorage(app);
-        setFirebase({ app, db, auth, storage });
-      } catch (e) {
-        console.error("Failed to initialize Firebase", e);
+    try {
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+      
+      let analytics: Analytics | null = null;
+      if (firebaseConfig.measurementId) {
+        isSupported().then(supported => {
+          if (supported) {
+            analytics = getAnalytics(app);
+            setServices({ app, auth, db, storage, analytics });
+          } else {
+            setServices({ app, auth, db, storage, analytics: null });
+          }
+          setLoading(false);
+        });
+      } else {
+        setServices({ app, auth, db, storage, analytics: null });
+        setLoading(false);
       }
+    } catch (e) {
+      console.error("Failed to initialize Firebase", e);
+      setLoading(false);
     }
   }, []);
 
-  if (!firebase) {
-    return (
+  const value = { ...services, loading };
+  
+  if (loading) {
+     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Connecting to Firebase...</p>
+        <p className="mt-4 text-muted-foreground">Connecting to services...</p>
       </div>
     );
   }
 
   return (
-    <FirebaseContext.Provider value={firebase}>
+    <FirebaseContext.Provider value={value}>
       {children}
     </FirebaseContext.Provider>
   );
-};
+}

@@ -5,7 +5,7 @@ import type React from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from '@/contexts/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Icon } from '@/components/icons';

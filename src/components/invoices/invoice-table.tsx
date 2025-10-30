@@ -53,6 +53,7 @@ interface InvoiceTableProps {
   customers: Customer[];
   products: Product[];
   productCategories: string[];
+  productSubcategories: string[];
   onViewItems: (invoice: Invoice) => void;
   sortConfig: { key: SortableInvoiceKeys; direction: 'asc' | 'desc' };
   requestSort: (key: SortableInvoiceKeys) => void;
@@ -73,6 +74,7 @@ export function InvoiceTable({
   customers,
   products,
   productCategories,
+  productSubcategories,
   onViewItems,
   sortConfig,
   requestSort,
@@ -228,6 +230,7 @@ export function InvoiceTable({
                       customers={customers}
                       products={products}
                       productCategories={productCategories}
+                      productSubcategories={productSubcategories}
                     />
 
                     <DropdownMenuItem onSelect={() => onGenerateEmail(invoice)}>
