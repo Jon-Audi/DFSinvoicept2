@@ -164,6 +164,4 @@ const PrintableOrder = React.forwardRef<HTMLDivElement, PrintableOrderProps>(
 );
 
 PrintableOrder.displayName = "PrintableOrder";
-export { PrintableOrder }; // Ensure it's exported
-
-    
+export { PrintableOrder };

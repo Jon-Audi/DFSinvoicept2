@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Order, Customer, Product, DocumentStatus } from '@/types';
+import type { Order, Customer, Product } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Table,
