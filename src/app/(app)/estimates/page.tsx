@@ -493,13 +493,15 @@ export default function EstimatesPage() {
     const companySettings = await fetchCompanySettings();
     const absoluteLogoUrl = window.location.origin + '/Logo.png';
 
+    const customerEmail = customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email ?? customer?.emailContacts?.[0]?.email;
+
     const estimateDataForPrint = {
       estimateNumber: estimate.estimateNumber,
       date: formatDateForDisplay(estimate.date),
       poNumber: estimate.poNumber || '',
       customerName: estimate.customerName || 'N/A',
       customerPhone: customer?.phone,
-      customerEmail: customer?.emailContacts?.find(e => e.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email,
+      customerEmail: customerEmail,
       items: estimate.lineItems.map(li => ({
         description: li.productName + (li.isReturn ? " (Return)" : ""),
         quantity: li.quantity,
@@ -781,7 +783,7 @@ export default function EstimatesPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setEstimateToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeleteEstimate(estimateToDelete.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={() => {if (estimateToDelete) handleDeleteEstimate(estimateToDelete.id)}} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>

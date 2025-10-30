@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -13,7 +14,7 @@ import {z} from 'genkit';
 
 const GenerateOrderEmailDraftInputSchema = z.object({
   customerName: z.string().describe('The name of the customer.'),
-  customerEmail: z.string().email().describe('The email address of the customer.'),
+  customerEmail: z.string().email().optional().describe('The email address of the customer.'),
   orderNumber: z.string().describe('The order number.'),
   orderDate: z.string().describe('The order date.'),
   orderItems: z.string().describe('A description of the items ordered.'),
@@ -49,7 +50,9 @@ const prompt = ai.definePrompt({
   Use the provided information to create a professional and informative email.
 
   Customer Name: {{{customerName}}}
+  {{#if customerEmail}}
   Customer Email: {{{customerEmail}}}
+  {{/if}}
   Order Number: {{{orderNumber}}}
   Order Date: {{{orderDate}}}
   Order Items: {{{orderItems}}}

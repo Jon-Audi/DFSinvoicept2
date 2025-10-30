@@ -17,49 +17,54 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
-let storage: FirebaseStorage | undefined;
-let analytics: Analytics | undefined;
+// This function safely gets the initialized Firebase app instance.
+function getFirebaseApp(): FirebaseApp {
+  if (getApps().length === 0) {
+    return initializeApp(firebaseConfig);
+  } else {
+    return getApp();
+  }
+}
 
+// This function initializes all services and returns them.
+// It's designed to be called once inside the FirebaseProvider.
+export function initializeFirebaseServices() {
+  const app = getFirebaseApp();
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+  
+  let analytics: Analytics | null = null;
+  if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+    isSupported().then(supported => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    });
+  }
 
-if (typeof window !== 'undefined' && getApps().length === 0) {
-  try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-    if (firebaseConfig.measurementId) {
+  return { app, auth, db, storage, analytics };
+}
+
+// A function to get the services if you absolutely need them outside of the React context,
+// but use of the useFirebase hook is strongly preferred.
+export function getFirebaseClient() {
+    const app = getFirebaseApp();
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    let analytics: Analytics | null = null;
+
+    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
       isSupported().then(supported => {
         if (supported) {
-          analytics = getAnalytics(app);
+            analytics = getAnalytics(app);
         }
       });
     }
-  } catch (e) {
-    console.error("Failed to initialize Firebase on the client", e);
-  }
-} else if (typeof window !== 'undefined') {
-  app = getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-  if (firebaseConfig.measurementId) {
-    isSupported().then(supported => {
-        if(supported) {
-            analytics = getAnalytics(app);
-        }
-    });
-  }
-}
-
-export function getFirebaseClient() {
-    if (!app) {
-        // This can happen in a server context or if initialization fails
-        // For client-side, the above block should handle it.
-        // We can throw an error or handle it gracefully.
-        throw new Error("Firebase has not been initialized. Make sure you are using FirebaseProvider.");
-    }
+    
     return { app, auth, db, storage, analytics };
 }
+
+// We no longer export the instances directly to prevent race conditions.
+// Components should use the `useFirebase` hook provided by `FirebaseProvider`.
