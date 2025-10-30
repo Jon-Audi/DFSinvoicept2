@@ -16,7 +16,7 @@ import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, isVa
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc as getFirestoreDoc, orderBy } from 'firebase/firestore';
-import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem } from '@/types';
+import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem, ProfitSummaryItem } from '@/types';
 import { PrintableSalesReport } from '@/components/reports/printable-sales-report';
 import PrintableOrderReport from '@/components/reports/printable-order-report';
 import { PrintableOutstandingInvoicesReport } from '@/components/reports/printable-outstanding-invoices-report';
@@ -38,14 +38,6 @@ const COMPANY_SETTINGS_DOC_ID = "main";
 
 type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup';
 type DatePreset = 'custom' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear';
-
-interface ProfitSummaryItem {
-  customerId: string;
-  customerName: string;
-  totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
-}
 
 interface ReportToPrintData {
   reportType: ReportType;
@@ -136,6 +128,7 @@ export default function ReportsPage() {
   };
 
   const generateProfitabilityReportData = async (rangeStart: Date, rangeEnd: Date) => {
+      if (!db) return [];
       const invoicesRef = collection(db, 'invoices');
       const q = query(invoicesRef, 
                       where('date', '>=', rangeStart.toISOString()), 
@@ -184,6 +177,10 @@ export default function ReportsPage() {
   }
 
   const handleGenerateReport = async (targetReportType = reportType) => {
+    if (!db) {
+        toast({ title: "Database Error", description: "Firestore is not available.", variant: "destructive" });
+        return;
+    }
     if (!startDate || !endDate) {
       if (targetReportType !== 'customerBalances' && targetReportType !== 'readyForPickup') {
         toast({ title: "Date Range Required", description: "Please select both a start and end date.", variant: "destructive" });
@@ -403,7 +400,7 @@ export default function ReportsPage() {
 
       } else if (targetReportType === 'customerBalances') {
         const invoicesRef = collection(db, 'invoices');
-        let qConstraints = [];
+        let qConstraints: any[] = [];
 
         if (showOnlyPickedUpUnpaid) {
             currentReportTitle = "Outstanding Invoices (Picked Up, Unpaid)";
@@ -612,6 +609,7 @@ export default function ReportsPage() {
   };
 
   const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
+    if (!db) return null;
     try {
       const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
       const docSnap = await getFirestoreDoc(docRef);

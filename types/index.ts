@@ -43,31 +43,40 @@ export interface Product {
   components?: AssemblyComponent[]; // New field for assembly components
 }
 
+export interface EmailContact {
+  id?: string;
+  type: EmailContactType;
+  name?: string;
+  email: string;
+}
+
+export interface SpecificMarkup {
+    id?: string;
+    categoryName: string;
+    markupPercentage: number;
+}
+
 export interface Customer {
-  id: string; // doc id
-  companyName: string; // required
-  contactName?: string;
-  email?: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  companyName?: string;
+  customerType: CustomerType;
   phone?: string;
   address?: {
-    line1?: string;
-    line2?: string;
+    street?: string;
     city?: string;
     state?: string;
     zip?: string;
   };
-  tags?: CustomerType[];
-  credit?: {
-    terms?: string;
-    limit?: number;
-    balance?: number;
-    onHold?: boolean;
-  };
+  emailContacts: EmailContact[];
+  specificMarkups?: SpecificMarkup[];
   notes?: string;
-  createdAt: string; // ISO String from serverTimestamp
-  updatedAt: string; // ISO string from serverTimestamp
-  searchIndex: string; // company + contact + email lowercased
+  createdAt?: string;
+  updatedAt?: string;
+  searchIndex?: string | null;
 }
+
 
 export interface LineItem {
   id: string;
@@ -254,6 +263,13 @@ export interface ProfitReportItem {
   profit: number;
 }
 
+export interface ProfitSummaryItem {
+  customerId: string;
+  customerName: string;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+}
 
 // Ensure Invoice type in initialData for InvoiceForm expects Payment[] with string dates
 export type InvoiceForFormInitialData = Omit<Invoice, 'payments'> & {

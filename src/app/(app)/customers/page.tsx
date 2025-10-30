@@ -26,7 +26,7 @@ const buildSearchIndex = (c: Partial<Customer>) => {
     c.companyName ?? "",
     c.firstName ?? "",
     c.lastName ?? "",
-    c.email ?? "",
+    ...(c.emailContacts?.map(e => e.email) || []),
     c.phone ?? "",
   ]
     .join(" ")
@@ -38,37 +38,26 @@ const buildSearchIndex = (c: Partial<Customer>) => {
   return parts || null;
 };
 
-// Clean data for Firestore by removing undefined values
-const cleanFirestoreData = (data: any): any => {
-  if (data === null || data === undefined) {
-    return null;
-  }
-  
-  if (Array.isArray(data)) {
-    return data.map(cleanFirestoreData).filter(item => item !== undefined);
-  }
-  
-  if (typeof data === 'object') {
-    const cleaned: any = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        const cleanedValue = cleanFirestoreData(value);
-        if (cleanedValue !== undefined) {
-          cleaned[key] = cleanedValue;
+const cleanFirestoreData = <T extends object>(data: T): Partial<T> => {
+  const cleaned: Partial<T> = {};
+  for (const key in data) {
+    const value = data[key];
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        (cleaned as any)[key] = value.map(cleanFirestoreData).filter(item => item !== undefined);
+      } else if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+        const cleanedObject = cleanFirestoreData(value as object);
+        if (Object.keys(cleanedObject).length > 0) {
+            (cleaned as any)[key] = cleanedObject;
         }
+      } else {
+        (cleaned as any)[key] = value;
       }
     }
-    
-    // Remove empty objects, but keep them if they have at least one property
-    if (Object.keys(cleaned).length === 0) {
-      return undefined;
-    }
-    
-    return cleaned;
   }
-  
-  return data;
+  return cleaned;
 };
+
 
 const hasName = (c: Partial<Customer>) => {
   const company = (c.companyName ?? "").trim();
@@ -104,7 +93,7 @@ export default function CustomersPage() {
     setIsLoading(true);
     const unsubscribes: (() => void)[] = [];
 
-    const collections = {
+    const collections: { [key: string]: (items: any[]) => void } = {
         customers: (items: Customer[]) => setCustomers(items),
         estimates: (items: Estimate[]) => setEstimates(items),
         orders: (items: Order[]) => setOrders(items),
@@ -136,7 +125,6 @@ export default function CustomersPage() {
     const { id, ...customerData } = customerToSave;
     const now = new Date();
     
-    // Clean the data by removing undefined values and empty objects
     const cleanCustomerData = cleanFirestoreData(customerData);
     
     const searchIndex = buildSearchIndex(cleanCustomerData);
@@ -169,7 +157,7 @@ export default function CustomersPage() {
   };
 
   const customersWithLastInteraction = useMemo((): CustomerWithLastInteraction[] => {
-    return customers.map(customer => {
+    return customers.map((customer): CustomerWithLastInteraction => {
       const customerEstimates = estimates.filter(e => e.customerId === customer.id).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       const customerOrders = orders.filter(o => o.customerId === customer.id);
       const customerInvoices = invoices.filter(i => i.customerId === customer.id);
@@ -301,9 +289,7 @@ export default function CustomersPage() {
         customers={filteredAndSortedCustomers}
         onSave={handleSaveCustomer}
         onDelete={handleDeleteCustomer}
-        onRowClick={handleRowClick}
-        sortConfig={sortConfig}
-        requestSort={requestSort}
+        isLoading={isLoading}
       />
        {filteredAndSortedCustomers.length === 0 && !isLoading && (
         <p className="p-4 text-center text-muted-foreground">
@@ -317,5 +303,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-    

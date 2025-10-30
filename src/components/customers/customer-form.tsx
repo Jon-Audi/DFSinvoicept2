@@ -5,7 +5,7 @@ import React from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Customer, CustomerType, EmailContactType, EmailContact } from '@/types';
+import type { Customer, CustomerType, EmailContactType, EmailContact, SpecificMarkup } from '@/types';
 import { CUSTOMER_TYPES, EMAIL_CONTACT_TYPES, ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,19 +129,19 @@ export function CustomerForm({ customer, onSubmit, onClose }: CustomerFormProps)
         <h3 className="text-lg font-medium">Email Contacts</h3>
         {emailFields.map((field, index) => (
           <div key={field.id} className="grid grid-cols-[1fr,1fr,1fr,auto] gap-2 items-end">
-            <FormField control={form.control} name={`emailContacts.${index}.type`} render={({ field }) => (
+            <FormField control={form.control} name={`emailContacts.${index}.type`} render={({ field: typeField }) => (
               <FormItem><FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
                   <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                   <SelectContent>{EMAIL_CONTACT_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                 </Select><FormMessage />
               </FormItem>
             )} />
-            <FormField control={form.control} name={`emailContacts.${index}.name`} render={({ field }) => (
-              <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+            <FormField control={form.control} name={`emailContacts.${index}.name`} render={({ field: nameField }) => (
+              <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...nameField} /></FormControl><FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name={`emailContacts.${index}.email`} render={({ field }) => (
-              <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormField control={form.control} name={`emailContacts.${index}.email`} render={({ field: emailField }) => (
+              <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...emailField} /></FormControl><FormMessage /></FormItem>
             )} />
             <Button type="button" variant="ghost" size="icon" onClick={() => removeEmail(index)}><Icon name="Trash2" className="h-4 w-4 text-destructive" /></Button>
           </div>
@@ -154,11 +154,11 @@ export function CustomerForm({ customer, onSubmit, onClose }: CustomerFormProps)
         <h3 className="text-lg font-medium">Specific Markups</h3>
         {markupFields.map((field, index) => (
           <div key={field.id} className="grid grid-cols-[2fr,1fr,auto] gap-2 items-end">
-             <FormField control={form.control} name={`specificMarkups.${index}.categoryName`} render={({ field }) => (
-              <FormItem><FormLabel>Category</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+             <FormField control={form.control} name={`specificMarkups.${index}.categoryName`} render={({ field: categoryNameField }) => (
+              <FormItem><FormLabel>Category</FormLabel><FormControl><Input {...categoryNameField} /></FormControl><FormMessage /></FormItem>
             )} />
-             <FormField control={form.control} name={`specificMarkups.${index}.markupPercentage`} render={({ field }) => (
-              <FormItem><FormLabel>Markup (%)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+             <FormField control={form.control} name={`specificMarkups.${index}.markupPercentage`} render={({ field: markupPercentageField }) => (
+              <FormItem><FormLabel>Markup (%)</FormLabel><FormControl><Input type="number" {...markupPercentageField} /></FormControl><FormMessage /></FormItem>
             )} />
             <Button type="button" variant="ghost" size="icon" onClick={() => removeMarkup(index)}><Icon name="Trash2" className="h-4 w-4 text-destructive" /></Button>
           </div>
