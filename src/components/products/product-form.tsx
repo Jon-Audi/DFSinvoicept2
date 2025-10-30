@@ -114,20 +114,26 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
   }, [formCategoryValue, inputValue]);
 
   useEffect(() => {
-    if (lastEditedField === 'markup' && cost > 0 && markupPercentage >= 0) {
-      const calculatedPrice = cost * (1 + markupPercentage / 100);
-      setValue('price', parseFloat(calculatedPrice.toFixed(2)), { shouldValidate: true });
+    // This effect runs when cost, price, or markupPercentage change.
+    // It recalculates the other two fields based on which one was last edited.
+    if (lastEditedField === 'markup') {
+      if (cost > 0 && markupPercentage >= 0) {
+        const newPrice = cost * (1 + markupPercentage / 100);
+        if (Math.abs(newPrice - price) > 0.001) {
+          setValue('price', parseFloat(newPrice.toFixed(2)), { shouldValidate: true });
+        }
+      }
+    } else if (lastEditedField === 'price') {
+      if (cost > 0 && price >= 0) {
+        const newMarkup = ((price / cost) - 1) * 100;
+        if (Math.abs(newMarkup - markupPercentage) > 0.001) {
+          setValue('markupPercentage', parseFloat(newMarkup.toFixed(2)), { shouldValidate: true });
+        }
+      } else if (cost === 0) {
+        setValue('markupPercentage', 0, { shouldValidate: true });
+      }
     }
-  }, [cost, markupPercentage, setValue, lastEditedField]);
-
-  useEffect(() => {
-    if (lastEditedField === 'price' && cost > 0 && price >= 0) {
-      const calculatedMarkup = cost > 0 ? ((price / cost) - 1) * 100 : 0;
-      setValue('markupPercentage', parseFloat(calculatedMarkup.toFixed(2)), { shouldValidate: true });
-    } else if (cost === 0 && price >= 0) {
-      setValue('markupPercentage', 0, { shouldValidate: true });
-    }
-  }, [cost, price, setValue, lastEditedField]);
+  }, [cost, price, markupPercentage, lastEditedField, setValue]);
   
   // Auto-calculate assembly cost
   useEffect(() => {
@@ -398,9 +404,8 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                   disabled={isAssembly} // Disable cost field for assemblies
                   onChange={(e) => { 
                     field.onChange(parseFloat(e.target.value) || 0); 
-                    setLastEditedField(null); 
+                    setLastEditedField('price'); // Assume price is fixed, re-calc markup
                   }} 
-                  onBlur={()=> trigger(["price", "markupPercentage"])} 
                 /></FormControl>
                 <FormMessage />
               </FormItem>

@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -163,7 +164,7 @@ export function InvoiceForm({
   const [editingPayment, setEditingPayment] = useState<FormPayment | null>(null);
   
   const [localPayments, setLocalPayments] = useState<FormPayment[]>([]);
-  const prevCustomerIdRef = useRef<string | undefined>();
+  const prevCustomerIdRef = React.useRef<string | undefined>();
 
   const form = useForm<z.infer<typeof invoiceFormSchema>>({
     resolver: zodResolver(invoiceFormSchema),
@@ -270,11 +271,12 @@ export function InvoiceForm({
   };
 
   useEffect(() => {
-    const customer = customers.find(c => c.id === watchedCustomerId);
-    if (!watchedCustomerId || !customer || !products || products.length === 0) return;
+    if (watchedCustomerId === prevCustomerIdRef.current || !watchedCustomerId || !products.length) {
+      return;
+    }
   
+    const customer = customers.find(c => c.id === watchedCustomerId);
     const currentLineItems = form.getValues('lineItems');
-    let hasChanged = false;
   
     const updatedLineItems = currentLineItems.map(item => {
       if (item.isNonStock || !item.productId) {
@@ -285,17 +287,10 @@ export function InvoiceForm({
         return item;
       }
       const newUnitPrice = calculateUnitPrice(product, customer);
-      if (Math.abs(item.unitPrice - newUnitPrice) > 0.001) {
-        hasChanged = true;
-        return { ...item, unitPrice: newUnitPrice };
-      }
-      return item;
+      return { ...item, unitPrice: newUnitPrice };
     });
   
-    if (hasChanged) {
-      form.setValue('lineItems', updatedLineItems, { shouldValidate: true });
-    }
-  
+    form.setValue('lineItems', updatedLineItems, { shouldValidate: true });
     prevCustomerIdRef.current = watchedCustomerId;
   }, [watchedCustomerId, customers, products, form]);
   

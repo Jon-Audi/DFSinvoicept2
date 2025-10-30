@@ -67,71 +67,70 @@ export function BulkPriceEditorDialog({
   onSave,
 }: BulkPriceEditorDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [lastEdited, setLastEdited] = useState<{ index: number, field: 'price' | 'markup' } | null>(null);
 
   const form = useForm<BulkPriceFormData>({
     resolver: zodResolver(bulkPriceFormSchema),
     defaultValues: {
-      products: products.map(p => ({
-        id: p.id,
-        name: p.name,
-        subcategory: p.subcategory,
-        cost: p.cost,
-        price: p.price,
-        markupPercentage: p.markupPercentage,
-      })),
+      products: [],
     },
   });
   
   useEffect(() => {
-    form.reset({
-      products: products.map(p => ({
-        id: p.id,
-        name: p.name,
-        subcategory: p.subcategory,
-        cost: p.cost,
-        price: p.price,
-        markupPercentage: p.markupPercentage,
-      })),
-    })
-  }, [products, form, isOpen]);
+    if (isOpen) {
+        form.reset({
+          products: products.map(p => ({
+            id: p.id,
+            name: p.name,
+            subcategory: p.subcategory,
+            cost: p.cost,
+            price: p.price,
+            markupPercentage: p.markupPercentage,
+          })),
+        });
+    }
+  }, [isOpen, products, form]);
 
-  const { control, getValues, setValue, watch } = form;
-
-  const { fields } = useFieldArray({
-    control,
-    name: "products",
-  });
-  
+  const { control, getValues, setValue, watch, trigger } = form;
   const watchedProducts = watch('products');
 
-  const handlePriceChange = (index: number, newPrice: number) => {
-    const cost = getValues(`products.${index}.cost`);
-    setValue(`products.${index}.price`, newPrice, { shouldValidate: true });
-    if (cost > 0) {
-      const markup = ((newPrice / cost) - 1) * 100;
-      setValue(`products.${index}.markupPercentage`, parseFloat(markup.toFixed(2)), { shouldValidate: true });
-    }
-  };
+  useEffect(() => {
+    if (!lastEdited) return;
 
-  const handleMarkupChange = (index: number, newMarkup: number) => {
+    const { index, field } = lastEdited;
     const cost = getValues(`products.${index}.cost`);
-    setValue(`products.${index}.markupPercentage`, newMarkup, { shouldValidate: true });
-    if (cost > 0) {
-      const price = cost * (1 + newMarkup / 100);
-      setValue(`products.${index}.price`, parseFloat(price.toFixed(2)), { shouldValidate: true });
+    
+    if (field === 'price') {
+      const price = getValues(`products.${index}.price`);
+      if (cost > 0) {
+        const newMarkup = ((price / cost) - 1) * 100;
+        setValue(`products.${index}.markupPercentage`, parseFloat(newMarkup.toFixed(2)), { shouldValidate: true });
+      }
+    } else if (field === 'markup') {
+      const markup = getValues(`products.${index}.markupPercentage`);
+      if (cost > 0) {
+        const newPrice = cost * (1 + markup / 100);
+        setValue(`products.${index}.price`, parseFloat(newPrice.toFixed(2)), { shouldValidate: true });
+      }
     }
-  };
-  
+    setLastEdited(null); // Reset after calculation
+  }, [watchedProducts, lastEdited, getValues, setValue]);
+
+
   const handleCostChange = (index: number, newCost: number) => {
-    const markup = getValues(`products.${index}.markupPercentage`);
     setValue(`products.${index}.cost`, newCost, { shouldValidate: true });
+    const markup = getValues(`products.${index}.markupPercentage`);
     if (markup >= 0) {
       const price = newCost * (1 + markup / 100);
       setValue(`products.${index}.price`, parseFloat(price.toFixed(2)), { shouldValidate: true });
     }
   };
 
-
+  const { fields } = useFieldArray({
+    control,
+    name: "products",
+  });
+  
   const handleSubmit = async (data: BulkPriceFormData) => {
     setIsSaving(true);
     // Find original products to merge other data
@@ -204,7 +203,10 @@ export function BulkPriceEditorDialog({
                                   type="number" step="0.01"
                                   className="text-right"
                                   {...markupField}
-                                  onChange={e => handleMarkupChange(index, parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => {
+                                      markupField.onChange(parseFloat(e.target.value) || 0);
+                                      setLastEdited({ index, field: 'markup' });
+                                  }}
                                 />
                               </FormControl><FormMessage />
                             </FormItem>
@@ -222,7 +224,10 @@ export function BulkPriceEditorDialog({
                                   type="number" step="0.01"
                                   className="text-right"
                                   {...priceField}
-                                  onChange={e => handlePriceChange(index, parseFloat(e.target.value) || 0)}
+                                   onChange={(e) => {
+                                      priceField.onChange(parseFloat(e.target.value) || 0);
+                                      setLastEdited({ index, field: 'price' });
+                                  }}
                                 />
                               </FormControl><FormMessage />
                             </FormItem>
