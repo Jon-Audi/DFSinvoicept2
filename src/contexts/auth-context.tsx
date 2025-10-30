@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const userDocRef = doc(db, "users", firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
+          
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
             const appUser: AppUser = {
@@ -68,12 +69,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
             setUser(appUser);
           } else {
-            // User exists in Auth, but not in 'users' collection yet.
-            // This can happen during sign-up flow.
-            setUser(firebaseUser); 
+            // Self-healing: User is authenticated but has no DB record.
+            // This can happen for accounts created before the signup-fix.
+            // Create a user document for them with default 'Admin' role.
+            console.warn(`User with UID ${firebaseUser.uid} authenticated but has no user document. Creating one now.`);
+            
+            const [firstName, lastName] = (firebaseUser.displayName || "New User").split(" ");
+
+            const newUserProfile: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email!,
+              firstName: firstName || "User",
+              lastName: lastName || "",
+              role: 'Admin', // Default to Admin for self-healed accounts
+              isActive: true, 
+              permissions: ROLE_PERMISSIONS['Admin'],
+              createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            };
+            await setDoc(userDocRef, newUserProfile);
+            
+            const appUser: AppUser = {
+              ...firebaseUser,
+              ...newUserProfile,
+            };
+            setUser(appUser);
+            toast({
+              title: "Profile Created",
+              description: "Your user profile was automatically created."
+            });
           }
         } catch (e) {
-          console.error("Error fetching user document:", e);
+          console.error("Error fetching or creating user document:", e);
           setUser(firebaseUser); // Fallback to basic user
         }
       } else {
@@ -82,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, [auth, db, firebaseLoading]);
+  }, [auth, db, firebaseLoading, toast]);
 
   const login = async (email: string, pass: string) => {
     if (!auth) return;
@@ -123,10 +149,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const newUser = userCredential.user;
-      await updateProfile(newUser, { displayName: `${firstName} ${lastName}` });
+      await updateProfile(newUser, { displayName: `${firstName} ${lastName}`.trim() });
       
       const userDocRef = doc(db, 'users', newUser.uid);
-      // New users will be created as Admins by default.
       const newUserProfile: User = {
         id: newUser.uid,
         email: newUser.email!,
@@ -139,8 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       await setDoc(userDocRef, newUserProfile);
       
-      // Update local auth state immediately with new user profile data
-      setUser({ ...newUser, ...newUserProfile });
+      const appUser: AppUser = { ...newUser, ...newUserProfile };
+      setUser(appUser);
       
       toast({ title: "Account Created", description: "Successfully signed up and logged in." });
       router.push('/dashboard');
@@ -152,7 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  // The value provided to the context consumers
   const authContextValue = { user, setUser, loading: authLoading || firebaseLoading, error: authError, login, logout, signup };
   
   return (
