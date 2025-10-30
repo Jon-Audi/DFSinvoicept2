@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, isValid, startOfWeek, endOfWeek, addWeeks, isBefore, getISOWeek, subMonths, startOfQuarter, endOfQuarter } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc as getFirestoreDoc, orderBy } from 'firebase/firestore';
 import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem } from '@/types';
 import { PrintableSalesReport } from '@/components/reports/printable-sales-report';
@@ -58,6 +58,7 @@ interface ReportToPrintData {
 }
 
 export default function ReportsPage() {
+  const { db } = useFirebase();
   const [reportType, setReportType] = useState<ReportType>('sales');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -81,6 +82,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const fetchCustomers = async () => {
+      if (!db) return;
       setIsLoadingCustomers(true);
       try {
         const customersSnapshot = await getDocs(collection(db, 'customers'));
@@ -95,7 +97,7 @@ export default function ReportsPage() {
       }
     };
     fetchCustomers();
-  }, [toast]);
+  }, [db, toast]);
 
   const handleDatePresetChange = (preset: DatePreset) => {
     setActiveDatePreset(preset);
@@ -1233,5 +1235,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-    

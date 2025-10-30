@@ -2,7 +2,7 @@
 'use server';
 
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase-client'; // Corrected import to use client-side db for this server action context.
 
 interface Article {
   title: string;
