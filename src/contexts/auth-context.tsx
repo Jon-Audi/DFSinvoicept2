@@ -62,16 +62,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            const appUser: AppUser = {
+            let appUser: AppUser = {
               ...firebaseUser,
               role: userData.role,
               permissions: userData.permissions,
             };
+
+            // HARDCODED FIX: Ensure specific user has admin permissions
+            if (firebaseUser.uid === 'BpLtCifhXjRC97Lr6zZCg2l2w412') {
+              appUser.role = 'Admin';
+              appUser.permissions = ROLE_PERMISSIONS['Admin'];
+            }
+
             setUser(appUser);
           } else {
             // Self-healing: User is authenticated but has no DB record.
-            // This can happen for accounts created before the signup-fix.
-            // Create a user document for them with default 'Admin' role.
             console.warn(`User with UID ${firebaseUser.uid} authenticated but has no user document. Creating one now.`);
             
             const [firstName, lastName] = (firebaseUser.displayName || "New User").split(" ");
