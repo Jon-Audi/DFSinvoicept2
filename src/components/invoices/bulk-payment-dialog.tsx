@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { Customer, Invoice, PaymentMethod } from '@/types';
 import { PAYMENT_METHODS } from '@/lib/constants';
@@ -65,6 +65,7 @@ interface BulkPaymentDialogProps {
 }
 
 export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: BulkPaymentDialogProps) {
+  const { db } = useFirebase();
   const [outstandingInvoices, setOutstandingInvoices] = useState<Invoice[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
   const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
@@ -86,7 +87,7 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      if (!selectedCustomerId) {
+      if (!db || !selectedCustomerId) {
         setOutstandingInvoices([]);
         form.setValue('selectedInvoiceIds', []);
         return;
@@ -115,7 +116,7 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
     };
 
     fetchInvoices();
-  }, [selectedCustomerId, form]);
+  }, [selectedCustomerId, form, db]);
 
   const totalBalanceDue = useMemo(() => {
     return outstandingInvoices

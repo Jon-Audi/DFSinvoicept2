@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Order, Invoice, Customer, Product, LineItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import { InvoiceDialog } from '@/components/invoices/invoice-dialog';
@@ -20,6 +20,7 @@ import { ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
 type ReviewableDocument = (Order | Invoice) & { docType: 'Order' | 'Invoice' };
 
 export default function CostingReviewPage() {
+  const { db } = useFirebase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -34,6 +35,7 @@ export default function CostingReviewPage() {
   const [editingDoc, setEditingDoc] = useState<ReviewableDocument | null>(null);
 
   useEffect(() => {
+    if (!db) return;
     const unsubscribes: (() => void)[] = [];
     setIsLoading(true);
 
@@ -71,7 +73,7 @@ export default function CostingReviewPage() {
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [toast]);
+  }, [db, toast]);
 
   const documentsToReview = useMemo((): ReviewableDocument[] => {
     const docs: ReviewableDocument[] = [];
@@ -93,6 +95,7 @@ export default function CostingReviewPage() {
   }, [orders, invoices]);
   
   const handleSaveOrder = async (order: Order) => {
+    if (!db) return;
     setIsProcessing(order.id);
     try {
       await runTransaction(db, async (transaction) => {
@@ -111,6 +114,7 @@ export default function CostingReviewPage() {
   };
   
   const handleSaveInvoice = async (invoice: Invoice) => {
+    if (!db) return;
     setIsProcessing(invoice.id);
     try {
       await runTransaction(db, async (transaction) => {

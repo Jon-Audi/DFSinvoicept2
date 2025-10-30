@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Icon } from '@/components/icons';
 import type { Product } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { InventoryTable } from '@/components/inventory/inventory-table';
@@ -28,6 +28,7 @@ import { SelectCategoriesDialog } from '@/components/products/select-categories-
 type PrintType = 'count-sheet' | 'valuation-summary' | 'valuation-detailed';
 
 export default function InventoryPage() {
+  const { db } = useFirebase();
   const [products, setProducts] = useState<Product[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +45,7 @@ export default function InventoryPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const fetchedProducts: Product[] = [];
@@ -69,7 +71,7 @@ export default function InventoryPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) {
@@ -90,7 +92,7 @@ export default function InventoryPage() {
   };
   
   const handleUpdateStock = async () => {
-    if (!productForStockUpdate) return;
+    if (!productForStockUpdate || !db) return;
   
     const newQuantity = parseInt(newStockQuantity, 10);
     if (isNaN(newQuantity) || newQuantity < 0) {

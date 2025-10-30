@@ -17,39 +17,53 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// This function acts as a singleton provider for Firebase services
-function getFirebaseClient() {
-    let app: FirebaseApp;
-    let auth: Auth;
-    let db: Firestore;
-    let storage: FirebaseStorage;
-    let analytics: Analytics | undefined;
-    
-    if (getApps().length === 0) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-    
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
+let analytics: Analytics | undefined;
+
+
+if (typeof window !== 'undefined' && getApps().length === 0) {
+  try {
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-
-    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
-        isSupported().then(supported => {
-            if(supported) {
-                analytics = getAnalytics(app);
-            }
-        });
+    if (firebaseConfig.measurementId) {
+      isSupported().then(supported => {
+        if (supported) {
+          analytics = getAnalytics(app);
+        }
+      });
     }
-
-    return { app, auth, db, storage, analytics };
+  } catch (e) {
+    console.error("Failed to initialize Firebase on the client", e);
+  }
+} else if (typeof window !== 'undefined') {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+  if (firebaseConfig.measurementId) {
+    isSupported().then(supported => {
+        if(supported) {
+            analytics = getAnalytics(app);
+        }
+    });
+  }
 }
 
-// You can export the function if you need to call it explicitly,
-// but for direct use in components, we'll export the initialized services.
-// Note: This approach might still have issues in SSR if modules are loaded before initialization.
-// A better approach is using a context provider.
-const { app, auth, db, storage, analytics } = getFirebaseClient();
+// @ts-ignore
+export { app, auth, db, storage, analytics };
 
-export { app, auth, db, storage, analytics, getFirebaseClient };
+
+export function getFirebaseClient() {
+    if (!app) {
+        // This can happen in a server context or if initialization fails
+        // For client-side, the above block should handle it.
+        // We can throw an error or handle it gracefully.
+        throw new Error("Firebase has not been initialized. Make sure you are using FirebaseProvider.");
+    }
+    return { app, auth, db, storage, analytics };
+}

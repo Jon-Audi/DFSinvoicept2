@@ -2,7 +2,7 @@
 'use server';
 
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client'; // Corrected import to use client-side db for this server action context.
+import { getFirebaseClient } from '@/lib/firebase-client';
 
 interface Article {
   title: string;
@@ -37,9 +37,6 @@ interface PdfDemoDocumentData {
   colors: Colors;
   info: Info;
   _pdfplum_config: PdfPlumConfig;
-  // You can add a field to indicate processing status if needed by the extension
-  // processingState?: 'PENDING' | 'COMPLETED' | 'ERROR'; 
-  // createdAt?: Timestamp; 
 }
 
 /**
@@ -52,6 +49,12 @@ interface PdfDemoDocumentData {
 export async function createPdfDemoDocument(): Promise<string | null> {
   console.log("Attempting to create PDF demo document in Firestore...");
   try {
+    // Since this is a server action, it runs on the server, but it can use
+    // the client SDK initialization if configured correctly for server components.
+    // However, the best practice is to use the Admin SDK on the server.
+    // For this context, we will assume firebase-client initialization can be accessed.
+    const { db } = getFirebaseClient();
+
     const docData: PdfDemoDocumentData = {
       text: "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
       flag: "OK",
@@ -80,8 +83,6 @@ export async function createPdfDemoDocument(): Promise<string | null> {
         chromiumPdfOptions: { printBackground: true },
         adjustHeightToFit: false
       },
-      // createdAt: Timestamp.now(), // Optional: add a creation timestamp
-      // processingState: 'PENDING', // Optional: initial state for the extension
     };
 
     const docRef = await addDoc(collection(db, "pdfPlumDemoDocs"), docData);
