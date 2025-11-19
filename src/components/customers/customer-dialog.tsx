@@ -36,7 +36,8 @@ export function CustomerDialog({
 
   const handleSubmit = (data: any) => {
     if (onSave) {
-      onSave({ id: customer?.id, ...data });
+      const customerToSave = { ...customer, ...data };
+      onSave(customerToSave);
     }
     setOpen(false);
   };

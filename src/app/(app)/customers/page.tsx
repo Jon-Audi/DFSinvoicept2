@@ -81,7 +81,6 @@ export default function CustomersPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'thisWeek' | 'thisMonth' | 'lastMonth'>('all');
   const [sortConfig, setSortConfig] = useState<{ key: keyof CustomerWithLastInteraction; direction: 'asc' | 'desc' }>({ key: 'companyName', direction: 'asc' });
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -112,7 +111,13 @@ export default function CustomersPage() {
     
     // A simple way to determine initial loading state
     Promise.all(Object.keys(collections).map(path => 
-        new Promise(res => onSnapshot(collection(db, path), () => res(true)))
+        new Promise(res => {
+          if (db) {
+            onSnapshot(collection(db, path), () => res(true))
+          } else {
+            res(true)
+          }
+        })
     )).finally(() => {
         setIsLoading(false);
     });
@@ -203,7 +208,9 @@ export default function CustomersPage() {
       } else if (valB === null || valB === undefined) {
           comparison = -1;
       } else if (sortConfig.key === 'lastEstimateDate' || sortConfig.key === 'lastPurchaseDate' || sortConfig.key === 'createdAt') {
-          comparison = new Date(valA as string).getTime() - new Date(valB as string).getTime();
+          const timeA = valA ? new Date(valA as string).getTime() : 0;
+          const timeB = valB ? new Date(valB as string).getTime() : 0;
+          comparison = timeA - timeB;
       } else if (typeof valA === 'string' && typeof valB === 'string') {
           comparison = valA.localeCompare(valB);
       }
@@ -277,12 +284,6 @@ export default function CustomersPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-         <div className="flex items-center gap-2">
-            <Button variant={dateFilter === 'all' ? "default" : "outline"} onClick={() => setDateFilter('all')}>All Time</Button>
-            <Button variant={dateFilter === 'thisWeek' ? "default" : "outline"} onClick={() => setDateFilter('thisWeek')}>This Week</Button>
-            <Button variant={dateFilter === 'thisMonth' ? "default" : "outline"} onClick={() => setDateFilter('thisMonth')}>This Month</Button>
-            <Button variant={dateFilter === 'lastMonth' ? "default" : "outline"} onClick={() => setDateFilter('lastMonth')}>Last Month</Button>
-        </div>
       </div>
 
       <CustomerTable
@@ -293,7 +294,7 @@ export default function CustomersPage() {
       />
        {filteredAndSortedCustomers.length === 0 && !isLoading && (
         <p className="p-4 text-center text-muted-foreground">
-          {searchTerm || dateFilter !== 'all' ? "No customers match your search criteria." : "No customers found. Try adding one."}
+          {searchTerm ? "No customers match your search criteria." : "No customers found. Try adding one."}
         </p>
       )}
 
@@ -303,3 +304,4 @@ export default function CustomersPage() {
     </>
   );
 }
+

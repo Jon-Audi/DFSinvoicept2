@@ -33,6 +33,7 @@ import {
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { customerDisplayName } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -43,6 +44,7 @@ interface CustomerTableProps {
 
 export function CustomerTable({ customers, onSave, onDelete, isLoading }: CustomerTableProps) {
   const [customerToDelete, setCustomerToDelete] = React.useState<Customer | null>(null);
+  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -53,6 +55,10 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading }: Custom
       </div>
     );
   }
+
+  const handleRowClick = (customerId: string) => {
+    router.push(`/customers/${customerId}`);
+  };
 
   return (
     <>
@@ -69,7 +75,7 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading }: Custom
           </TableHeader>
           <TableBody>
             {customers.map((customer) => (
-              <TableRow key={customer.id}>
+              <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)} className="cursor-pointer">
                 <TableCell className="font-medium">
                   {customerDisplayName(customer)}
                 </TableCell>
@@ -80,7 +86,7 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading }: Custom
                 <TableCell>
                   {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
