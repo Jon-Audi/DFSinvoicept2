@@ -3,5 +3,6 @@
   "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
   "/(app)/invoices/page": "app/(app)/invoices/page.js",
   "/(app)/packing/page": "app/(app)/packing/page.js",
-  "/(app)/estimates/page": "app/(app)/estimates/page.js"
+  "/(app)/estimates/page": "app/(app)/estimates/page.js",
+  "/(app)/orders/page": "app/(app)/orders/page.js"
 }
