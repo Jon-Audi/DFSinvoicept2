@@ -47,6 +47,7 @@ const PrintableInvoicePackingSlip = React.forwardRef<HTMLDivElement, PrintableIn
               <p className="text-md"><span className="font-semibold">Ref Invoice #:</span> {invoice.invoiceNumber}</p>
               <p className="text-md"><span className="font-semibold">Date:</span> {formatDate(invoice.date)}</p>
               {invoice.poNumber && <p className="text-md"><span className="font-semibold">P.O. #:</span> {invoice.poNumber}</p>}
+              {invoice.distributor && <p className="text-md"><span className="font-semibold">Ordered From:</span> {invoice.distributor}</p>}
             </div>
           </div>
 
@@ -83,5 +84,3 @@ const PrintableInvoicePackingSlip = React.forwardRef<HTMLDivElement, PrintableIn
 
 PrintableInvoicePackingSlip.displayName = "PrintableInvoicePackingSlip";
 export { PrintableInvoicePackingSlip }; // Ensure it's exported
-
-    

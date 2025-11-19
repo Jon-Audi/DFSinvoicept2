@@ -29,6 +29,7 @@ interface LineItemsViewerDialogProps {
   lineItems: LineItem[];
   documentType: 'Estimate' | 'Order' | 'Invoice';
   documentNumber: string;
+  distributor?: string;
 }
 
 export function LineItemsViewerDialog({
@@ -37,6 +38,7 @@ export function LineItemsViewerDialog({
   lineItems,
   documentType,
   documentNumber,
+  distributor,
 }: LineItemsViewerDialogProps) {
   const { user } = useAuth();
   const canViewPricing = user && user.permissions?.includes('view_pricing');
@@ -52,6 +54,11 @@ export function LineItemsViewerDialog({
           <DialogTitle>Line Items for {documentType} #{documentNumber}</DialogTitle>
           <DialogDescription>
             A detailed list of items included in this {documentType.toLowerCase()}.
+            {distributor && (
+              <span className="block mt-1">
+                Ordered From: <span className="font-semibold text-foreground">{distributor}</span>
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] mt-4">

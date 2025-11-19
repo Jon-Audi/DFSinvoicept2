@@ -778,13 +778,11 @@ export default function OrdersPage() {
 
       <LineItemsViewerDialog
         isOpen={isLineItemsViewerOpen}
-        onOpenChange={(open) => {
-            setIsLineItemsViewerOpen(open);
-            if (!open) setOrderForViewingItems(null);
-        }}
-        lineItems={orderForViewingItems?.lineItems || []}
+        onOpenChange={setIsLineItemsViewerOpen}
+        lineItems={orderForViewingItems?.lineItems ?? []}
         documentType="Order"
-        documentNumber={orderForViewingItems?.orderNumber || ''}
+        documentNumber={orderForViewingItems?.orderNumber ?? ''}
+        distributor={orderForViewingItems?.distributor}
       />
     </>
   );

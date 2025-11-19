@@ -1089,13 +1089,11 @@ export default function InvoicesPage() {
 
       <LineItemsViewerDialog
         isOpen={isLineItemsViewerOpen}
-        onOpenChange={(open) => {
-          setIsLineItemsViewerOpen(open);
-          if (!open) setInvoiceForViewingItems(null);
-        }}
+        onOpenChange={setIsLineItemsViewerOpen}
         lineItems={invoiceForViewingItems?.lineItems ?? []}
         documentType="Invoice"
         documentNumber={invoiceForViewingItems?.invoiceNumber ?? ''}
+        distributor={invoiceForViewingItems?.distributor}
       />
 
     </>
