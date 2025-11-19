@@ -182,6 +182,15 @@ export interface User {
   createdAt?: string; // ISO String
 }
 
+export interface Vendor {
+    id: string;
+    name: string;
+    contactName?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+}
+
 
 export interface CompanySettings {
   id?: string;
@@ -344,5 +353,3 @@ export interface ReadyForPickupReportItem {
   readyForPickUpDate?: string;
   total: number;
 }
-
-    

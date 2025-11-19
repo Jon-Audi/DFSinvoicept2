@@ -48,6 +48,7 @@ import {
   Pause,
   StopCircle,
   FolderSymlink,
+  Truck,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -103,6 +104,7 @@ const iconComponents = {
   Pause,
   StopCircle,
   FolderSymlink,
+  Truck,
 };
 
 type IconProps = {

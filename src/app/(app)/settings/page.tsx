@@ -63,6 +63,24 @@ export default function SettingsPage() {
             </Link>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+               <Icon name="Truck" className="mr-2 h-5 w-5" />
+              Vendors
+            </CardTitle>
+            <CardDescription>Manage your list of vendors and distributors.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/settings/vendors" passHref>
+              <Button variant="outline">
+                Manage Vendors
+                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
