@@ -165,62 +165,57 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!db) return;
-    setIsLoading(true);
-    const unsubscribes = [
-      onSnapshot(collection(db, 'orders'), (snapshot) => {
-        const fetchedOrders: Order[] = snapshot.docs.map(docSnap => {
-          const data = docSnap.data();
-          return {
-            ...data as Omit<Order, 'id' | 'total' | 'amountPaid' | 'balanceDue' | 'payments'>,
-            id: docSnap.id,
-            total: data.total || 0,
-            amountPaid: data.amountPaid || 0,
-            balanceDue: data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
-            payments: data.payments || [],
-            distributor: data.distributor || undefined,
-          };
-        });
-        setOrders(fetchedOrders);
-      }, (error) => {
-        console.error("Error fetching orders:", error);
-        toast({ title: "Error", description: "Could not fetch orders.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, 'customers'), (snapshot) => {
-        setCustomers(snapshot.docs.map(docSnap => ({ ...docSnap.data() as Omit<Customer, 'id'>, id: docSnap.id })));
-      }, (error) => {
-        console.error("Error fetching customers:", error);
-        toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, 'products'), (snapshot) => {
-        const fetchedProducts = snapshot.docs.map(docSnap => ({ ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id }));
-        setProducts(fetchedProducts);
-        const categories = Array.from(new Set(fetchedProducts.map(p => p.category))).sort();
-        setStableProductCategories(categories);
-        const subcategories = Array.from(new Set(fetchedProducts.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-        setStableProductSubcategories(subcategories);
-      }, (error) => {
-        console.error("Error fetching products:", error);
-        toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, 'vendors'), (snapshot) => {
-        setVendors(snapshot.docs.map(s => ({ ...(s.data() as Omit<Vendor, "id">), id: s.id })));
-      }, (err) => {
-        console.error("Error fetching vendors:", err);
-        toast({ title: "Error", description: "Could not fetch vendors.", variant: "destructive" });
-      })
-    ];
 
-    const allLoaded = Promise.all(unsubscribes.map(unsub => new Promise(resolve => {
-        const tempUnsub = onSnapshot(unsub as any, () => {
-            resolve(true);
-            tempUnsub();
-        }, () => resolve(true));
-    })));
+    let active = true;
+    let unsubscribes: (() => void)[] = [];
 
-    allLoaded.finally(() => setIsLoading(false));
+    const loadData = async () => {
+        setIsLoading(true);
 
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [db, toast]);
+        const collectionsToWatch = {
+            orders: (data: any[]) => setOrders(data.map(d => ({
+                ...d,
+                total: d.total || 0,
+                amountPaid: d.amountPaid || 0,
+                balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
+                payments: d.payments || [],
+                distributor: d.distributor || undefined,
+            }))),
+            customers: setCustomers,
+            products: (data: Product[]) => {
+                setProducts(data);
+                const categories = Array.from(new Set(data.map(p => p.category))).sort();
+                setStableProductCategories(categories);
+                const subcategories = Array.from(new Set(data.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+                setStableProductSubcategories(subcategories);
+            },
+            vendors: setVendors,
+        };
+
+        for (const [path, setter] of Object.entries(collectionsToWatch)) {
+            const q = collection(db, path);
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                if (active) {
+                    const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setter(docsData as any);
+                }
+            }, (error) => {
+                console.error(`Error fetching ${path}:`, error);
+                toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        setIsLoading(false);
+    };
+    
+    loadData();
+
+    return () => {
+        active = false;
+        unsubscribes.forEach(unsub => unsub());
+    };
+}, [db, toast]);
 
   const handleSaveOrder = async (orderToSave: Order) => {
     if (!db) return;
@@ -758,3 +753,5 @@ export default function OrdersPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
+
+    

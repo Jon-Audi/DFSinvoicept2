@@ -207,60 +207,57 @@ export default function InvoicesPage() {
   // Live data
   useEffect(() => {
     if (!db) return;
-    setIsLoading(true);
+    
+    let active = true;
+    let unsubscribes: (() => void)[] = [];
 
-    const unsubscribes = [
-      onSnapshot(collection(db, "invoices"), (snapshot) => {
-        const fetched: Invoice[] = snapshot.docs.map(s => ({
-            ...(s.data() as Omit<Invoice, "id" | "total" | "amountPaid" | "balanceDue">),
-            id: s.id,
-            total: s.data().total || 0,
-            amountPaid: s.data().amountPaid || 0,
-            balanceDue: s.data().balanceDue !== undefined ? s.data().balanceDue : (s.data().total || 0) - (s.data().amountPaid || 0),
-            payments: s.data().payments || [],
-            distributor: s.data().distributor || undefined,
-        }));
-        setInvoices(fetched);
-      }, (err) => {
-        console.error("Error fetching invoices:", err);
-        toast({ title: "Error", description: "Could not fetch invoices.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, "customers"), (snapshot) => {
-        setCustomers(snapshot.docs.map(s => ({ ...(s.data() as Omit<Customer, "id">), id: s.id })));
-      }, (err) => {
-        console.error("Error fetching customers:", err);
-        toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, "products"), (snapshot) => {
-        const prods = snapshot.docs.map(s => ({ ...(s.data() as Omit<Product, "id">), id: s.id }));
-        setProducts(prods);
-        const categories = Array.from(new Set(prods.map(p => p.category))).sort();
-        setStableProductCategories(categories);
-        const subcategories = Array.from(new Set(prods.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-        setStableProductSubcategories(subcategories);
-      }, (err) => {
-        console.error("Error fetching products:", err);
-        toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
-      }),
-      onSnapshot(collection(db, "vendors"), (snapshot) => {
-        setVendors(snapshot.docs.map(s => ({ ...(s.data() as Omit<Vendor, "id">), id: s.id })));
-      }, (err) => {
-        console.error("Error fetching vendors:", err);
-        toast({ title: "Error", description: "Could not fetch vendors.", variant: "destructive" });
-      })
-    ];
+    const loadData = async () => {
+        setIsLoading(true);
 
-    const allLoaded = Promise.all(unsubscribes.map(unsub => new Promise(resolve => {
-        const tempUnsub = onSnapshot(unsub as any, () => {
-            resolve(true);
-            tempUnsub();
-        }, () => resolve(true)); // Resolve even on error
-    })));
+        const collectionsToWatch = {
+            invoices: (data: any[]) => setInvoices(data.map(d => ({
+                ...d,
+                total: d.total || 0,
+                amountPaid: d.amountPaid || 0,
+                balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
+                payments: d.payments || [],
+                distributor: d.distributor || undefined,
+            }))),
+            customers: setCustomers,
+            products: (data: Product[]) => {
+                setProducts(data);
+                const categories = Array.from(new Set(data.map(p => p.category))).sort();
+                setStableProductCategories(categories);
+                const subcategories = Array.from(new Set(data.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+                setStableProductSubcategories(subcategories);
+            },
+            vendors: setVendors,
+        };
 
-    allLoaded.finally(() => setIsLoading(false));
+        for (const [path, setter] of Object.entries(collectionsToWatch)) {
+            const q = collection(db, path);
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                if (active) {
+                    const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setter(docsData as any);
+                }
+            }, (error) => {
+                console.error(`Error fetching ${path}:`, error);
+                toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        setIsLoading(false);
+    };
 
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [db, toast]);
+    loadData();
+
+    return () => {
+        active = false;
+        unsubscribes.forEach(unsub => unsub());
+    };
+}, [db, toast]);
 
   // ---------- SAVE INVOICE (transaction-safe) ----------
   const handleSaveInvoice = async (invoiceToSave: Invoice) => {
@@ -1067,3 +1064,5 @@ export default function InvoicesPage() {
 const FormFieldWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
+
+    
