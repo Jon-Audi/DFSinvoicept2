@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import type { Customer, Invoice, PaymentMethod } from '@/types';
+import type { Customer, Invoice, PaymentMethod, Vendor } from '@/types';
 import { PAYMENT_METHODS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,9 +115,7 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
       }
     };
 
-    if (db) {
-        fetchInvoices();
-    }
+    fetchInvoices();
   }, [selectedCustomerId, form, db]);
 
   const totalBalanceDue = useMemo(() => {
@@ -287,5 +285,3 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
     </Dialog>
   );
 }
-
-    
