@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Invoice, Customer, Product } from '@/types';
+import type { Invoice, Customer, Product, Vendor } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Table,
@@ -36,8 +36,15 @@ import {
 import { cn } from '@/lib/utils';
 
 export type SortableInvoiceKeys =
-  'invoiceNumber' | 'customerName' | 'poNumber' | 'date' | 'dueDate' |
-  'total' | 'amountPaid' | 'balanceDue' | 'status';
+  | "invoiceNumber"
+  | "customerName"
+  | "poNumber"
+  | "date"
+  | "dueDate"
+  | 'total'
+  | 'amountPaid'
+  | 'balanceDue'
+  | 'status';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -52,6 +59,7 @@ interface InvoiceTableProps {
   formatDate: (dateString: string | Date | undefined, options?: Intl.DateTimeFormatOptions) => string;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   onViewItems: (invoice: Invoice) => void;
@@ -73,6 +81,7 @@ export function InvoiceTable({
   formatDate,
   customers,
   products,
+  vendors,
   productCategories,
   productSubcategories,
   onViewItems,
@@ -221,6 +230,7 @@ export function InvoiceTable({
                       onSaveCustomer={onSaveCustomer}
                       customers={customers}
                       products={products}
+                      vendors={vendors}
                       productCategories={productCategories}
                       productSubcategories={productSubcategories}
                     />

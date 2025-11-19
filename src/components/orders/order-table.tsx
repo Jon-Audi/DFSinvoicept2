@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Order, Customer, Product } from '@/types';
+import type { Order, Customer, Product, Vendor } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Table,
@@ -52,6 +52,7 @@ interface OrderTableProps {
   formatDate: (dateString: string | undefined, options?: Intl.DateTimeFormatOptions) => string;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   onViewItems: (order: Order) => void;
@@ -73,6 +74,7 @@ export function OrderTable({
   formatDate,
   customers,
   products,
+  vendors,
   productCategories,
   productSubcategories,
   onViewItems,
@@ -204,6 +206,7 @@ export function OrderTable({
                       onSaveCustomer={onSaveCustomer}
                       customers={customers}
                       products={products}
+                      vendors={vendors}
                       productCategories={productCategories}
                       productSubcategories={productSubcategories}
                     />
