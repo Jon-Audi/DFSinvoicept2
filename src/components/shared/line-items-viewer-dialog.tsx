@@ -39,7 +39,7 @@ export function LineItemsViewerDialog({
   documentNumber,
 }: LineItemsViewerDialogProps) {
   const { user } = useAuth();
-  const canViewPricing = user && (user.role === 'Admin' || user.role === 'User');
+  const canViewPricing = user && user.permissions?.includes('view_pricing');
 
   if (!lineItems || lineItems.length === 0) {
     return null;
@@ -47,7 +47,7 @@ export function LineItemsViewerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Line Items for {documentType} #{documentNumber}</DialogTitle>
           <DialogDescription>
@@ -62,6 +62,7 @@ export function LineItemsViewerDialog({
                 <TableHead className="text-center">Qty</TableHead>
                 {canViewPricing && (
                   <>
+                    <TableHead className="text-right">Cost</TableHead>
                     <TableHead className="text-right">Unit Price</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </>
@@ -79,6 +80,7 @@ export function LineItemsViewerDialog({
                   <TableCell className="text-center">{item.quantity}</TableCell>
                   {canViewPricing && (
                     <>
+                      <TableCell className="text-right">${(item.cost || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
                       <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
                     </>
