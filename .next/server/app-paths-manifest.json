@@ -1,8 +1,8 @@
 {
   "/page": "app/page.js",
-  "/(app)/production/page": "app/(app)/production/page.js",
-  "/(app)/reports/page": "app/(app)/reports/page.js",
-  "/(app)/costing-review/page": "app/(app)/costing-review/page.js",
   "/(app)/orders/page": "app/(app)/orders/page.js",
-  "/(app)/invoices/page": "app/(app)/invoices/page.js"
+  "/(app)/invoices/page": "app/(app)/invoices/page.js",
+  "/(app)/settings/page": "app/(app)/settings/page.js",
+  "/(app)/settings/vendors/page": "app/(app)/settings/vendors/page.js",
+  "/(app)/products/page": "app/(app)/products/page.js"
 }

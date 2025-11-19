@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from "@/hooks/use-toast";
 import { generateOrderEmailDraft } from '@/ai/flows/order-email-draft';
-import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact } from '@/types';
+import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact, Vendor } from '@/types';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
 import { useFirebase } from '@/components/firebase-provider';
@@ -41,12 +41,11 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [stableProductCategories, setStableProductCategories] = useState<string[]>([]);
   const [stableProductSubcategories, setStableProductSubcategories] = useState<string[]>([]);
 
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedOrderForEmail, setSelectedOrderForEmail] = useState<Order | null>(null);
   const [targetCustomerForEmail, setTargetCustomerForEmail] = useState<Customer | null>(null);
@@ -158,102 +157,70 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    if (conversionOrderData && !isLoadingProducts && !isLoadingCustomers) {
+    if (conversionOrderData && !isLoading) {
       setIsConvertingOrder(true);
     }
-  }, [conversionOrderData, isLoadingProducts, isLoadingCustomers]);
+  }, [conversionOrderData, isLoading]);
 
 
   useEffect(() => {
     if (!db) return;
-    setIsLoadingOrders(true);
-    const unsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      const fetchedOrders: Order[] = [];
-      snapshot.forEach((docSnap) => {
-         const data = docSnap.data();
-        fetchedOrders.push({
-          ...data as Omit<Order, 'id' | 'total' | 'amountPaid' | 'balanceDue' | 'payments'>,
-          id: docSnap.id,
-          total: data.total || 0,
-          amountPaid: data.amountPaid || 0,
-          balanceDue: data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
-          payments: data.payments || [],
-          distributor: data.distributor || undefined,
+    setIsLoading(true);
+    const unsubscribes = [
+      onSnapshot(collection(db, 'orders'), (snapshot) => {
+        const fetchedOrders: Order[] = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            ...data as Omit<Order, 'id' | 'total' | 'amountPaid' | 'balanceDue' | 'payments'>,
+            id: docSnap.id,
+            total: data.total || 0,
+            amountPaid: data.amountPaid || 0,
+            balanceDue: data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
+            payments: data.payments || [],
+            distributor: data.distributor || undefined,
+          };
         });
-      });
-      setOrders(fetchedOrders);
-      setIsLoadingOrders(false);
-    }, (error) => {
-      console.error("Error fetching orders:", error);
-      toast({ title: "Error", description: "Could not fetch orders.", variant: "destructive" });
-      setIsLoadingOrders(false);
-    });
-    return () => unsubscribe();
-  }, [db, toast]);
+        setOrders(fetchedOrders);
+      }, (error) => {
+        console.error("Error fetching orders:", error);
+        toast({ title: "Error", description: "Could not fetch orders.", variant: "destructive" });
+      }),
+      onSnapshot(collection(db, 'customers'), (snapshot) => {
+        setCustomers(snapshot.docs.map(docSnap => ({ ...docSnap.data() as Omit<Customer, 'id'>, id: docSnap.id })));
+      }, (error) => {
+        console.error("Error fetching customers:", error);
+        toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
+      }),
+      onSnapshot(collection(db, 'products'), (snapshot) => {
+        const fetchedProducts = snapshot.docs.map(docSnap => ({ ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id }));
+        setProducts(fetchedProducts);
+        const categories = Array.from(new Set(fetchedProducts.map(p => p.category))).sort();
+        setStableProductCategories(categories);
+        const subcategories = Array.from(new Set(fetchedProducts.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+        setStableProductSubcategories(subcategories);
+      }, (error) => {
+        console.error("Error fetching products:", error);
+        toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
+      }),
+      onSnapshot(collection(db, 'vendors'), (snapshot) => {
+        setVendors(snapshot.docs.map(s => ({ ...(s.data() as Omit<Vendor, "id">), id: s.id })));
+      }, (err) => {
+        console.error("Error fetching vendors:", err);
+        toast({ title: "Error", description: "Could not fetch vendors.", variant: "destructive" });
+      })
+    ];
 
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingCustomers(true);
-    const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
-      const fetchedCustomers: Customer[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedCustomers.push({ ...docSnap.data() as Omit<Customer, 'id'>, id: docSnap.id });
-      });
-      setCustomers(fetchedCustomers);
-      setIsLoadingCustomers(false);
-    }, (error) => {
-      console.error("Error fetching customers:", error);
-      toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
-      setIsLoadingCustomers(false);
-    });
-    return () => unsubscribe();
-  }, [db, toast]);
+    const allLoaded = Promise.all(unsubscribes.map(unsub => new Promise(resolve => {
+        const tempUnsub = onSnapshot(unsub as any, () => {
+            resolve(true);
+            tempUnsub();
+        }, () => resolve(true));
+    })));
 
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingProducts(true);
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const fetchedProducts: Product[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedProducts.push({ ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id });
-      });
-      setProducts(fetchedProducts);
-      setIsLoadingProducts(false);
-    }, (error) => {
-      console.error("Error fetching products:", error);
-      toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
-      setIsLoadingProducts(false);
-    });
-    return () => unsubscribe();
-  }, [db, toast]);
+    allLoaded.finally(() => setIsLoading(false));
 
-  useEffect(() => {
-    if (products && products.length > 0) {
-        const newCategories = Array.from(new Set(products.map(p => p.category))).sort();
-        setStableProductCategories(currentStableCategories => {
-            if (JSON.stringify(newCategories) !== JSON.stringify(currentStableCategories)) {
-                return newCategories;
-            }
-            return currentStableCategories;
-        });
-        const newSubcategories = Array.from(new Set(products.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-        setStableProductSubcategories(currentStableSubcategories => {
-            if (JSON.stringify(newSubcategories) !== JSON.stringify(currentStableSubcategories)) {
-                return newSubcategories;
-            }
-            return currentStableSubcategories;
-        });
-    } else {
-        setStableProductCategories(currentStableCategories => {
-            if (currentStableCategories.length > 0) return [];
-            return currentStableCategories;
-        });
-        setStableProductSubcategories(currentStableSubcategories => {
-            if (currentStableSubcategories.length > 0) return [];
-            return currentStableSubcategories;
-        });
-    }
-  }, [products]);
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [db, toast]);
 
   const handleSaveOrder = async (orderToSave: Order) => {
     if (!db) return;
@@ -261,7 +228,6 @@ export default function OrdersPage() {
         await runTransaction(db, async (transaction) => {
             const { id, ...orderDataFromDialog } = orderToSave;
             
-            // --- Phase 1: Pre-computation and ID collection ---
             const inventoryChanges = new Map<string, number>();
             let originalOrder: Order | null = null;
             
@@ -293,12 +259,10 @@ export default function OrdersPage() {
                 return;
             }
 
-            // --- Phase 2: Batch Read ---
             const productRefs = productIdsToUpdate.map(pid => doc(db, 'products', pid));
             const productReadPromises = productRefs.map(ref => transaction.get(ref));
             const productSnapshots = await Promise.all(productReadPromises);
 
-            // --- Phase 3: Write ---
             productSnapshots.forEach((productSnap, index) => {
                 if (!productSnap.exists()) {
                     throw new Error(`Product with ID ${productRefs[index].id} not found during transaction!`);
@@ -610,7 +574,7 @@ export default function OrdersPage() {
     return null;
   };
 
-  if (isLoadingOrders || isLoadingCustomers || isLoadingProducts) {
+  if (isLoading) {
     return (
       <PageHeader title="Orders" description="Loading orders database...">
         <div className="flex items-center justify-center h-32">
@@ -635,12 +599,13 @@ export default function OrdersPage() {
           onSaveCustomer={handleSaveCustomer}
           customers={customers}
           products={products}
+          vendors={vendors}
           productCategories={stableProductCategories}
           productSubcategories={stableProductSubcategories}
         />
       </PageHeader>
 
-      {isConvertingOrder && conversionOrderData && !isLoadingProducts && !isLoadingCustomers && (
+      {isConvertingOrder && conversionOrderData && !isLoading && (
         <OrderDialog
             isOpen={isConvertingOrder}
             onOpenChange={(open) => {
@@ -653,6 +618,7 @@ export default function OrdersPage() {
             onSaveCustomer={handleSaveCustomer}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={stableProductCategories}
             productSubcategories={stableProductSubcategories}
         />
@@ -680,6 +646,7 @@ export default function OrdersPage() {
             formatDate={formatDateForDisplay}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={stableProductCategories}
             productSubcategories={stableProductSubcategories}
             onViewItems={handleViewItems}

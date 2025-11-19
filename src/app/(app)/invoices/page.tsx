@@ -33,6 +33,7 @@ import type {
   EmailContact,
   Payment,
   BulkPaymentReceiptData,
+  Vendor,
 } from "@/types";
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import type { InvoiceFormData } from "@/components/invoices/invoice-form";
@@ -74,12 +75,11 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [stableProductCategories, setStableProductCategories] = useState<string[]>([]);
   const [stableProductSubcategories, setStableProductSubcategories] = useState<string[]>([]);
 
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const conversionHandled = useRef(false);
 
@@ -199,96 +199,68 @@ export default function InvoicesPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (conversionInvoiceData && !isLoadingProducts && !isLoadingCustomers) {
+    if (conversionInvoiceData && !isLoading) {
       setIsConvertingInvoice(true);
     }
-  }, [conversionInvoiceData, isLoadingProducts, isLoadingCustomers]);
+  }, [conversionInvoiceData, isLoading]);
 
   // Live data
   useEffect(() => {
     if (!db) return;
-    setIsLoadingInvoices(true);
-    const unsub = onSnapshot(
-      collection(db, "invoices"),
-      (snapshot) => {
-        const fetched: Invoice[] = [];
-        snapshot.forEach((s) => {
-          const data = s.data() as any;
-          fetched.push({
-            ...(data as Omit<Invoice, "id" | "total" | "amountPaid" | "balanceDue">),
+    setIsLoading(true);
+
+    const unsubscribes = [
+      onSnapshot(collection(db, "invoices"), (snapshot) => {
+        const fetched: Invoice[] = snapshot.docs.map(s => ({
+            ...(s.data() as Omit<Invoice, "id" | "total" | "amountPaid" | "balanceDue">),
             id: s.id,
-            total: data.total || 0,
-            amountPaid: data.amountPaid || 0,
-            balanceDue:
-              data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
-            payments: data.payments || [],
-            poNumber: data.poNumber || undefined,
-            distributor: data.distributor || undefined,
-          });
-        });
+            total: s.data().total || 0,
+            amountPaid: s.data().amountPaid || 0,
+            balanceDue: s.data().balanceDue !== undefined ? s.data().balanceDue : (s.data().total || 0) - (s.data().amountPaid || 0),
+            payments: s.data().payments || [],
+            distributor: s.data().distributor || undefined,
+        }));
         setInvoices(fetched);
-        setIsLoadingInvoices(false);
-      },
-      (err) => {
+      }, (err) => {
         console.error("Error fetching invoices:", err);
         toast({ title: "Error", description: "Could not fetch invoices.", variant: "destructive" });
-        setIsLoadingInvoices(false);
-      }
-    );
-    return () => unsub();
-  }, [db, toast]);
-
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingCustomers(true);
-    const unsub = onSnapshot(
-      collection(db, "customers"),
-      (snapshot) => {
-        const fetched: Customer[] = [];
-        snapshot.forEach((s) => fetched.push({ ...(s.data() as Omit<Customer, "id">), id: s.id }));
-        setCustomers(fetched);
-        setIsLoadingCustomers(false);
-      },
-      (err) => {
+      }),
+      onSnapshot(collection(db, "customers"), (snapshot) => {
+        setCustomers(snapshot.docs.map(s => ({ ...(s.data() as Omit<Customer, "id">), id: s.id })));
+      }, (err) => {
         console.error("Error fetching customers:", err);
-        toast({ title: "Error", description: "Could not fetch customers for invoices.", variant: "destructive" });
-        setIsLoadingCustomers(false);
-      }
-    );
-    return () => unsub();
-  }, [db, toast]);
-
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingProducts(true);
-    const unsub = onSnapshot(
-      collection(db, "products"),
-      (snapshot) => {
-        const fetched: Product[] = [];
-        snapshot.forEach((s) => fetched.push({ ...(s.data() as Omit<Product, "id">), id: s.id }));
-        setProducts(fetched);
-        setIsLoadingProducts(false);
-      },
-      (err) => {
+        toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
+      }),
+      onSnapshot(collection(db, "products"), (snapshot) => {
+        const prods = snapshot.docs.map(s => ({ ...(s.data() as Omit<Product, "id">), id: s.id }));
+        setProducts(prods);
+        const categories = Array.from(new Set(prods.map(p => p.category))).sort();
+        setStableProductCategories(categories);
+        const subcategories = Array.from(new Set(prods.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+        setStableProductSubcategories(subcategories);
+      }, (err) => {
         console.error("Error fetching products:", err);
-        toast({ title: "Error", description: "Could not fetch products for invoices.", variant: "destructive" });
-        setIsLoadingProducts(false);
-      }
-    );
-    return () => unsub();
-  }, [db, toast]);
+        toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
+      }),
+      onSnapshot(collection(db, "vendors"), (snapshot) => {
+        setVendors(snapshot.docs.map(s => ({ ...(s.data() as Omit<Vendor, "id">), id: s.id })));
+      }, (err) => {
+        console.error("Error fetching vendors:", err);
+        toast({ title: "Error", description: "Could not fetch vendors.", variant: "destructive" });
+      })
+    ];
 
-  useEffect(() => {
-    if (products?.length) {
-      const nextCategories = Array.from(new Set(products.map((p) => p.category))).sort();
-      setStableProductCategories((curr) => (JSON.stringify(nextCategories) !== JSON.stringify(curr) ? nextCategories : curr));
-      const nextSubcategories = Array.from(new Set(products.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-      setStableProductSubcategories(curr => JSON.stringify(nextSubcategories) !== JSON.stringify(curr) ? nextSubcategories : curr);
-    } else {
-      setStableProductCategories((curr) => (curr.length ? [] : curr));
-      setStableProductSubcategories(curr => curr.length ? [] : curr);
-    }
-  }, [products]);
+    const allLoaded = Promise.all(unsubscribes.map(unsub => new Promise(resolve => {
+        const tempUnsub = onSnapshot(unsub as any, () => {
+            resolve(true);
+            tempUnsub();
+        }, () => resolve(true)); // Resolve even on error
+    })));
+
+    allLoaded.finally(() => setIsLoading(false));
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [db, toast]);
 
   // ---------- SAVE INVOICE (transaction-safe) ----------
   const handleSaveInvoice = async (invoiceToSave: Invoice) => {
@@ -298,7 +270,6 @@ export default function InvoicesPage() {
         const { id, ...invoiceData } = invoiceToSave;
         const invoiceRef = id ? doc(db, "invoices", id) : doc(collection(db, "invoices"));
   
-        // Create a clean payload, excluding undefined or empty string values, to avoid Firestore errors
         const payload: { [key: string]: any } = {};
         for (const [key, value] of Object.entries(invoiceData)) {
           if (value !== undefined && value !== null && value !== '') {
@@ -314,7 +285,6 @@ export default function InvoicesPage() {
           }
         }
   
-        // --- Inventory Logic ---
         const productIdsInState = new Set(products.map(p => p.id));
         const inventoryChanges = new Map<string, number>();
   
@@ -350,9 +320,7 @@ export default function InvoicesPage() {
             transaction.update(snap.ref, { quantityInStock: currentStock + qtyChange });
           }
         }
-        // --- End Inventory Logic ---
   
-        // Use merge:true for updates, and a standard set for creation
         if (id) {
           transaction.set(invoiceRef, payload, { merge: true });
         } else {
@@ -380,7 +348,6 @@ export default function InvoicesPage() {
     }
   };
 
-  // Save a product created inline from the invoice dialog
   const handleSaveProduct = async (productToSave: Omit<Product, "id">): Promise<string | void> => {
     if (!db) return;
     try {
@@ -403,7 +370,7 @@ export default function InvoicesPage() {
   const handleSaveCustomerWrapper = async (c: Omit<Customer, "id"> & { id?: string; }): Promise<string | void> => {
     if (!db) return;
     try {
-      const customerToSave = { ...c, id: c.id || "" } as Customer; // Ensure it's a full Customer object for the main handler
+      const customerToSave = { ...c, id: c.id || "" } as Customer;
       return await handleSaveCustomer(customerToSave);
     } catch (err) {
       console.error("Failed to save customer from invoice dialog:", err);
@@ -434,7 +401,6 @@ export default function InvoicesPage() {
   };
 
 
-  // ---------- BULK PAYMENT (transaction-safe) ----------
   const handleBulkPaymentSave = async (
     customerId: string,
     paymentDetails: Omit<Payment, "id" | "amount"> & { amount: number },
@@ -448,17 +414,14 @@ export default function InvoicesPage() {
         let remaining = paymentDetails.amount;
         affectedInvoicesData = [];
 
-        // READS: fetch all invoices by id via transaction.get BEFORE writes
         const refs = invoiceIdsToPay.map((id) => doc(db!, "invoices", id));
         const snaps = await Promise.all(refs.map((r) => transaction.get(r)));
         const docs = snaps
           .filter((s) => s.exists())
           .map((s) => ({ snap: s, data: s.data() as Invoice }));
 
-        // oldest first
         docs.sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime());
 
-        // WRITES
         for (const { snap, data: invoice } of docs) {
           if (remaining <= 0) break;
           if (invoice.customerId !== customerId) continue;
@@ -529,7 +492,6 @@ export default function InvoicesPage() {
     }
   };
 
-  // Printing helpers
   const handlePrepareAndPrintBulkReceipt = (receiptData: BulkPaymentReceiptData) => {
     setBulkPaymentReceiptToPrint(receiptData);
     setTimeout(() => {
@@ -572,7 +534,6 @@ export default function InvoicesPage() {
     }
   };
 
-  // Keep signature compatible with InvoiceTable (and also accept Date for safety)
   const formatDate = (dateInput: string | Date | undefined, options?: Intl.DateTimeFormatOptions) => {
     if (!dateInput) return "N/A";
     const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
@@ -870,7 +831,7 @@ export default function InvoicesPage() {
   };
 
   // Loading state
-  if (isLoadingInvoices || isLoadingCustomers || isLoadingProducts) {
+  if (isLoading) {
     return (
       <PageHeader title="Invoices" description="Loading invoices database...">
         <div className="flex items-center justify-center h-32">
@@ -885,7 +846,7 @@ export default function InvoicesPage() {
     <>
       <PageHeader title="Invoices" description="Create and manage customer invoices.">
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setIsBulkPaymentDialogOpen(true)} disabled={isLoadingCustomers}>
+          <Button variant="secondary" onClick={() => setIsBulkPaymentDialogOpen(true)} disabled={isLoading}>
             <Icon name="ClipboardList" className="mr-2 h-4 w-4" />
             Record Bulk Payment
           </Button>
@@ -901,6 +862,7 @@ export default function InvoicesPage() {
             onSaveCustomer={handleSaveCustomerWrapper}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={stableProductCategories}
             productSubcategories={stableProductSubcategories}
           />
@@ -927,9 +889,10 @@ export default function InvoicesPage() {
           onSaveCustomer={handleSaveCustomerWrapper}
           customers={customers}
           products={products}
+          vendors={vendors}
           productCategories={stableProductCategories}
           productSubcategories={stableProductSubcategories}
-          isDataLoading={isLoadingCustomers || isLoadingProducts}
+          isDataLoading={isLoading}
         />
       )}
 
@@ -972,6 +935,7 @@ export default function InvoicesPage() {
             formatDate={formatDate}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={stableProductCategories}
             productSubcategories={stableProductSubcategories}
             onViewItems={handleViewItems}
