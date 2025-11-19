@@ -92,6 +92,7 @@ const orderFormSchema = z.object({
   status: z.enum(ORDER_STATUSES as [typeof ORDER_STATUSES[0], ...typeof ORDER_STATUSES]),
   orderState: z.enum(ORDER_STATES as [typeof ORDER_STATES[0], ...typeof ORDER_STATES]),
   poNumber: z.string().optional(),
+  distributor: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required."),
   notes: z.string().optional(),
   expectedDeliveryDate: z.date().optional(),
@@ -131,6 +132,8 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
 
   const form = useForm<z.infer<typeof orderFormSchema>>({ resolver: zodResolver(orderFormSchema) });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "lineItems" });
+  
+  const watchedStatus = form.watch('status');
 
   useEffect(() => {
     let defaultValues: z.infer<typeof orderFormSchema>;
@@ -147,6 +150,7 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
         status: sourceData.status || 'Draft',
         orderState: sourceData.orderState || 'Open',
         poNumber: sourceData.poNumber ?? '',
+        distributor: sourceData.distributor ?? '',
         lineItems: (sourceData.lineItems || [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false }]).map(li => ({ ...li, id: li.id || crypto.randomUUID() })),
         notes: sourceData.notes || '',
         payments: sourceData.payments?.map(p => ({...p, date: typeof p.date === 'string' ? parseISO(p.date as string) : p.date})) || [],
@@ -314,6 +318,21 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
             <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl><SelectContent>{ORDER_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
           )} />
         </div>
+        
+        {watchedStatus === 'Ordered' && (
+          <FormField
+            control={form.control}
+            name="distributor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Distributor / Vendor</FormLabel>
+                <FormControl><Input {...field} placeholder="Enter distributor name" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
         {/* Other date fields like expected, ready, picked up */}
 
         <Separator /><h3 className="text-lg font-medium">Line Items</h3>

@@ -103,6 +103,7 @@ const invoiceFormSchema = z.object({
   dueDate: z.date().optional(),
   status: z.enum(INVOICE_STATUSES as [typeof INVOICE_STATUSES[0], ...typeof INVOICE_STATUSES]),
   poNumber: z.string().optional(),
+  distributor: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required."),
   paymentTerms: z.string().optional(),
   notes: z.string().optional(),
@@ -190,6 +191,7 @@ export function InvoiceForm({
         dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
         status: invoice.status,
         poNumber: invoice.poNumber ?? '',
+        distributor: invoice.distributor ?? '',
         lineItems: invoice.lineItems.map(li => ({
             id: li.id, productId: li.productId, productName: li.productName,
             quantity: li.quantity, unitPrice: li.unitPrice,
@@ -214,6 +216,7 @@ export function InvoiceForm({
         dueDate: initialData.dueDate ? (initialData.dueDate instanceof Date ? initialData.dueDate : new Date(initialData.dueDate)) : undefined,
         status: initialData.status || 'Draft',
         poNumber: initialData.poNumber ?? '',
+        distributor: initialData.distributor ?? '',
         lineItems: (initialData.lineItems || [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false }]).map(li => ({
             ...li, id: li.id || crypto.randomUUID()
         })),
@@ -552,17 +555,16 @@ export function InvoiceForm({
             <FormItem className="flex flex-col">
               <FormLabel>Customer</FormLabel>
               <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                      {field.value ? customers.find(c => c.id === field.value)?.companyName || `${customers.find(c => c.id === field.value)?.firstName} ${customers.find(c => c.id === field.value)?.lastName}` : "Select customer"}
-                      <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </FormControl></PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command>
-                    <CommandInput placeholder="Search customer..." />
-                    <CommandList><CommandEmpty>No customer found.</CommandEmpty>
-                    <CommandGroup>
+              <Popover><PopoverTrigger asChild><FormControl>
+                  <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                    {field.value ? customers.find(c => c.id === field.value)?.companyName || `${customers.find(c => c.id === field.value)?.firstName} ${customers.find(c => c.id === field.value)?.lastName}` : "Select customer"}
+                    <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+              </FormControl></PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command>
+                  <CommandInput placeholder="Search customer..." />
+                  <CommandList><CommandEmpty>No customer found.</CommandEmpty>
+                  <CommandGroup>
                       {customers.map((customer) => {
                            const displayName = customer.companyName ? `${customer.companyName} (${customer.firstName} ${customer.lastName})` : `${customer.firstName} ${customer.lastName}`;
                            const allEmails = customer.emailContacts?.map(ec => ec.email).join(' ') || '';
@@ -575,8 +577,7 @@ export function InvoiceForm({
                           );
                         })}
                     </CommandGroup></CommandList>
-                </Command></PopoverContent>
-              </Popover>
+                </Command></PopoverContent></Popover>
               <Button type="button" variant="outline" size="icon" onClick={() => {const c = customers.find(c => c.id === field.value); if(c) onViewCustomer(c)}} disabled={!field.value}><Icon name="UserCog" /></Button>
               </div>
               <FormMessage />
@@ -622,6 +623,21 @@ export function InvoiceForm({
             </Select><FormMessage />
           </FormItem>
         )} />
+        
+        {watchedStatus === 'Ordered' && (
+          <FormField
+            control={form.control}
+            name="distributor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Distributor / Vendor</FormLabel>
+                <FormControl><Input {...field} placeholder="Enter distributor name" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
 
         {watchedStatus === 'Ready for pick up' && (
              <FormField control={form.control} name="readyForPickUpDate" render={({ field }) => (
@@ -835,8 +851,7 @@ export function InvoiceForm({
             <p className="text-sm font-medium text-destructive">{form.formState.errors.lineItems.root.message}</p>
         )}
 
-        <Separator />
-        <h3 className="text-lg font-medium">Payments</h3>
+        <Separator /><h3 className="text-lg font-medium">Payments</h3>
         {localPayments.length > 0 && (
           <div className="space-y-2 mb-4">
             <Label>Recorded Payments:</Label>

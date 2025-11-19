@@ -171,6 +171,7 @@ export function OrderTable({
                   )}
                 >
                   {order.status}
+                  {order.distributor && ` (${order.distributor})`}
                   {order.status === 'Ready for pick up' && order.readyForPickUpDate && ` (${formatDate(order.readyForPickUpDate, { month: '2-digit', day: '2-digit' })})`}
                   {order.status === 'Picked up' && order.pickedUpDate && ` (${formatDate(order.pickedUpDate, { month: '2-digit', day: '2-digit' })})`}
                 </Badge>

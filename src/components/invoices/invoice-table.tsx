@@ -186,6 +186,7 @@ export function InvoiceTable({
                   )}
                 >
                   {invoice.status}
+                  {invoice.distributor && ` (${invoice.distributor})`}
                   {invoice.status === 'Ready for pick up' &&
                     invoice.readyForPickUpDate &&
                     ` (${formatDate(invoice.readyForPickUpDate, { month: '2-digit', day: '2-digit' })})`}
