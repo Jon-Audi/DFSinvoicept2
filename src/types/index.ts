@@ -344,3 +344,5 @@ export interface ReadyForPickupReportItem {
   readyForPickUpDate?: string;
   total: number;
 }
+
+    

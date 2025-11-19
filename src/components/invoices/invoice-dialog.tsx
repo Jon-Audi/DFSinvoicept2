@@ -1,8 +1,9 @@
+
 "use client";
 
 import React from 'react';
 import type { Invoice, Customer, Product, LineItem, Payment } from '@/types';
-import { InvoiceForm, type InvoiceFormData } from '@/components/invoices/invoice-form';
+import { InvoiceForm, type InvoiceFormData } from './invoice-form';
 import {
   Dialog,
   DialogContent,
@@ -151,6 +152,7 @@ export function InvoiceDialog({
         payments: finalPayments,
         amountPaid: roundedTotalAmountPaid,
         balanceDue: roundedBalanceDue,
+        distributor: formDataFromForm.distributor,
     };
 
     if (formDataFromForm.dueDate) invoicePayload.dueDate = formDataFromForm.dueDate.toISOString();
@@ -211,3 +213,5 @@ export function InvoiceDialog({
     </>
   );
 }
+
+    

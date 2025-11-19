@@ -138,6 +138,7 @@ export function OrderDialog({
         amountPaid: roundedTotalAmountPaid,
         balanceDue: roundedBalanceDue,
         poNumber: formDataFromForm.poNumber || '',
+        distributor: formDataFromForm.distributor,
         notes: formDataFromForm.notes || '',
         expectedDeliveryDate: formDataFromForm.expectedDeliveryDate?.toISOString(),
         readyForPickUpDate: formDataFromForm.readyForPickUpDate?.toISOString(),
@@ -191,3 +192,5 @@ export function OrderDialog({
     </>
   );
 }
+
+    
