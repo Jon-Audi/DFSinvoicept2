@@ -130,6 +130,7 @@ export function EstimateForm({
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
   const [lineItemCategoryFilters, setLineItemCategoryFilters] = useState<(string | undefined)[]>([]);
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
+  const prevCustomerIdRef = React.useRef<string | undefined>();
 
   const form = useForm<EstimateFormData>({
     resolver: zodResolver(estimateFormSchema),
@@ -139,6 +140,22 @@ export function EstimateForm({
     control: form.control,
     name: "lineItems",
   });
+
+  const calculateUnitPrice = (product: Product, customer?: Customer): number => {
+    let finalPrice = product.price;
+    if (customer && customer.specificMarkups && customer.specificMarkups.length > 0) {
+      const specificRule = customer.specificMarkups.find(m => m.categoryName === product.category);
+      const allCategoriesRule = customer.specificMarkups.find(m => m.categoryName === ALL_CATEGORIES_MARKUP_KEY);
+
+      if (specificRule) {
+        finalPrice = product.cost * (1 + specificRule.markupPercentage / 100);
+      } else if (allCategoriesRule) {
+        finalPrice = product.cost * (1 + allCategoriesRule.markupPercentage / 100);
+      }
+    }
+    return parseFloat(finalPrice.toFixed(2));
+  };
+
 
   useEffect(() => {
     let defaultValues: EstimateFormData;
@@ -204,6 +221,30 @@ export function EstimateForm({
   const watchedLineItems = form.watch('lineItems');
   const watchedCustomerId = form.watch('customerId');
 
+  useEffect(() => {
+    if (watchedCustomerId === prevCustomerIdRef.current || !watchedCustomerId || !products.length) {
+      return;
+    }
+  
+    const customer = customers.find(c => c.id === watchedCustomerId);
+    const currentLineItems = form.getValues('lineItems');
+  
+    const updatedLineItems = currentLineItems.map(item => {
+      if (item.isNonStock || !item.productId) {
+        return item;
+      }
+      const product = products.find(p => p.id === item.productId);
+      if (!product) {
+        return item;
+      }
+      const newUnitPrice = calculateUnitPrice(product, customer);
+      return { ...item, unitPrice: newUnitPrice };
+    });
+  
+    form.setValue('lineItems', updatedLineItems, { shouldValidate: true });
+    prevCustomerIdRef.current = watchedCustomerId;
+  }, [watchedCustomerId, customers, products, form]);
+
   const currentEstimateTotal = useMemo(() => {
     return (watchedLineItems || []).reduce((acc, item) => {
       const price = typeof item.unitPrice === 'number' ? item.unitPrice : 0;
@@ -219,27 +260,17 @@ export function EstimateForm({
     const currentCustomer = customers.find(c => c.id === currentCustomerId);
 
     if (selectedProd) {
-      let finalPrice = selectedProd.price;
-      if (currentCustomer && currentCustomer.specificMarkups && currentCustomer.specificMarkups.length > 0) {
-        const specificRule = currentCustomer.specificMarkups.find(m => m.categoryName === selectedProd.category);
-        const allCategoriesRule = currentCustomer.specificMarkups.find(m => m.categoryName === ALL_CATEGORIES_MARKUP_KEY);
-
-        if (specificRule) {
-          finalPrice = selectedProd.cost * (1 + specificRule.markupPercentage / 100);
-        } else if (allCategoriesRule) {
-          finalPrice = selectedProd.cost * (1 + allCategoriesRule.markupPercentage / 100);
-        }
-      }
+      const finalPrice = calculateUnitPrice(selectedProd, currentCustomer);
       
       form.setValue(`lineItems.${index}.productId`, selectedProd.id, { shouldValidate: true });
       form.setValue(`lineItems.${index}.productName`, selectedProd.name);
-      form.setValue(`lineItems.${index}.unitPrice`, parseFloat(finalPrice.toFixed(2)), { shouldValidate: true });
+      form.setValue(`lineItems.${index}.unitPrice`, finalPrice, { shouldValidate: true });
       setLineItemCategoryFilters(prevFilters => {
         const newFilters = [...prevFilters];
         newFilters[index] = selectedProd.category;
         return newFilters;
       });
-       setLineItemSubcategoryFilters(prevFilters => { // Set subcategory as well
+       setLineItemSubcategoryFilters(prevFilters => {
         const newFilters = [...prevFilters];
         newFilters[index] = selectedProd.subcategory;
         return newFilters;
@@ -254,6 +285,12 @@ export function EstimateForm({
     setLineItemCategoryFilters(prev => [...prev, undefined]);
     setLineItemSubcategoryFilters(prev => [...prev, undefined]);
   };
+
+  const removeLineItem = (index: number) => {
+    remove(index);
+    setLineItemCategoryFilters(prev => prev.filter((_, i) => i !== index));
+    setLineItemSubcategoryFilters(prev => prev.filter((_, i) => i !== index));
+  };
   
   const handleBulkAddItems = (itemsToAdd: Array<{ productId: string; quantity: number }>) => {
     const newFilterEntries: (string | undefined)[] = [];
@@ -265,24 +302,14 @@ export function EstimateForm({
       const productDetails = products.find(p => p.id === item.productId);
       if (!productDetails) return;
 
-      let finalPrice = productDetails.price;
-       if (currentCustomer && currentCustomer.specificMarkups && currentCustomer.specificMarkups.length > 0) {
-        const specificRule = currentCustomer.specificMarkups.find(m => m.categoryName === productDetails.category);
-        const allCategoriesRule = currentCustomer.specificMarkups.find(m => m.categoryName === ALL_CATEGORIES_MARKUP_KEY);
-
-        if (specificRule) {
-          finalPrice = productDetails.cost * (1 + specificRule.markupPercentage / 100);
-        } else if (allCategoriesRule) {
-          finalPrice = productDetails.cost * (1 + allCategoriesRule.markupPercentage / 100);
-        }
-      }
+      const finalPrice = calculateUnitPrice(productDetails, currentCustomer);
 
       append({
         id: crypto.randomUUID(),
         productId: item.productId,
         productName: productDetails.name,
         quantity: item.quantity,
-        unitPrice: parseFloat(finalPrice.toFixed(2)),
+        unitPrice: finalPrice,
         isReturn: false,
         isNonStock: false,
         addToProductList: false,
@@ -295,8 +322,95 @@ export function EstimateForm({
     setIsBulkAddDialogOpen(false);
   };
   
-  // The rest of the form logic is similar to InvoiceForm...
-  // I will omit parts for brevity that are identical to what you've seen in invoice form.
+  const handleNonStockToggle = (index: number, checked: boolean) => {
+    form.setValue(`lineItems.${index}.isNonStock`, checked);
+    if (checked) {
+      form.setValue(`lineItems.${index}.productId`, undefined);
+      form.setValue(`lineItems.${index}.unitPrice`, 0);
+      form.setValue(`lineItems.${index}.cost`, 0);
+      form.setValue(`lineItems.${index}.markupPercentage`, 0);
+    } else {
+      form.setValue(`lineItems.${index}.productName`, '');
+      form.setValue(`lineItems.${index}.cost`, undefined);
+      form.setValue(`lineItems.${index}.markupPercentage`, undefined);
+    }
+    form.trigger(`lineItems.${index}.productId`);
+    form.trigger(`lineItems.${index}.unitPrice`);
+  };
+
+  const handleNonStockPriceChange = (index: number, value: number, field: 'cost' | 'markup' | 'price') => {
+    const cost = form.getValues(`lineItems.${index}.cost`) || 0;
+    const markup = form.getValues(`lineItems.${index}.markupPercentage`) || 0;
+    const price = form.getValues(`lineItems.${index}.unitPrice`) || 0;
+
+    if (field === 'cost') {
+        const newPrice = value * (1 + markup / 100);
+        form.setValue(`lineItems.${index}.cost`, value);
+        form.setValue(`lineItems.${index}.unitPrice`, parseFloat(newPrice.toFixed(2)));
+    } else if (field === 'markup') {
+        const newPrice = cost * (1 + value / 100);
+        form.setValue(`lineItems.${index}.markupPercentage`, value);
+        form.setValue(`lineItems.${index}.unitPrice`, parseFloat(newPrice.toFixed(2)));
+    } else if (field === 'price') {
+        const newMarkup = cost > 0 ? ((value / cost) - 1) * 100 : 0;
+        form.setValue(`lineItems.${index}.unitPrice`, value);
+        form.setValue(`lineItems.${index}.markupPercentage`, parseFloat(newMarkup.toFixed(2)));
+    }
+  };
+
+  const getFilteredProducts = (index: number) => {
+    const selectedCategory = lineItemCategoryFilters[index];
+    const selectedSubcategory = lineItemSubcategoryFilters[index];
+    let filtered = products;
+
+    if (selectedCategory && selectedCategory !== ALL_CATEGORIES_VALUE) {
+      filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+    if (selectedSubcategory && selectedSubcategory !== ALL_CATEGORIES_VALUE) {
+        filtered = filtered.filter(p => p.subcategory === selectedSubcategory);
+    }
+    return (filtered || []);
+  };
+
+  const getAvailableSubcategories = (index: number) => {
+    const selectedCategory = lineItemCategoryFilters[index];
+    if (selectedCategory) {
+        const subcategories = new Set(products.filter(p => p.category === selectedCategory).map(p => p.subcategory).filter(Boolean));
+        return Array.from(subcategories) as string[];
+    }
+    return [];
+  };
+
+  const handleCategoryFilterChange = (index: number, valueFromSelect: string | undefined) => {
+    const newCategoryFilter = valueFromSelect === ALL_CATEGORIES_VALUE ? undefined : valueFromSelect;
+    setLineItemCategoryFilters(prevFilters => {
+      const newFilters = [...prevFilters];
+      newFilters[index] = newCategoryFilter;
+      return newFilters;
+    });
+    setLineItemSubcategoryFilters(prevFilters => { // Reset subcategory filter when category changes
+        const newFilters = [...prevFilters];
+        newFilters[index] = undefined;
+        return newFilters;
+    });
+    form.setValue(`lineItems.${index}.productId`, '', { shouldValidate: true });
+    form.setValue(`lineItems.${index}.productName`, '');
+    form.setValue(`lineItems.${index}.unitPrice`, 0, { shouldValidate: true });
+    form.trigger(`lineItems.${index}.productId`);
+  };
+
+  const handleSubcategoryFilterChange = (index: number, valueFromSelect: string | undefined) => {
+    const newSubcategoryFilter = valueFromSelect === ALL_CATEGORIES_VALUE ? undefined : valueFromSelect;
+    setLineItemSubcategoryFilters(prevFilters => {
+        const newFilters = [...prevFilters];
+        newFilters[index] = newSubcategoryFilter;
+        return newFilters;
+    });
+    form.setValue(`lineItems.${index}.productId`, '', { shouldValidate: true });
+    form.setValue(`lineItems.${index}.productName`, '');
+    form.setValue(`lineItems.${index}.unitPrice`, 0, { shouldValidate: true });
+    form.trigger(`lineItems.${index}.productId`);
+  };
   
   return (
     <Form {...form}>
@@ -378,13 +492,169 @@ export function EstimateForm({
 
         <Separator /><h3 className="text-lg font-medium">Line Items</h3>
         {fields.map((fieldItem, index) => {
-          // This part is very similar to InvoiceForm, it will be filled with appropriate logic
+          const currentLineItem = watchedLineItems?.[index];
+          const quantity = currentLineItem?.quantity || 0;
+          const unitPrice = typeof currentLineItem?.unitPrice === 'number' ? currentLineItem.unitPrice : 0;
+          const isReturn = currentLineItem?.isReturn || false;
+          const isNonStock = currentLineItem?.isNonStock || false;
+          const lineTotal = isReturn ? -(quantity * unitPrice) : (quantity * unitPrice);
+          const filteredProductsForLine = getFilteredProducts(index);
+          const availableSubcategories = getAvailableSubcategories(index);
           return (
             <div key={fieldItem.id} className="space-y-3 p-4 border rounded-md relative">
-              <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => remove(index)}>
+              <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeLineItem(index)}>
                 <Icon name="Trash2" className="h-4 w-4 text-destructive" />
               </Button>
-              {/* Line item fields will be rendered here, similar to InvoiceForm */}
+              <div className="flex items-center space-x-4">
+                <FormField control={form.control} name={`lineItems.${index}.isReturn`} render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="font-normal">Return Item?</FormLabel>
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name={`lineItems.${index}.isNonStock`} render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => handleNonStockToggle(index, !!checked)} /></FormControl>
+                      <FormLabel className="font-normal">Non-Stock Item?</FormLabel>
+                    </FormItem>
+                )} />
+              </div>
+              {isNonStock ? (
+                 <>
+                    <FormField control={form.control} name={`lineItems.${index}.productName`} render={({ field }) => (
+                        <FormItem><FormLabel>Product/Service Name</FormLabel><FormControl><Input {...field} placeholder="Enter item name" /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name={`lineItems.${index}.cost`} render={({ field }) => (
+                            <FormItem><FormLabel>Cost</FormLabel><FormControl><Input type="number" step="0.01" {...field} onChange={e => handleNonStockPriceChange(index, parseFloat(e.target.value) || 0, 'cost')} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name={`lineItems.${index}.markupPercentage`} render={({ field }) => (
+                            <FormItem><FormLabel>Markup (%)</FormLabel><FormControl><Input type="number" step="0.01" {...field} onChange={e => handleNonStockPriceChange(index, parseFloat(e.target.value) || 0, 'markup')} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                         <FormField control={form.control} name={`lineItems.${index}.unitPrice`} render={({ field }) => (
+                            <FormItem><FormLabel>Unit Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} onChange={e => handleNonStockPriceChange(index, parseFloat(e.target.value) || 0, 'price')} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </div>
+                     <FormField
+                    control={form.control}
+                    name={`lineItems.${index}.addToProductList`}
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-2 pt-2">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormLabel className="font-normal">Add this item to the main product list</FormLabel>
+                        </FormItem>
+                    )}
+                    />
+                    {currentLineItem.addToProductList && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 ml-2">
+                        <FormField control={form.control} name={`lineItems.${index}.newProductCategory`} render={({ field }) => (
+                            <FormItem><FormLabel>New Product Category</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                                <SelectContent>{productCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`lineItems.${index}.unit`} render={({ field }) => (
+                            <FormItem><FormLabel>Unit</FormLabel><FormControl><Input {...field} placeholder="e.g., piece, hour" /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </div>
+                    )}
+                </>
+              ) : ( <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormItem><FormLabel>Category Filter</FormLabel>
+                      <Select value={lineItemCategoryFilters[index] || ALL_CATEGORIES_VALUE} onValueChange={(value) => handleCategoryFilterChange(index, value)}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger></FormControl>
+                        <SelectContent><SelectItem value={ALL_CATEGORIES_VALUE}>All Categories</SelectItem>
+                          {(productCategories || []).map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                    <FormItem>
+                      <FormLabel>Subcategory Filter</FormLabel>
+                      <Select
+                        value={lineItemSubcategoryFilters[index] || ALL_CATEGORIES_VALUE}
+                        onValueChange={(value) => handleSubcategoryFilterChange(index, value)}
+                        disabled={!lineItemCategoryFilters[index]}
+                      >
+                        <FormControl><SelectTrigger><SelectValue placeholder="All Subcategories" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value={ALL_CATEGORIES_VALUE}>All Subcategories</SelectItem>
+                          {availableSubcategories.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  </div>
+                  <FormField control={form.control} name={`lineItems.${index}.productId`} render={({ field: controllerField }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Product</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                              <Button variant="outline" role="combobox" className={cn("w-full justify-between", !controllerField.value && "text-muted-foreground")}>
+                                {controllerField.value ? products.find(p => p.id === controllerField.value)?.name : "Select product"}
+                                <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                        </FormControl></PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command>
+                            <CommandInput placeholder="Search product..." />
+                            <CommandList><CommandEmpty>No product found.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredProductsForLine.map((product) => {
+                                const searchableValue = [product.name, product.category, product.unit].filter(Boolean).join(' ').toLowerCase();
+                                return (<CommandItem value={searchableValue} key={product.id} onSelect={() => handleProductSelect(index, product.id)}>
+                                    <Icon name="Check" className={cn("mr-2 h-4 w-4", product.id === controllerField.value ? "opacity-100" : "opacity-0")}/>
+                                    {product.name} ({product.unit}) - Cost: ${product.cost.toFixed(2)}
+                                  </CommandItem>); })}
+                            </CommandGroup></CommandList>
+                        </Command></PopoverContent></Popover><FormMessage />
+                      </FormItem>
+                  )} /> </>
+              )}
+              <div className="grid grid-cols-3 gap-4 items-end">
+                <FormField
+                  control={form.control}
+                  name={`lineItems.${index}.unitPrice`}
+                  render={({ field: priceField }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...priceField}
+                          value={priceField.value === undefined || priceField.value === null || isNaN(Number(priceField.value)) ? '' : String(priceField.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const num = parseFloat(val);
+                            priceField.onChange(isNaN(num) ? undefined : num);
+                          }}
+                          disabled={!isNonStock}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`lineItems.${index}.quantity`}
+                  render={({ field: qtyField }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...qtyField}
+                          value={qtyField.value === undefined || qtyField.value === null || isNaN(Number(qtyField.value)) ? '' : String(qtyField.value)}
+                            onChange={(e) => { const val = e.target.value; const num = parseInt(val, 10); qtyField.onChange(isNaN(num) ? undefined : num); }}
+                            min="1" disabled={!isNonStock && !watchedLineItems?.[index]?.productId} />
+                    </FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormItem><FormLabel>Line Total</FormLabel>
+                  <Input type="text" readOnly value={lineTotal !== 0 ? `${isReturn ? '-' : ''}$${Math.abs(lineTotal).toFixed(2)}` : '$0.00'} className={cn("bg-muted font-semibold", isReturn && "text-destructive")} />
+                </FormItem>
+              </div>
             </div>
           )
         })}
