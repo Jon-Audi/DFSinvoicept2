@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Invoice, Customer, Product, LineItem, Payment } from '@/types';
+import type { Invoice, Customer, Product, LineItem, Payment, Vendor } from '@/types';
 import { InvoiceForm, type InvoiceFormData } from './invoice-form';
 import {
   Dialog,
@@ -22,6 +22,7 @@ interface InvoiceDialogProps {
   onSaveCustomer: (customer: Customer) => Promise<string | void>;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   isOpen?: boolean;
@@ -38,6 +39,7 @@ export function InvoiceDialog({
   onSaveCustomer,
   customers,
   products,
+  vendors,
   productCategories,
   productSubcategories,
   isOpen: controlledIsOpen,
@@ -194,6 +196,7 @@ export function InvoiceDialog({
             onClose={() => setOpen(false)}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
             isDataLoading={isDataLoading}
@@ -213,5 +216,3 @@ export function InvoiceDialog({
     </>
   );
 }
-
-    

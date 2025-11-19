@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Order, Customer, Product, Payment } from '@/types';
+import type { Order, Customer, Product, Payment, Vendor } from '@/types';
 import { OrderForm, type OrderFormData } from './order-form';
 import {
   Dialog,
@@ -22,6 +22,7 @@ interface OrderDialogProps {
   onSaveCustomer: (customer: Customer) => Promise<string | void>;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   isOpen?: boolean;
@@ -37,6 +38,7 @@ export function OrderDialog({
   onSaveCustomer,
   customers,
   products,
+  vendors,
   productCategories,
   productSubcategories,
   isOpen: controlledIsOpen,
@@ -174,6 +176,7 @@ export function OrderDialog({
             onClose={() => setOpen(false)}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
             onViewCustomer={(customer) => setCustomerToView(customer)}
@@ -192,5 +195,3 @@ export function OrderDialog({
     </>
   );
 }
-
-    

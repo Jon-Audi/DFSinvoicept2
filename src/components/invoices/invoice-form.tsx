@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Invoice, DocumentStatus, Customer, Product, PaymentMethod, Payment } from '@/types';
+import type { Invoice, DocumentStatus, Customer, Product, PaymentMethod, Payment, Vendor } from '@/types';
 import { PAYMENT_METHODS, ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,6 +140,7 @@ interface InvoiceFormProps {
   onClose?: () => void;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   isDataLoading?: boolean; 
@@ -154,6 +155,7 @@ export function InvoiceForm({
   onClose,
   customers,
   products,
+  vendors,
   productCategories = [],
   productSubcategories,
   isDataLoading = false,
@@ -625,13 +627,26 @@ export function InvoiceForm({
         )} />
         
         {watchedStatus === 'Ordered' && (
-          <FormField
+           <FormField
             control={form.control}
             name="distributor"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Distributor / Vendor</FormLabel>
-                <FormControl><Input {...field} placeholder="Enter distributor name" /></FormControl>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a vendor" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {vendors.map(vendor => (
+                            <SelectItem key={vendor.id} value={vendor.name}>
+                                {vendor.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -952,5 +967,3 @@ export function InvoiceForm({
     </Form>
   );
 }
-
-    

@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Order, DocumentStatus, Customer, Product, PaymentMethod, Payment } from '@/types';
+import type { Order, DocumentStatus, Customer, Product, PaymentMethod, Payment, Vendor } from '@/types';
 import { PAYMENT_METHODS, ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,12 +118,13 @@ interface OrderFormProps {
   onClose?: () => void;
   customers: Customer[];
   products: Product[];
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   onViewCustomer: (customer: Customer) => void;
 }
 
-export function OrderForm({ order, initialData, onSubmit, onClose, customers, products, productCategories = [], productSubcategories, onViewCustomer }: OrderFormProps) {
+export function OrderForm({ order, initialData, onSubmit, onClose, customers, products, vendors, productCategories = [], productSubcategories, onViewCustomer }: OrderFormProps) {
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
   const [lineItemCategoryFilters, setLineItemCategoryFilters] = useState<(string | undefined)[]>([]);
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
@@ -320,17 +321,30 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
         </div>
         
         {watchedStatus === 'Ordered' && (
-          <FormField
-            control={form.control}
-            name="distributor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Distributor / Vendor</FormLabel>
-                <FormControl><Input {...field} placeholder="Enter distributor name" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+                control={form.control}
+                name="distributor"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Distributor / Vendor</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a vendor" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {vendors.map(vendor => (
+                                <SelectItem key={vendor.id} value={vendor.name}>
+                                    {vendor.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
         )}
         
         {/* Other date fields like expected, ready, picked up */}
@@ -415,5 +429,3 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
     </Form>
   );
 }
-
-    
