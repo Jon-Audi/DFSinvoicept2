@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 
 export type SortableInvoiceKeys =
   | "invoiceNumber"
@@ -293,3 +293,5 @@ export function InvoiceList({
     </>
   );
 }
+
+    

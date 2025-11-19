@@ -37,7 +37,7 @@ import type {
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import type { InvoiceFormData } from "@/components/invoices/invoice-form";
 import { InvoiceTable } from "@/components/invoices/invoice-table";
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import {
   collection,
   addDoc,
@@ -46,7 +46,6 @@ import {
   doc,
   getDoc,
   runTransaction,
-  deleteField,
 } from "firebase/firestore";
 import { PrintableInvoice } from "@/components/invoices/printable-invoice";
 import { PrintableInvoicePackingSlip } from "@/components/invoices/printable-invoice-packing-slip";
@@ -69,6 +68,7 @@ type SortableInvoiceKeys =
   | "status";
 
 export default function InvoicesPage() {
+  const { db } = useFirebase();
   const { toast } = useToast();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -201,6 +201,7 @@ export default function InvoicesPage() {
 
   // Live data
   useEffect(() => {
+    if (!db) return;
     setIsLoadingInvoices(true);
     const unsub = onSnapshot(
       collection(db, "invoices"),
@@ -229,9 +230,10 @@ export default function InvoicesPage() {
       }
     );
     return () => unsub();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingCustomers(true);
     const unsub = onSnapshot(
       collection(db, "customers"),
@@ -248,9 +250,10 @@ export default function InvoicesPage() {
       }
     );
     return () => unsub();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingProducts(true);
     const unsub = onSnapshot(
       collection(db, "products"),
@@ -267,7 +270,7 @@ export default function InvoicesPage() {
       }
     );
     return () => unsub();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
     if (products?.length) {
@@ -283,6 +286,7 @@ export default function InvoicesPage() {
 
   // ---------- SAVE INVOICE (transaction-safe) ----------
   const handleSaveInvoice = async (invoiceToSave: Invoice) => {
+    if (!db) return;
     try {
       await runTransaction(db, async (transaction) => {
         const { id, ...invoiceData } = invoiceToSave;
@@ -372,6 +376,7 @@ export default function InvoicesPage() {
 
   // Save a product created inline from the invoice dialog
   const handleSaveProduct = async (productToSave: Omit<Product, "id">): Promise<string | void> => {
+    if (!db) return;
     try {
       const docRef = await addDoc(collection(db, "products"), productToSave);
       toast({
@@ -390,6 +395,7 @@ export default function InvoicesPage() {
   };
   
   const handleSaveCustomerWrapper = async (c: Omit<Customer, "id"> & { id?: string; }): Promise<string | void> => {
+    if (!db) return;
     try {
       const customerToSave = { ...c, id: c.id || "" } as Customer; // Ensure it's a full Customer object for the main handler
       return await handleSaveCustomer(customerToSave);
@@ -400,6 +406,7 @@ export default function InvoicesPage() {
   };
 
   const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+    if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
       if (id && customers.some(c => c.id === id)) {
@@ -427,6 +434,7 @@ export default function InvoicesPage() {
     paymentDetails: Omit<Payment, "id" | "amount"> & { amount: number },
     invoiceIdsToPay: string[]
   ) => {
+    if (!db) return;
     let affectedInvoicesData: { invoiceNumber: string; amountApplied: number }[] = [];
 
     try {
@@ -435,7 +443,7 @@ export default function InvoicesPage() {
         affectedInvoicesData = [];
 
         // READS: fetch all invoices by id via transaction.get BEFORE writes
-        const refs = invoiceIdsToPay.map((id) => doc(db, "invoices", id));
+        const refs = invoiceIdsToPay.map((id) => doc(db!, "invoices", id));
         const snaps = await Promise.all(refs.map((r) => transaction.get(r)));
         const docs = snaps
           .filter((s) => s.exists())
@@ -548,6 +556,7 @@ export default function InvoicesPage() {
   };
 
   const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, "invoices", invoiceId));
       toast({ title: "Invoice Deleted", description: "The invoice has been removed." });
@@ -566,6 +575,7 @@ export default function InvoicesPage() {
   };
 
   const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
+    if (!db) return null;
     try {
       const docRef = doc(db, "companySettings", COMPANY_SETTINGS_DOC_ID);
       const docSnap = await getDoc(docRef);
@@ -737,7 +747,7 @@ export default function InvoicesPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!selectedInvoiceForEmail || !editableSubject || !editableBody) {
+    if (!selectedInvoiceForEmail || !editableSubject || !editableBody || !db) {
       toast({ title: "Error", description: "Email content or invoice details missing.", variant: "destructive" });
       return;
     }
@@ -1089,3 +1099,5 @@ export default function InvoicesPage() {
 const FormFieldWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
+
+    

@@ -338,8 +338,6 @@ export default function ProductsPage() {
               onSave={handleSaveProduct}
               productCategories={productCategories}
               onAddNewCategory={handleAddNewCategory}
-              productSubcategories={productSubcategories}
-              onAddNewSubcategory={handleAddNewSubcategory}
             />
         </div>
       </PageHeader>
@@ -382,3 +380,5 @@ export default function ProductsPage() {
     </>
   );
 }
+
+    

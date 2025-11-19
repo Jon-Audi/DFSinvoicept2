@@ -13,7 +13,7 @@ import { generateOrderEmailDraft } from '@/ai/flows/order-email-draft';
 import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact } from '@/types';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
-import { db } from '@/lib/firebase-client';
+import { useFirebase } from '@/components/firebase-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, runTransaction, DocumentReference } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
@@ -37,6 +37,7 @@ import { Separator } from '@/components/ui/separator';
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function OrdersPage() {
+  const { db } = useFirebase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -118,6 +119,7 @@ export default function OrdersPage() {
   }, [toast]);
 
   const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+    if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
       if (id && customers.some(c => c.id === id)) {
@@ -137,6 +139,7 @@ export default function OrdersPage() {
   };
 
   const handleSaveProduct = async (productToSave: Omit<Product, 'id'>): Promise<string | void> => {
+    if (!db) return;
     try {
       const docRef = await addDoc(collection(db, 'products'), productToSave);
       toast({
@@ -162,6 +165,7 @@ export default function OrdersPage() {
 
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingOrders(true);
     const unsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
       const fetchedOrders: Order[] = [];
@@ -184,9 +188,10 @@ export default function OrdersPage() {
       setIsLoadingOrders(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingCustomers(true);
     const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
       const fetchedCustomers: Customer[] = [];
@@ -201,9 +206,10 @@ export default function OrdersPage() {
       setIsLoadingCustomers(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
+    if (!db) return;
     setIsLoadingProducts(true);
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const fetchedProducts: Product[] = [];
@@ -218,7 +224,7 @@ export default function OrdersPage() {
       setIsLoadingProducts(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [db, toast]);
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -249,6 +255,7 @@ export default function OrdersPage() {
   }, [products]);
 
   const handleSaveOrder = async (orderToSave: Order) => {
+    if (!db) return;
     try {
         await runTransaction(db, async (transaction) => {
             const { id, ...orderDataFromDialog } = orderToSave;
@@ -324,6 +331,7 @@ export default function OrdersPage() {
   };
 
   const handleDeleteOrder = async (orderId: string) => {
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'orders', orderId));
       toast({ title: "Order Deleted", description: "The order has been removed." });
@@ -334,6 +342,7 @@ export default function OrdersPage() {
   };
 
   const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
+    if (!db) return null;
     try {
       const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
       const docSnap = await getDoc(docRef);
@@ -441,7 +450,7 @@ export default function OrdersPage() {
       ).join('\n') || 'Items as per order.';
 
       const customerDisplayName = customer ? (customer.companyName || `${customer.firstName} ${customer.lastName}`) : (order.customerName || 'Valued Customer');
-      const customerEmail = customer?.emailContacts.find(ec => ec.type === 'Main Contact')?.email || customer?.emailContacts[0]?.email ||'customer@example.com';
+      const customerEmail = customer?.emailContacts?.find(ec => ec.type === 'Main Contact')?.email || customer?.emailContacts?.[0]?.email || undefined;
 
       const result = await generateOrderEmailDraft({
         customerName: customerDisplayName,
@@ -469,7 +478,7 @@ export default function OrdersPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!selectedOrderForEmail || !editableSubject || !editableBody) {
+    if (!selectedOrderForEmail || !editableSubject || !editableBody || !db) {
         toast({ title: "Error", description: "Email content or order details missing.", variant: "destructive"});
         return;
     }
@@ -782,5 +791,7 @@ export default function OrdersPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
+
+    
 
     
