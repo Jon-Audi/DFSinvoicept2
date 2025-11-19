@@ -112,6 +112,11 @@ export default function InvoicesPage() {
 
   const [invoiceForViewingItems, setInvoiceForViewingItems] = useState<Invoice | null>(null);
   const [isLineItemsViewerOpen, setIsLineItemsViewerOpen] = useState(false);
+  
+  const handleViewItems = (invoice: Invoice) => {
+    setInvoiceForViewingItems(invoice);
+    setIsLineItemsViewerOpen(true);
+  };
 
   useEffect(() => setIsClient(true), []);
 
@@ -218,6 +223,7 @@ export default function InvoicesPage() {
               data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
             payments: data.payments || [],
             poNumber: data.poNumber || undefined,
+            distributor: data.distributor || undefined,
           });
         });
         setInvoices(fetched);
@@ -968,7 +974,7 @@ export default function InvoicesPage() {
             products={products}
             productCategories={stableProductCategories}
             productSubcategories={stableProductSubcategories}
-            onViewItems={(inv) => setInvoiceForViewingItems(inv)}
+            onViewItems={handleViewItems}
             sortConfig={sortConfig}
             requestSort={requestSort}
             renderSortArrow={renderSortArrow}
@@ -1082,15 +1088,15 @@ export default function InvoicesPage() {
       </div>
 
       <LineItemsViewerDialog
-  isOpen={isLineItemsViewerOpen}
-  onOpenChange={(open) => {
-    setIsLineItemsViewerOpen(open);
-    if (!open) setInvoiceForViewingItems(null);
-  }}
-  lineItems={invoiceForViewingItems?.lineItems ?? []}
-  documentType="Invoice"
-  documentNumber={invoiceForViewingItems?.invoiceNumber ?? ''}
-/>
+        isOpen={isLineItemsViewerOpen}
+        onOpenChange={(open) => {
+          setIsLineItemsViewerOpen(open);
+          if (!open) setInvoiceForViewingItems(null);
+        }}
+        lineItems={invoiceForViewingItems?.lineItems ?? []}
+        documentType="Invoice"
+        documentNumber={invoiceForViewingItems?.invoiceNumber ?? ''}
+      />
 
     </>
   );
@@ -1099,5 +1105,3 @@ export default function InvoicesPage() {
 const FormFieldWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
-
-    

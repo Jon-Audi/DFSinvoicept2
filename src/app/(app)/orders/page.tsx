@@ -178,6 +178,7 @@ export default function OrdersPage() {
           amountPaid: data.amountPaid || 0,
           balanceDue: data.balanceDue !== undefined ? data.balanceDue : (data.total || 0) - (data.amountPaid || 0),
           payments: data.payments || [],
+          distributor: data.distributor || undefined,
         });
       });
       setOrders(fetchedOrders);
@@ -775,15 +776,16 @@ export default function OrdersPage() {
         {packingSlipToPrint && <PrintableOrderPackingSlip ref={printRef} {...packingSlipToPrint} />}
       </div>
 
-      {orderForViewingItems && (
-        <LineItemsViewerDialog
-          isOpen={isLineItemsViewerOpen}
-          onOpenChange={setIsLineItemsViewerOpen}
-          lineItems={orderForViewingItems.lineItems}
-          documentType="Order"
-          documentNumber={orderForViewingItems.orderNumber}
-        />
-      )}
+      <LineItemsViewerDialog
+        isOpen={isLineItemsViewerOpen}
+        onOpenChange={(open) => {
+            setIsLineItemsViewerOpen(open);
+            if (!open) setOrderForViewingItems(null);
+        }}
+        lineItems={orderForViewingItems?.lineItems || []}
+        documentType="Order"
+        documentNumber={orderForViewingItems?.orderNumber || ''}
+      />
     </>
   );
 }
@@ -791,7 +793,3 @@ export default function OrdersPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
-
-    
-
-    
