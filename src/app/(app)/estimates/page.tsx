@@ -8,14 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,27 +16,9 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -54,13 +28,11 @@ import type { Estimate, Product, Customer, CompanySettings, EmailContact } from 
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, deleteField } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
-import { cn } from '@/lib/utils';
-// Removed Firebase Functions imports: import { getFunctions, httpsCallable } from 'firebase/functions';
+import { EstimateTable, type SortableEstimateKeys } from '@/components/estimates/estimate-table';
 
-type SortableEstimateKeys = 'estimateNumber' | 'customerName' | 'poNumber' | 'date' | 'total' | 'status' | 'validUntil';
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function EstimatesPage() {
@@ -83,10 +55,9 @@ export default function EstimatesPage() {
   const [editableSubject, setEditableSubject] = useState<string>('');
   const [editableBody, setEditableBody] = useState<string>('');
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [isLoadingEmail, setIsLoadingEmail] = useState(false); // Used for AI draft generation and actual send
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const conversionHandled = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [stableProductCategories, setStableProductCategories] = useState<string[]>([]);
   const [stableProductSubcategories, setStableProductSubcategories] = useState<string[]>([]);
@@ -101,12 +72,7 @@ export default function EstimatesPage() {
   const printRef = useRef<HTMLDivElement>(null);
   
   const [isCloneDialogOpen, setIsCloneDialogOpen] = useState<boolean>(false);
-  const [clonedEstimateData, setClonedEstimateData] = useState<Partial<EstimateFormData> | null>(null);
-
-
-  // Removed Firebase Functions instance: const functionsInstance = getFunctions();
-  // Removed callable function: const sendEmailFunction = httpsCallable(functionsInstance, 'sendEmailWithMailerSend');
-
+  const [clonedEstimateData, setClonedEstimateData] = useState<Partial<EstimateFormData> & { lineItems: EstimateFormData["lineItems"]; } | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -162,6 +128,44 @@ export default function EstimatesPage() {
     });
     return () => unsubscribe();
   }, [db, toast]);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined' && router) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'clone') {
+            const storedEstimateRaw = localStorage.getItem('estimateToClone');
+            if (storedEstimateRaw) {
+                try {
+                    const estimateToClone = JSON.parse(storedEstimateRaw) as Estimate;
+                    const newEstimateData: Partial<EstimateFormData> & { lineItems: EstimateFormData['lineItems'] } = {
+                        ...estimateToClone,
+                        estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`,
+                        customerId: '', // Clear customer so user has to select
+                        date: new Date(),
+                        status: 'Draft',
+                        validUntil: undefined,
+                        lineItems: estimateToClone.lineItems.map(li => ({
+                            ...li,
+                            isNonStock: li.isNonStock || false,
+                            isReturn: li.isReturn || false,
+                            addToProductList: li.addToProductList ?? false,
+                        })),
+                    };
+                    setClonedEstimateData(newEstimateData);
+                    setIsCloneDialogOpen(true);
+                } catch (e) {
+                    console.error("Failed to parse cloned estimate data:", e);
+                } finally {
+                    localStorage.removeItem('estimateToClone');
+                    // Clean up URL
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            }
+        }
+    }
+}, [router]);
+
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -270,26 +274,6 @@ export default function EstimatesPage() {
     setEstimateToDelete(null);
   };
   
-  const handleCloneEstimate = (estimateToClone: Estimate) => {
-    const newEstimateData: Partial<EstimateFormData> = {
-      ...estimateToClone,
-      estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`,
-      customerId: '', // Clear customer so user has to select a new one
-      date: new Date(),
-      status: 'Draft',
-      validUntil: undefined, // Or adjust as needed, e.g., date + 30 days
-      lineItems: estimateToClone.lineItems.map(li => ({
-        ...li,
-        isNonStock: li.isNonStock || false,
-        isReturn: li.isReturn || false,
-        addToProductList: li.addToProductList ?? false,
-      })),
-    };
-    setClonedEstimateData(newEstimateData);
-    setIsCloneDialogOpen(true);
-  };
-
-
   const handleGenerateEmail = async (estimate: Estimate) => {
     setSelectedEstimateForEmail(estimate);
     const customer = customers.find(c => c.id === estimate.customerId);
@@ -369,13 +353,10 @@ export default function EstimatesPage() {
     
     setIsLoadingEmail(true);
     try {
-      // Write to Firestore 'emails' collection
       await addDoc(collection(db, 'emails'), {
         to: finalRecipients,
-        // from: { email: 'your-default-from@example.com', name: 'Your Company Name' }, // Optional: if extension allows override
         subject: editableSubject,
         html: editableBody,
-        // You can add other fields like 'template_id', 'variables' if your extension supports them
       });
       toast({
         title: "Email Queued",
@@ -600,102 +581,26 @@ export default function EstimatesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm mb-4"
           />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead onClick={() => requestSort('estimateNumber')} className="cursor-pointer hover:bg-muted/50">
-                  Number {renderSortArrow('estimateNumber')}
-                </TableHead>
-                <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
-                  Customer {renderSortArrow('customerName')}
-                </TableHead>
-                <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
-                  P.O. # {renderSortArrow('poNumber')}
-                </TableHead>
-                <TableHead onClick={() => requestSort('date')} className="cursor-pointer hover:bg-muted/50">
-                  Date {renderSortArrow('date')}
-                </TableHead>
-                <TableHead onClick={() => requestSort('total')} className="text-right cursor-pointer hover:bg-muted/50">
-                  Total {renderSortArrow('total')}
-                </TableHead>
-                <TableHead onClick={() => requestSort('status')} className="cursor-pointer hover:bg-muted/50">
-                  Status {renderSortArrow('status')}
-                </TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedAndFilteredEstimates.map((estimate) => {
-                return (
-                  <TableRow key={estimate.id}>
-                    <TableCell>{estimate.estimateNumber}</TableCell>
-                    <TableCell>{estimate.customerName}</TableCell>
-                    <TableCell>{estimate.poNumber || 'N/A'}</TableCell>
-                    <TableCell>{formatDateForDisplay(estimate.date)}</TableCell>
-                    <TableCell className="text-right">${estimate.total.toFixed(2)}</TableCell>
-                    <TableCell><Badge variant={estimate.status === 'Sent' || estimate.status === 'Accepted' ? 'default' : 'outline'}>{estimate.status}</Badge></TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Icon name="MoreHorizontal" className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewItems(estimate)}>
-                            <Icon name="Layers" className="mr-2 h-4 w-4" /> View Items
-                          </DropdownMenuItem>
-                          <EstimateDialog
-                            estimate={estimate}
-                            triggerButton={
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                            }
-                            onSave={handleSaveEstimate}
-                            onSaveCustomer={handleSaveCustomer}
-                            onSaveProduct={handleSaveProduct}
-                            products={products}
-                            customers={customers}
-                            productCategories={stableProductCategories}
-                            productSubcategories={stableProductSubcategories}
-                          />
-                          <DropdownMenuItem onClick={() => handleCloneEstimate(estimate)}>
-                            <Icon name="Copy" className="mr-2 h-4 w-4" /> Clone Estimate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleGenerateEmail(estimate)}>
-                            <Icon name="Mail" className="mr-2 h-4 w-4" /> Email Draft
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePrepareAndPrint(estimate)}>
-                             <Icon name="Printer" className="mr-2 h-4 w-4" /> Print Estimate
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleConvertToOrder(estimate)}>
-                            <Icon name="ShoppingCart" className="mr-2 h-4 w-4" /> Convert to Order
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleConvertToInvoice(estimate)}>
-                            <Icon name="FileDigit" className="mr-2 h-4 w-4" /> Convert to Invoice
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                            onSelect={() => setEstimateToDelete(estimate)}
-                          >
-                            <Icon name="Trash2" className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-           {sortedAndFilteredEstimates.length === 0 && (
-            <p className="p-4 text-center text-muted-foreground">
-              {estimates.length === 0 ? "No estimates found." : "No estimates match your search."}
-            </p>
-          )}
+          <EstimateTable
+            estimates={sortedAndFilteredEstimates}
+            customers={customers}
+            products={products}
+            productCategories={stableProductCategories}
+            productSubcategories={stableProductSubcategories}
+            onSave={handleSaveEstimate}
+            onDelete={handleDeleteEstimate}
+            onGenerateEmail={handleGenerateEmail}
+            onPrint={handlePrepareAndPrint}
+            onConvertToOrder={handleConvertToOrder}
+            onConvertToInvoice={handleConvertToInvoice}
+            formatDate={formatDateForDisplay}
+            onViewItems={handleViewItems}
+            onSaveProduct={handleSaveProduct}
+            onSaveCustomer={handleSaveCustomer}
+            sortConfig={sortConfig}
+            requestSort={requestSort}
+            renderSortArrow={renderSortArrow}
+          />
         </CardContent>
       </Card>
 
@@ -708,7 +613,7 @@ export default function EstimatesPage() {
                 Review and send the email to {selectedEstimateForEmail.customerName}.
               </DialogDescription>
             </DialogHeader>
-            {isLoadingEmail && !emailDraft ? ( // Show this loader only when generating AI draft
+            {isLoadingEmail && !emailDraft ? (
               <div className="flex flex-col justify-center items-center h-60 space-y-2">
                 <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
                 <p>Loading email draft...</p>
@@ -772,25 +677,6 @@ export default function EstimatesPage() {
         </Dialog>
       )}
 
-      {estimateToDelete && (
-        <AlertDialog open={!!estimateToDelete} onOpenChange={(isOpen) => !isOpen && setEstimateToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete estimate "{estimateToDelete.estimateNumber}".
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setEstimateToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => {if (estimateToDelete) handleDeleteEstimate(estimateToDelete.id)}} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
       <div style={{ display: 'none' }}>
         {estimateToPrint && (
           <PrintableEstimate ref={printRef} {...estimateToPrint} />
@@ -813,5 +699,3 @@ export default function EstimatesPage() {
 const FormFieldWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => (
   <div className="space-y-1">{children}</div>
 );
-
-    
