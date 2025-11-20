@@ -48,14 +48,15 @@ export function OrderDialog({
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [customerToView, setCustomerToView] = React.useState<Customer | null>(null);
 
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
-  const setOpen = controlledOnOpenChange || setInternalOpen;
-
+  const isControlled = controlledIsOpen !== undefined && controlledOnOpenChange !== undefined;
+  const isOpen = isControlled ? controlledIsOpen : internalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen;
+  
   React.useEffect(() => {
-    if (initialData && controlledIsOpen === undefined) {
-        setInternalOpen(true);
+    if (initialData && !isControlled) {
+      setInternalOpen(true);
     }
-  }, [initialData, controlledIsOpen]);
+  }, [initialData, isControlled]);
 
   const handleSubmit = async (formDataFromForm: OrderFormData) => {
     

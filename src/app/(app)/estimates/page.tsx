@@ -129,43 +129,6 @@ export default function EstimatesPage() {
     return () => unsubscribe();
   }, [db, toast]);
   
-  useEffect(() => {
-    if (typeof window !== 'undefined' && router) {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('action') === 'clone') {
-            const storedEstimateRaw = localStorage.getItem('estimateToClone');
-            if (storedEstimateRaw) {
-                try {
-                    const estimateToClone = JSON.parse(storedEstimateRaw) as Estimate;
-                    const newEstimateData: Partial<EstimateFormData> & { lineItems: EstimateFormData['lineItems'] } = {
-                        ...estimateToClone,
-                        estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`,
-                        customerId: '', // Clear customer so user has to select
-                        date: new Date(),
-                        status: 'Draft',
-                        validUntil: undefined,
-                        lineItems: estimateToClone.lineItems.map(li => ({
-                            ...li,
-                            isNonStock: li.isNonStock || false,
-                            isReturn: li.isReturn || false,
-                            addToProductList: li.addToProductList ?? false,
-                        })),
-                    };
-                    setClonedEstimateData(newEstimateData);
-                    setIsCloneDialogOpen(true);
-                } catch (e) {
-                    console.error("Failed to parse cloned estimate data:", e);
-                } finally {
-                    localStorage.removeItem('estimateToClone');
-                    // Clean up URL
-                    const newUrl = window.location.pathname;
-                    window.history.replaceState({}, document.title, newUrl);
-                }
-            }
-        }
-    }
-}, [router]);
-
 
   useEffect(() => {
     if (products && products.length > 0) {
