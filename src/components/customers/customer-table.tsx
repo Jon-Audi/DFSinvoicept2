@@ -71,15 +71,15 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowCli
           </TableHeader>
           <TableBody>
             {customers.map((customer) => (
-              <TableRow key={customer.id} onClick={() => onRowClick(customer.id)} className="cursor-pointer">
-                <TableCell className="font-medium">
+              <TableRow key={customer.id} className="cursor-pointer">
+                <TableCell className="font-medium" onClick={() => onRowClick(customer.id)}>
                   {customerDisplayName(customer)}
                 </TableCell>
-                <TableCell>{customer.emailContacts?.[0]?.email || 'N/A'}</TableCell>
-                <TableCell>
+                <TableCell onClick={() => onRowClick(customer.id)}>{customer.emailContacts?.[0]?.email || 'N/A'}</TableCell>
+                <TableCell onClick={() => onRowClick(customer.id)}>
                   <Badge variant="secondary">{customer.customerType}</Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={() => onRowClick(customer.id)}>
                   {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
