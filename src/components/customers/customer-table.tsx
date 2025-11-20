@@ -40,11 +40,11 @@ interface CustomerTableProps {
   onSave: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => void;
   onDelete: (customerId: string) => void;
   isLoading: boolean;
+  onRowClick: (customerId: string) => void;
 }
 
-export function CustomerTable({ customers, onSave, onDelete, isLoading }: CustomerTableProps) {
+export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowClick }: CustomerTableProps) {
   const [customerToDelete, setCustomerToDelete] = React.useState<Customer | null>(null);
-  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -55,10 +55,6 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading }: Custom
       </div>
     );
   }
-
-  const handleRowClick = (customerId: string) => {
-    router.push(`/customers/${customerId}`);
-  };
 
   return (
     <>
@@ -75,7 +71,7 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading }: Custom
           </TableHeader>
           <TableBody>
             {customers.map((customer) => (
-              <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)} className="cursor-pointer">
+              <TableRow key={customer.id} onClick={() => onRowClick(customer.id)} className="cursor-pointer">
                 <TableCell className="font-medium">
                   {customerDisplayName(customer)}
                 </TableCell>

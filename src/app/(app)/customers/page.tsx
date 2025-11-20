@@ -290,6 +290,7 @@ export default function CustomersPage() {
         onSave={handleSaveCustomer}
         onDelete={handleDeleteCustomer}
         isLoading={isLoading}
+        onRowClick={handleRowClick}
       />
        {filteredAndSortedCustomers.length === 0 && !isLoading && (
         <p className="p-4 text-center text-muted-foreground">
