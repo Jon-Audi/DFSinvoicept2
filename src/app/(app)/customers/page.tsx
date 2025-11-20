@@ -14,7 +14,6 @@ import { useFirebase } from '@/components/firebase-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, writeBatch } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { PrintableCustomerList } from '@/components/customers/printable-customer-list';
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval, isValid, type Interval } from 'date-fns';
 
 type CustomerWithLastInteraction = Customer & {
   lastEstimateDate?: string;
@@ -99,27 +98,27 @@ export default function CustomersPage() {
         invoices: (items: Invoice[]) => setInvoices(items),
     };
 
+    let loadedCount = 0;
+    const totalCollections = Object.keys(collections).length;
+
     Object.entries(collections).forEach(([path, setStateCallback]) => {
       unsubscribes.push(onSnapshot(collection(db, path), (snapshot) => {
         const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         setStateCallback(items as any[]);
+        
+        // This is a simple ready check. Could be more robust.
+        if (unsubscribes.length === totalCollections) {
+            loadedCount++;
+            if (loadedCount === totalCollections) {
+                setIsLoading(false);
+            }
+        }
+
       }, (error) => {
         console.error(`[CustomersPage] Error fetching ${path}:`, error);
         toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
-      }));
-    });
-    
-    // A simple way to determine initial loading state
-    Promise.all(Object.keys(collections).map(path => 
-        new Promise(res => {
-          if (db) {
-            onSnapshot(collection(db, path), () => res(true))
-          } else {
-            res(true)
-          }
-        })
-    )).finally(() => {
         setIsLoading(false);
+      }));
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
@@ -304,4 +303,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
