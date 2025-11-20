@@ -209,7 +209,7 @@ export default function CustomerDetailPage() {
                 <CardContent>
                     <EstimateTable 
                         estimates={estimates} 
-                        customers={customers}
+                        customers={[customer]}
                         products={products}
                         productCategories={productCategories}
                         productSubcategories={productSubcategories}
@@ -239,7 +239,7 @@ export default function CustomerDetailPage() {
                 <CardContent>
                     <OrderTable 
                         orders={orders}
-                        customers={customers}
+                        customers={[customer]}
                         products={products}
                         vendors={vendors}
                         productCategories={productCategories}
@@ -270,7 +270,7 @@ export default function CustomerDetailPage() {
                 <CardContent>
                     <InvoiceTable 
                         invoices={invoices}
-                        customers={customers}
+                        customers={[customer]}
                         products={products}
                         vendors={vendors}
                         productCategories={productCategories}
@@ -296,8 +296,3 @@ export default function CustomerDetailPage() {
     </>
   );
 }
-
-// Dummy EstimateTable for compilation
-const EstimateTable = ({ estimates }: { estimates: Estimate[] }) => (
-    <p>{estimates.length} estimates found.</p>
-);
