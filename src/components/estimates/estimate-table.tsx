@@ -46,6 +46,7 @@ interface EstimateTableProps {
   onDelete: (estimateId: string) => void;
   onGenerateEmail: (estimate: Estimate) => void;
   onPrint: (estimate: Estimate) => void;
+  onClone: (estimate: Estimate) => void;
   onConvertToOrder: (estimate: Estimate) => void;
   onConvertToInvoice: (estimate: Estimate) => void;
   formatDate: (dateString?: string) => string;
@@ -67,6 +68,7 @@ export function EstimateTable({
   onDelete,
   onGenerateEmail,
   onPrint,
+  onClone,
   onConvertToOrder,
   onConvertToInvoice,
   formatDate,
@@ -78,12 +80,6 @@ export function EstimateTable({
   renderSortArrow,
 }: EstimateTableProps) {
   const [estimateToDelete, setEstimateToDelete] = React.useState<Estimate | null>(null);
-  const router = useRouter();
-
-  const handleCloneEstimate = (estimateToClone: Estimate) => {
-    localStorage.setItem('estimateToClone', JSON.stringify(estimateToClone));
-    router.push('/estimates?action=clone');
-  };
 
   return (
     <>
@@ -147,7 +143,7 @@ export function EstimateTable({
                         productCategories={productCategories}
                         productSubcategories={productSubcategories}
                       />
-                      <DropdownMenuItem onClick={() => handleCloneEstimate(estimate)}>
+                      <DropdownMenuItem onClick={() => onClone(estimate)}>
                         <Icon name="Copy" className="mr-2 h-4 w-4" /> Clone Estimate
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onGenerateEmail(estimate)}>

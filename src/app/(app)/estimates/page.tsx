@@ -354,6 +354,22 @@ export default function EstimatesPage() {
     localStorage.setItem('estimateToConvert_invoice', JSON.stringify(estimate));
     router.push('/invoices');
   };
+  
+  const handleCloneEstimate = (estimateToClone: Estimate) => {
+    const newEstimateData: Partial<EstimateFormData> & { lineItems: EstimateFormData['lineItems'] } = {
+        id: undefined, // ensure it's a new document
+        estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`,
+        customerId: estimateToClone.customerId,
+        date: new Date(),
+        validUntil: new Date(new Date().setDate(new Date().getDate() + 30)),
+        status: 'Draft',
+        poNumber: estimateToClone.poNumber,
+        lineItems: estimateToClone.lineItems.map(li => ({...li, id: crypto.randomUUID()})),
+        notes: estimateToClone.notes,
+    };
+    setClonedEstimateData(newEstimateData);
+    setIsCloneDialogOpen(true);
+  };
 
   const handleViewItems = (estimateToView: Estimate) => {
     setEstimateForViewingItems(estimateToView);
@@ -556,6 +572,7 @@ export default function EstimatesPage() {
             onPrint={handlePrepareAndPrint}
             onConvertToOrder={handleConvertToOrder}
             onConvertToInvoice={handleConvertToInvoice}
+            onClone={handleCloneEstimate}
             formatDate={formatDateForDisplay}
             onViewItems={handleViewItems}
             onSaveProduct={handleSaveProduct}
