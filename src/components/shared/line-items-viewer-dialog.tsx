@@ -43,10 +43,6 @@ export function LineItemsViewerDialog({
   const { user } = useAuth();
   const canViewPricing = user && user.permissions?.includes('view_pricing');
 
-  if (!lineItems || lineItems.length === 0) {
-    return null;
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
@@ -61,42 +57,48 @@ export function LineItemsViewerDialog({
             )}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead className="text-center">Qty</TableHead>
-                {canViewPricing && (
-                  <>
-                    <TableHead className="text-right">Cost</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lineItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    {item.productName}
-                    {item.isReturn && <span className="text-xs text-destructive"> (Return)</span>}
-                    {item.isNonStock && <span className="text-xs text-muted-foreground"> (Non-Stock)</span>}
-                  </TableCell>
-                  <TableCell className="text-center">{item.quantity}</TableCell>
+        {!lineItems || lineItems.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">
+            No items found for this {documentType.toLowerCase()}.
+          </div>
+        ) : (
+          <ScrollArea className="max-h-[60vh] mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead className="text-center">Qty</TableHead>
                   {canViewPricing && (
                     <>
-                      <TableCell className="text-right">${(item.cost || 0).toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
+                      <TableHead className="text-right">Cost</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                     </>
                   )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+              </TableHeader>
+              <TableBody>
+                {lineItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      {item.productName}
+                      {item.isReturn && <span className="text-xs text-destructive"> (Return)</span>}
+                      {item.isNonStock && <span className="text-xs text-muted-foreground"> (Non-Stock)</span>}
+                    </TableCell>
+                    <TableCell className="text-center">{item.quantity}</TableCell>
+                    {canViewPricing && (
+                      <>
+                        <TableCell className="text-right">${(item.cost || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        )}
         <DialogClose asChild className="mt-4">
           <Button type="button" variant="outline">Close</Button>
         </DialogClose>

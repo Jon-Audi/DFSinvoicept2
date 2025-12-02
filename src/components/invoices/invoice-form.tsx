@@ -792,9 +792,9 @@ export function InvoiceForm({
                                 <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                         </FormControl></PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start"><Command>
                             <CommandInput placeholder="Search product..." />
-                            <CommandList><CommandEmpty>No product found.</CommandEmpty>
+                            <CommandList className="max-h-[300px]"><CommandEmpty>No product found.</CommandEmpty>
                             <CommandGroup>
                               {filteredProductsForLine.map((product) => {
                                 const searchableValue = [product.name, product.category, product.unit].filter(Boolean).join(' ').toLowerCase();
