@@ -53,7 +53,9 @@ export function EstimateDialog({
   const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen;
   
   React.useEffect(() => {
-    if (initialData && !isControlled) {
+    // Only auto-open if initialData has substantial data (e.g., when cloning an estimate)
+    // Don't auto-open for just a customerId pre-fill
+    if (initialData && !isControlled && (initialData.estimateNumber || (initialData.lineItems && initialData.lineItems.length > 0))) {
       setInternalOpen(true);
     }
   }, [initialData, isControlled]);
