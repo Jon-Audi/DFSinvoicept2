@@ -115,7 +115,6 @@ export default function CustomersPage() {
         }
 
       }, (error) => {
-        console.error(`[CustomersPage] Error fetching ${path}:`, error);
         toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
         setIsLoading(false);
       }));
@@ -143,7 +142,6 @@ export default function CustomersPage() {
         toast({ title: "Customer Added", description: `Customer ${cleanCustomerData.companyName || `${cleanCustomerData.firstName} ${cleanCustomerData.lastName}`} added.` });
       }
     } catch (error) {
-      console.error("Error saving customer:", error);
       toast({ title: "Error", description: "Could not save customer.", variant: "destructive" });
     }
   };
@@ -155,7 +153,6 @@ export default function CustomersPage() {
       await deleteDoc(doc(db, 'customers', customerId));
       toast({ title: "Customer Deleted", description: "The customer has been removed." });
     } catch (error) {
-      console.error("Error deleting customer:", error);
       toast({ title: "Error", description: "Could not delete customer.", variant: "destructive" });
     }
   };

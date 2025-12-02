@@ -186,7 +186,7 @@ export function EstimateTable({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete estimate "{estimateToDelete.estimateNumber}".
+                This action cannot be undone. This will permanently delete estimate &quot;{estimateToDelete.estimateNumber}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

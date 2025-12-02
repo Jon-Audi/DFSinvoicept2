@@ -69,7 +69,6 @@ export default function ProfilePage() {
       setIsEditingName(false);
     } catch (error: any) {
       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
-      console.error("Error updating display name:", error);
     } finally {
       setIsSavingName(false);
     }
@@ -102,7 +101,6 @@ export default function ProfilePage() {
       
       toast({ title: "Photo Updated", description: "Your profile picture has been changed." });
     } catch (error: any) {
-      console.error("Error uploading photo:", error);
       toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
     } finally {
       setIsUploadingPhoto(false);
@@ -127,7 +125,6 @@ export default function ProfilePage() {
       });
     } catch (error: any) {
       toast({ title: "Error Sending Email", description: error.message, variant: "destructive" });
-      console.error("Error sending password reset email:", error);
     } finally {
       setIsSendingResetEmail(false);
     }

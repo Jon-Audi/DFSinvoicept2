@@ -244,7 +244,7 @@ export function OrderTable({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete order "{orderToDelete.orderNumber}".
+                This action cannot be undone. This will permanently delete order &quot;{orderToDelete.orderNumber}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

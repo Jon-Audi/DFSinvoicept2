@@ -53,7 +53,6 @@ export default function ProductsPage() {
       setProductSubcategories(Array.from(subcategories).sort());
       setIsLoading(false);
     }, (error) => {
-      console.error("Error fetching products:", error);
       toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
       setIsLoading(false);
     });
@@ -75,7 +74,6 @@ export default function ProductsPage() {
         toast({ title: "Product Added", description: `${productData.name} has been added.` });
       }
     } catch (error) {
-      console.error("Error saving product:", error);
       toast({ title: "Error", description: "Could not save product details.", variant: "destructive" });
     }
   };
@@ -92,7 +90,6 @@ export default function ProductsPage() {
           await batch.commit();
           toast({ title: "Products Added", description: `${productsToSave.length} new products have been added.`});
       } catch (error) {
-          console.error("Error saving products in bulk:", error);
           toast({ title: "Bulk Add Failed", description: "Could not add the new products.", variant: "destructive" });
       }
   };
@@ -103,7 +100,6 @@ export default function ProductsPage() {
       await deleteDoc(doc(db, 'products', productId));
       toast({ title: "Product Deleted", description: "The product has been removed." });
     } catch (error) {
-      console.error("Error deleting product:", error);
       toast({ title: "Error", description: "Could not delete product.", variant: "destructive" });
     }
   };
@@ -126,7 +122,7 @@ export default function ProductsPage() {
     if (!db) return;
     const productsToUpdate = products.filter(p => p.category === categoryName);
     if (productsToUpdate.length === 0) {
-        toast({ title: "No Products", description: `No products found in category "${categoryName}" to update.`});
+        toast({ title: "No Products", description: `No products found in category "${categoryName}&quot; to update.`});
         return;
     }
 
@@ -144,9 +140,8 @@ export default function ProductsPage() {
 
     try {
         await batch.commit();
-        toast({ title: "Markup Applied", description: `Markup of ${markupPercentage}% applied to ${productsToUpdate.length} products in "${categoryName}".` });
+        toast({ title: "Markup Applied", description: `Markup of ${markupPercentage}% applied to ${productsToUpdate.length} products in "${categoryName}&quot;.` });
     } catch(error) {
-        console.error("Error applying category markup:", error);
         toast({ title: "Error", description: "Could not apply markup.", variant: "destructive" });
     }
   };
@@ -160,7 +155,7 @@ export default function ProductsPage() {
          return;
      }
      setProductCategories(prev => prev.filter(c => c !== categoryName));
-     toast({ title: "Category Removed", description: `"${categoryName}" has been removed from the category list.`});
+     toast({ title: "Category Removed", description: `"${categoryName}&quot; has been removed from the category list.`});
   };
 
   const handleUpdateStock = async (product: Product) => {
@@ -182,7 +177,6 @@ export default function ProductsPage() {
       await batch.commit();
       toast({ title: "Bulk Update Successful", description: `Updated ${updatedProducts.length} products.` });
     } catch (error) {
-      console.error("Error during bulk product update:", error);
       toast({ title: "Bulk Update Failed", description: "Could not update products.", variant: "destructive" });
     }
   };
@@ -198,7 +192,6 @@ export default function ProductsPage() {
           await batch.commit();
           toast({ title: 'Stock Updated', description: `${productsToUpdate.length} products have had their stock levels updated.` });
       } catch (e) {
-          console.error('Error in bulk stock update', e);
           toast({ title: 'Error', description: 'Could not update stock levels.', variant: 'destructive' });
       }
   };
@@ -214,7 +207,6 @@ export default function ProductsPage() {
         await batch.commit();
         toast({ title: 'Subcategories Updated', description: 'Product subcategories have been saved.'});
     } catch(e) {
-        console.error('Error updating subcategories', e);
         toast({ title: 'Error', description: 'Could not save subcategory changes.', variant: 'destructive'});
     }
   };
@@ -229,7 +221,6 @@ export default function ProductsPage() {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching company settings:", error);
       toast({ title: "Error", description: "Could not fetch company settings for printing.", variant: "destructive" });
       return null;
     }
@@ -337,7 +328,9 @@ export default function ProductsPage() {
               allProducts={products}
               onSave={handleSaveProduct}
               productCategories={productCategories}
+              productSubcategories={productSubcategories}
               onAddNewCategory={handleAddNewCategory}
+              onAddNewSubcategory={handleAddNewSubcategory}
             />
         </div>
       </PageHeader>

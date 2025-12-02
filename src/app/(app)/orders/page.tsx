@@ -110,14 +110,13 @@ export default function OrdersPage() {
           };
           setConversionOrderData(newOrderData);
         } catch (error) {
-          console.error("Error processing estimate for order conversion:", error);
           toast({ title: "Conversion Error", description: "Could not process estimate data for order.", variant: "destructive" });
         }
       }
     }
   }, [toast]);
 
-  const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+  const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id'> & { id?: string }): Promise<string | void> => {
     if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
@@ -147,7 +146,6 @@ export default function OrdersPage() {
       });
       return docRef.id;
     } catch (error) {
-      console.error("Error saving new product from invoice:", error);
       toast({
         title: "Error Saving Product",
         description: "Could not save the new item to the product list.",
@@ -167,7 +165,7 @@ export default function OrdersPage() {
     if (!db) return;
 
     let active = true;
-    let unsubscribes: (() => void)[] = [];
+    const unsubscribes: (() => void)[] = [];
 
     const loadData = async () => {
         setIsLoading(true);
@@ -200,7 +198,6 @@ export default function OrdersPage() {
                     setter(docsData as any);
                 }
             }, (error) => {
-                console.error(`Error fetching ${path}:`, error);
                 toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
             });
             unsubscribes.push(unsubscribe);
@@ -280,7 +277,6 @@ export default function OrdersPage() {
             description: `Order ${orderToSave.orderNumber} and stock levels have been updated.`
         });
     } catch (error: any) {
-        console.error("Error saving order:", error);
         toast({ title: "Error", description: `Could not save order: ${error.message}`, variant: "destructive" });
     } finally {
         if (isConvertingOrder) {
@@ -296,7 +292,6 @@ export default function OrdersPage() {
       await deleteDoc(doc(db, 'orders', orderId));
       toast({ title: "Order Deleted", description: "The order has been removed." });
     } catch (error) {
-      console.error("Error deleting order:", error);
       toast({ title: "Error", description: "Could not delete order.", variant: "destructive" });
     }
   };
@@ -312,7 +307,6 @@ export default function OrdersPage() {
       toast({ title: "Company Settings Not Found", description: "Please configure company settings for printing.", variant: "default" });
       return null;
     } catch (error) {
-      console.error("Error fetching company settings:", error);
       toast({ title: "Error", description: "Could not fetch company settings.", variant: "destructive" });
       return null;
     }
@@ -427,7 +421,6 @@ export default function OrdersPage() {
       setEditableBody(result.body);
 
     } catch (error) {
-      console.error("Error generating email draft:", error);
       toast({ title: "Error", description: "Failed to generate email draft.", variant: "destructive" });
       setEmailDraft({ subject: "Error generating subject", body: "Could not generate email content." });
       setEditableSubject("Error generating subject");
@@ -481,7 +474,6 @@ export default function OrdersPage() {
       });
       setIsEmailModalOpen(false);
     } catch (error: any) {
-      console.error("Error queueing email:", error);
       toast({
         title: "Email Queue Failed",
         description: error.message || "Could not queue the email. Check Firestore permissions and console.",
@@ -525,7 +517,7 @@ export default function OrdersPage() {
   };
 
   const sortedAndFilteredOrders = useMemo(() => {
-    let sortableItems = orders.filter(order => {
+    const sortableItems = orders.filter(order => {
         if (!searchTerm.trim()) return true;
         const lowercasedFilter = searchTerm.toLowerCase();
         const searchFields = [

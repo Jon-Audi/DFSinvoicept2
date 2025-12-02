@@ -91,7 +91,6 @@ export default function CompanySettingsPage() {
           form.reset(normalizedData);
         }
       } catch (error) {
-        console.error("Error fetching company settings:", error);
         toast({
           title: "Error Loading Settings",
           description: "Could not load company settings. Please try again.",
@@ -115,7 +114,6 @@ export default function CompanySettingsPage() {
         description: "Company information has been updated successfully.",
       });
     } catch (error) {
-      console.error("Error saving company settings:", error);
       toast({
         title: "Error Saving Settings",
         description: "Could not save company settings. Please ensure you have the necessary permissions.",

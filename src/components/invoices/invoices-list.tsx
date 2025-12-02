@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Invoice } from '@/types';
+import type { Invoice, Vendor } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Table,
@@ -57,6 +57,7 @@ interface InvoiceListProps {
   formatDate: (dateString: string | Date | undefined, options?: Intl.DateTimeFormatOptions) => string;
   customers: any[]; // Consider using a more specific type like Customer[]
   products: any[]; // Consider using a more specific type like Product[]
+  vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
   onViewItems: (invoice: Invoice) => void;
@@ -78,6 +79,7 @@ export function InvoiceList({
   formatDate,
   customers,
   products,
+  vendors,
   productCategories,
   productSubcategories,
   onViewItems,
@@ -230,16 +232,13 @@ export function InvoiceList({
                       onSaveCustomer={onSaveCustomer}
                       customers={customers}
                       products={products}
+                      vendors={vendors}
                       productCategories={productCategories}
                       productSubcategories={productSubcategories}
                     />
 
                     <DropdownMenuItem onSelect={() => onGenerateEmail(invoice)}>
                       <Icon name="Mail" className="mr-2 h-4 w-4" /> Email Invoice
-                    </DropdownMenuItem>
-                    
-                     <DropdownMenuItem onSelect={() => console.log('send to packing')}>
-                      <Icon name="PackageCheck" className="mr-2 h-4 w-4" /> Send to Packing
                     </DropdownMenuItem>
 
                     <DropdownMenuItem onSelect={() => onPrint(invoice)}>
@@ -272,7 +271,7 @@ export function InvoiceList({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete invoice "{invoiceToDelete.invoiceNumber}".
+                This action cannot be undone. This will permanently delete invoice &quot;{invoiceToDelete.invoiceNumber}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

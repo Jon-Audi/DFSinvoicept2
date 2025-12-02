@@ -101,7 +101,6 @@ export default function CustomerDetailPage() {
       await setDoc(doc(db, 'customers', id), customerData, { merge: true });
       toast({ title: "Customer Updated", description: "Customer details have been saved." });
     } catch (error) {
-      console.error("Error saving customer:", error);
       toast({ title: "Error", description: "Could not save customer.", variant: "destructive" });
     }
   };
@@ -156,7 +155,7 @@ export default function CustomerDetailPage() {
                 products={products}
                 productCategories={productCategories}
                 productSubcategories={productSubcategories}
-                initialData={{ customerId: customer.id }}
+                initialData={{ customerId: customer.id, lineItems: [] }}
                 triggerButton={
                      <Button>
                         <Icon name="PlusCircle" className="mr-2 h-4 w-4" /> New Estimate
@@ -207,8 +206,8 @@ export default function CustomerDetailPage() {
                     <CardDescription>All estimates associated with this customer.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <EstimateTable 
-                        estimates={estimates} 
+                    <EstimateTable
+                        estimates={estimates}
                         customers={[customer]}
                         products={products}
                         productCategories={productCategories}
@@ -217,6 +216,7 @@ export default function CustomerDetailPage() {
                         onDelete={()=>{}}
                         onGenerateEmail={()=>{}}
                         onPrint={()=>{}}
+                        onClone={()=>{}}
                         onConvertToInvoice={()=>{}}
                         onConvertToOrder={()=>{}}
                         formatDate={(d) => d ? new Date(d).toLocaleDateString() : ''}

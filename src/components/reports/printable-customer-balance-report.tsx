@@ -25,7 +25,6 @@ const transformGsUrlToHttps = (url: string | undefined): string | undefined => {
       if (!objectPath) return undefined;
       return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(objectPath)}?alt=media`;
     } catch (error) {
-      console.error("Error transforming gs:// URL:", url, error);
       return undefined;
     }
   }

@@ -54,7 +54,6 @@ export function CustomerImportForm({ onSubmit, onClose }: CustomerImportFormProp
 
           // Basic validation
           if (!rowData.firstName || !rowData.lastName) {
-            console.warn(`Skipping row ${i + 1}: Missing first or last name.`);
             continue;
           }
 
@@ -89,7 +88,6 @@ export function CustomerImportForm({ onSubmit, onClose }: CustomerImportFormProp
         }
         onSubmit({ customers: parsedCustomers });
       } catch (error) {
-        console.error("CSV parsing error:", error);
         toast({
           title: "Import Error",
           description: "Could not parse the CSV file. Please check its format.",

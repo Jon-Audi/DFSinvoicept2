@@ -120,7 +120,7 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowCli
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the customer "{customerDisplayName(customerToDelete)}".
+                This action cannot be undone. This will permanently delete the customer &quot;{customerDisplayName(customerToDelete)}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

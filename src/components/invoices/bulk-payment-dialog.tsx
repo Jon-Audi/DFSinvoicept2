@@ -108,7 +108,6 @@ export function BulkPaymentDialog({ isOpen, onOpenChange, customers, onSave }: B
         setOutstandingInvoices(fetchedInvoices);
         form.setValue('selectedInvoiceIds', fetchedInvoices.map(inv => inv.id!));
       } catch (error) {
-        console.error('Error fetching outstanding invoices:', error);
         setOutstandingInvoices([]);
       } finally {
         setIsLoadingInvoices(false);

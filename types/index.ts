@@ -153,6 +153,7 @@ export interface Order extends BaseDocument {
   payments: Payment[];
   amountPaid: number;
   balanceDue: number;
+  distributor?: string;
 }
 
 export interface Invoice extends BaseDocument {
@@ -166,6 +167,7 @@ export interface Invoice extends BaseDocument {
   balanceDue: number;   // Ensure balanceDue is always present
   readyForPickUpDate?: string;
   pickedUpDate?: string;
+  distributor?: string;
 }
 
 export interface User {
@@ -180,6 +182,14 @@ export interface User {
   createdAt?: string; // ISO String
 }
 
+export interface Vendor {
+    id: string;
+    name: string;
+    contactName?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+}
 
 export interface CompanySettings {
   id?: string;

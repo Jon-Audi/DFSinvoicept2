@@ -273,7 +273,7 @@ export function InvoiceTable({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete invoice "{invoiceToDelete.invoiceNumber}".
+                This action cannot be undone. This will permanently delete invoice &quot;{invoiceToDelete.invoiceNumber}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

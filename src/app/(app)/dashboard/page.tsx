@@ -31,7 +31,6 @@ export default function DashboardPage() {
       setOrderCount(snapshot.size);
       setIsLoadingOrderCount(false);
     }, (error) => {
-      console.error("Error fetching order count:", error);
       toast({
         title: "Error",
         description: "Could not fetch order count.",
@@ -45,7 +44,6 @@ export default function DashboardPage() {
       setCustomerCount(snapshot.size);
       setIsLoadingCustomerCount(false);
     }, (error) => {
-      console.error("Error fetching customer count:", error);
       toast({
         title: "Error",
         description: "Could not fetch customer count.",
@@ -60,7 +58,6 @@ export default function DashboardPage() {
       setActiveEstimateCount(snapshot.size);
       setIsLoadingActiveEstimateCount(false);
     }, (error) => {
-      console.error("Error fetching active estimate count:", error);
       toast({
         title: "Error",
         description: "Could not fetch active estimate count.",
@@ -127,7 +124,7 @@ export default function DashboardPage() {
               <div className="text-2xl font-bold">{activeEstimateCount ?? 'N/A'}</div>
             )}
             <p className="text-xs text-muted-foreground">
-              Estimates in 'Draft' or 'Sent' status.
+              Estimates in &apos;Draft&apos; or &apos;Sent&apos; status.
             </p>
           </CardContent>
         </Card>

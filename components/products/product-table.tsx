@@ -325,7 +325,7 @@ export function ProductTable({
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the product "{productToDelete?.name}".
+                This action cannot be undone. This will permanently delete the product &quot;{productToDelete?.name}&quot;.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -388,9 +388,9 @@ export function ProductTable({
         <AlertDialog open={!!categoryToDelete} onOpenChange={(isOpen) => !isOpen && setCategoryToDeleteState(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Category: "{categoryToDelete}"?</AlertDialogTitle>
+              <AlertDialogTitle>Delete Category: &quot;{categoryToDelete}&quot;?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will remove the category "{categoryToDelete}" from the list of available categories.
+                This action cannot be undone. This will remove the category &quot;{categoryToDelete}&quot; from the list of available categories.
                 This option is only available if no products are currently in this category.
               </AlertDialogDescription>
             </AlertDialogHeader>

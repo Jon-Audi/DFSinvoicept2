@@ -61,7 +61,6 @@ export default function InventoryPage() {
       setProductCategories(Array.from(categoriesFromDb).sort());
       setIsLoading(false);
     }, (error) => {
-      console.error("Error fetching products for inventory:", error);
       toast({
         title: "Error",
         description: "Could not fetch products from database.",
@@ -111,7 +110,6 @@ export default function InventoryPage() {
       setIsStockUpdateDialogOpen(false);
       setProductForStockUpdate(null);
     } catch (error) {
-      console.error("Error updating stock:", error);
       toast({ title: "Error", description: "Could not update stock quantity.", variant: "destructive" });
     } finally {
       setIsLoading(false);

@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Product, AssemblyComponent } from '@/types';
+import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Icon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import {
   Form,
   FormControl,
@@ -56,7 +55,6 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, allProducts = [], onSubmit, onClose, productCategories, onAddNewCategory }: ProductFormProps) {
-  const { toast } = useToast();
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -258,7 +256,7 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                           }}
                           className="cursor-pointer p-2 text-sm hover:bg-accent"
                         >
-                          {inputValue.trim() ? `Add "${inputValue.trim()}"` : "Type to search or add"}
+                          {inputValue.trim() ? `Add "${inputValue.trim()}&quot;` : "Type to search or add"}
                         </CommandEmpty>
                         <CommandGroup>
                           {productCategories

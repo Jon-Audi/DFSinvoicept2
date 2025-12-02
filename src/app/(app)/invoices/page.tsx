@@ -185,7 +185,6 @@ export default function InvoicesPage() {
           localStorage.removeItem("orderToConvert_invoice");
         }
     } catch (e) {
-      console.error("Error processing item for invoice conversion:", e);
       if(e instanceof SyntaxError) {
         toast({ title: "Conversion Error", description: "Could not parse conversion data. The data may be corrupt.", variant: "destructive" });
       } else {
@@ -209,7 +208,7 @@ export default function InvoicesPage() {
     if (!db) return;
     
     let active = true;
-    let unsubscribes: (() => void)[] = [];
+    const unsubscribes: (() => void)[] = [];
 
     const loadData = async () => {
         setIsLoading(true);
@@ -242,7 +241,6 @@ export default function InvoicesPage() {
                     setter(docsData as any);
                 }
             }, (error) => {
-                console.error(`Error fetching ${path}:`, error);
                 toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
             });
             unsubscribes.push(unsubscribe);
@@ -330,7 +328,6 @@ export default function InvoicesPage() {
         description: `Invoice ${invoiceToSave.invoiceNumber} and stock levels have been updated.`,
       });
     } catch (error: any) {
-      console.error("Error saving invoice in transaction:", error);
       toast({
         title: "Error Saving Invoice",
         description: `Could not save invoice: ${error.message}`,
@@ -355,7 +352,6 @@ export default function InvoicesPage() {
       });
       return docRef.id;
     } catch (error) {
-      console.error("Error saving new product from invoice:", error);
       toast({
         title: "Error Saving Product",
         description: "Could not save the new item to the product list.",
@@ -370,12 +366,11 @@ export default function InvoicesPage() {
       const customerToSave = { ...c, id: c.id || "" } as Customer;
       return await handleSaveCustomer(customerToSave);
     } catch (err) {
-      console.error("Failed to save customer from invoice dialog:", err);
       toast({ title: "Error", description: "Could not save customer.", variant: "destructive" });
     }
   };
 
-  const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+  const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id'> & { id?: string }): Promise<string | void> => {
     if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
@@ -479,7 +474,6 @@ export default function InvoicesPage() {
       });
       setIsBulkPaymentDialogOpen(false);
     } catch (error: any) {
-      console.error("Error during bulk payment:", error);
       toast({
         title: "Bulk Payment Failed",
         description: error.message || "Could not apply payments. The transaction was rolled back.",
@@ -526,7 +520,6 @@ export default function InvoicesPage() {
       await deleteDoc(doc(db, "invoices", invoiceId));
       toast({ title: "Invoice Deleted", description: "The invoice has been removed." });
     } catch (error) {
-      console.error("Error deleting invoice:", error);
       toast({ title: "Error", description: "Could not delete invoice.", variant: "destructive" });
     }
   };
@@ -553,7 +546,6 @@ export default function InvoicesPage() {
       });
       return null;
     } catch (error) {
-      console.error("Error fetching company settings:", error);
       toast({ title: "Error", description: "Could not fetch company settings.", variant: "destructive" });
       return null;
     }
@@ -700,7 +692,6 @@ export default function InvoicesPage() {
       setEditableSubject(result.subject);
       setEditableBody(result.body);
     } catch (error) {
-      console.error("Error generating email draft:", error);
       toast({ title: "Error", description: "Failed to generate email draft.", variant: "destructive" });
       setEmailDraft({ subject: "Error generating subject", body: "Could not generate email content." });
       setEditableSubject("Error generating subject");
@@ -751,7 +742,6 @@ export default function InvoicesPage() {
       });
       setIsEmailModalOpen(false);
     } catch (error: any) {
-      console.error("Error queueing email:", error);
       toast({
         title: "Email Queue Failed",
         description: error.message || "Could not queue the email. Check Firestore permissions and console.",
@@ -789,7 +779,7 @@ export default function InvoicesPage() {
   };
 
   const sortedAndFilteredInvoices = useMemo(() => {
-    let list = invoices.filter((invoice) => {
+    const list = invoices.filter((invoice) => {
       if (!searchTerm.trim()) return true;
       const q = searchTerm.toLowerCase();
       const fields = [invoice.invoiceNumber, invoice.customerName, invoice.poNumber, invoice.status];

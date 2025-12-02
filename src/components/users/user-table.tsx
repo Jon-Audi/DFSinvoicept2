@@ -111,7 +111,7 @@ export function UserTable({ users, onSave, onDelete }: UserTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the user
-              "{userToDelete?.firstName} {userToDelete?.lastName}".
+              &quot;{userToDelete?.firstName} {userToDelete?.lastName}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

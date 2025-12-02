@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            let appUser: AppUser = {
+            const appUser: AppUser = {
               ...firebaseUser,
               role: userData.role,
               permissions: userData.permissions,
@@ -77,7 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(appUser);
           } else {
             // Self-healing: User is authenticated but has no DB record.
-            console.warn(`User with UID ${firebaseUser.uid} authenticated but has no user document. Creating one now.`);
             
             const [firstName, lastName] = (firebaseUser.displayName || "New User").split(" ");
 
@@ -104,7 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
         } catch (e) {
-          console.error("Error fetching or creating user document:", e);
           setUser(firebaseUser); // Fallback to basic user
         }
       } else {

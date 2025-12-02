@@ -44,7 +44,7 @@ import { Icon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { BulkAddProductsDialog } from '@/components/estimates/bulk-add-products-dialog';
 
-const ORDER_STATUSES: Extract<DocumentStatus, 'Draft' | 'Ordered' | 'Ready for pick up' | 'Picked up' | 'Invoiced' | 'Voided'>[] = ['Draft', 'Ordered', 'Ready for pick up', 'Picked up', 'Invoiced', 'Voided'];
+const ORDER_STATUSES: Extract<DocumentStatus, 'Draft' | 'Ordered' | 'Ready for pick up' | 'Picked up' | 'Invoiced' | 'Voided' | 'Partial Packed' | 'Packed'>[] = ['Draft', 'Ordered', 'Partial Packed', 'Packed', 'Ready for pick up', 'Picked up', 'Invoiced', 'Voided'];
 const ORDER_STATES: Order['orderState'][] = ['Open', 'Closed'];
 const ALL_CATEGORIES_VALUE = "_ALL_CATEGORIES_";
 
@@ -152,7 +152,7 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
         orderState: sourceData.orderState || 'Open',
         poNumber: sourceData.poNumber ?? '',
         distributor: sourceData.distributor ?? '',
-        lineItems: (sourceData.lineItems || [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false }]).map(li => ({ ...li, id: li.id || crypto.randomUUID() })),
+        lineItems: (sourceData.lineItems || [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false, addToProductList: false }]).map(li => ({ ...li, id: li.id || crypto.randomUUID(), isNonStock: li.isNonStock ?? false, addToProductList: li.addToProductList ?? false })),
         notes: sourceData.notes || '',
         payments: sourceData.payments?.map(p => ({...p, date: typeof p.date === 'string' ? parseISO(p.date as string) : p.date})) || [],
         expectedDeliveryDate: sourceData.expectedDeliveryDate ? new Date(sourceData.expectedDeliveryDate) : undefined,

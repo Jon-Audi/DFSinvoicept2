@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Order, Invoice, Customer, Product, LineItem } from '@/types';
+import type { Order, Invoice, Customer, Product, LineItem, Vendor } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, runTransaction } from 'firebase/firestore';
@@ -25,6 +25,7 @@ export default function CostingReviewPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
   const [productSubcategories, setProductSubcategories] = useState<string[]>([]);
   
@@ -43,6 +44,7 @@ export default function CostingReviewPage() {
       orders: (items: Order[]) => setOrders(items),
       invoices: (items: Invoice[]) => setInvoices(items),
       customers: (items: Customer[]) => setCustomers(items),
+      vendors: (items: Vendor[]) => setVendors(items),
       products: (items: Product[]) => {
           setProducts(items);
           const categories = Array.from(new Set(items.map(p => p.category))).sort();
@@ -57,7 +59,6 @@ export default function CostingReviewPage() {
         const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         setStateCallback(items as any[]);
       }, (error) => {
-        console.error(`Error fetching ${path}:`, error);
         toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
       }));
     });
@@ -67,6 +68,7 @@ export default function CostingReviewPage() {
         new Promise(res => onSnapshot(collection(db, 'orders'), () => res(true))),
         new Promise(res => onSnapshot(collection(db, 'invoices'), () => res(true))),
         new Promise(res => onSnapshot(collection(db, 'customers'), () => res(true))),
+        new Promise(res => onSnapshot(collection(db, 'vendors'), () => res(true))),
         new Promise(res => onSnapshot(collection(db, 'products'), () => res(true))),
     ]).then(() => {
         setIsLoading(false);
@@ -106,7 +108,6 @@ export default function CostingReviewPage() {
       toast({ title: "Order Updated", description: `Order #${(order as any).orderNumber} has been updated.` });
       if (editingDoc?.id === order.id) setEditingDoc(null);
     } catch (error) {
-       console.error("Error saving order:", error);
        toast({ title: "Error", description: "Could not save order.", variant: "destructive" });
     } finally {
       setIsProcessing(null);
@@ -125,7 +126,6 @@ export default function CostingReviewPage() {
       toast({ title: "Invoice Updated", description: `Invoice #${(invoice as any).invoiceNumber} has been updated.` });
       if (editingDoc?.id === invoice.id) setEditingDoc(null);
     } catch (error) {
-       console.error("Error saving invoice:", error);
        toast({ title: "Error", description: "Could not save invoice.", variant: "destructive" });
     } finally {
       setIsProcessing(null);
@@ -249,7 +249,7 @@ export default function CostingReviewPage() {
       </Card>
       
       {editingDoc?.docType === 'Order' && (
-        <OrderDialog 
+        <OrderDialog
             isOpen={!!editingDoc && editingDoc.docType === 'Order'}
             onOpenChange={() => setEditingDoc(null)}
             order={editingDoc as Order}
@@ -258,13 +258,14 @@ export default function CostingReviewPage() {
             onSaveCustomer={() => Promise.resolve()}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
         />
       )}
       
        {editingDoc?.docType === 'Invoice' && (
-        <InvoiceDialog 
+        <InvoiceDialog
             isOpen={!!editingDoc && editingDoc.docType === 'Invoice'}
             onOpenChange={() => setEditingDoc(null)}
             invoice={editingDoc as Invoice}
@@ -273,6 +274,7 @@ export default function CostingReviewPage() {
             onSaveCustomer={() => Promise.resolve()}
             customers={customers}
             products={products}
+            vendors={vendors}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
         />

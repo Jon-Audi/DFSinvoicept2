@@ -82,7 +82,6 @@ export default function ReportsPage() {
         customersSnapshot.forEach(docSnap => fetchedCustomers.push({ id: docSnap.id, ...docSnap.data() } as Customer));
         setCustomers(fetchedCustomers.sort((a, b) => (a.companyName || `${a.firstName} ${a.lastName}`).localeCompare(b.companyName || `${b.firstName} ${b.lastName}`)));
       } catch (error) {
-        console.error("Error fetching customers for report:", error);
         toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
       } finally {
         setIsLoadingCustomers(false);
@@ -596,12 +595,11 @@ export default function ReportsPage() {
       const hasData = Array.isArray(data) ? data.length > 0 : data && (data as any).transactions?.length > 0;
       
       if (hasData) {
-        toast({ title: "Report Generated", description: `Report "${currentReportTitle}" is ready.`, variant: "default" });
+        toast({ title: "Report Generated", description: `Report "${currentReportTitle}&quot; is ready.`, variant: "default" });
       } else {
          toast({ title: "No Data", description: "No records found for the selected criteria.", variant: "default" });
       }
     } catch (error) {
-      console.error("Error generating report:", error);
       toast({ title: "Error Generating Report", description: (error as Error).message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -619,7 +617,6 @@ export default function ReportsPage() {
       toast({ title: "Company Settings Not Found", description: "Please configure company settings for printing.", variant: "default" });
       return null;
     } catch (error) {
-      console.error("Error fetching company settings:", error);
       toast({ title: "Error", description: "Could not fetch company settings.", variant: "destructive" });
       return null;
     }

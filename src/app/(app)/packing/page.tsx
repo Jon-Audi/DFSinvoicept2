@@ -141,7 +141,6 @@ export default function PackingPage() {
       const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Order[];
       setOrders(items);
     }, (error) => {
-      console.error(`Error fetching orders:`, error);
       toast({ title: "Error", description: `Could not fetch orders for packing.`, variant: "destructive" });
     }));
     
@@ -150,7 +149,6 @@ export default function PackingPage() {
       const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Invoice[];
       setInvoices(items);
     }, (error) => {
-      console.error(`Error fetching invoices:`, error);
       toast({ title: "Error", description: `Could not fetch invoices for packing.`, variant: "destructive" });
     }));
     
@@ -189,7 +187,6 @@ export default function PackingPage() {
         setSelectedDoc(null); // Close the dialog on success
 
     } catch (error) {
-        console.error("Error updating document status:", error);
         toast({ title: "Error", description: `Could not update status.`, variant: "destructive" });
     } finally {
         setIsUpdating(false);
@@ -222,7 +219,6 @@ export default function PackingPage() {
         setSelectedDoc(null);
 
     } catch (error) {
-        console.error("Error saving partial pack status:", error);
         toast({ title: "Error", description: `Could not save packing progress.`, variant: "destructive" });
     } finally {
         setIsUpdating(false);

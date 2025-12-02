@@ -161,7 +161,6 @@ export default function ProductionPage() {
       setTasks(fetchedTasks);
       setIsLoading(false);
     }, (error) => {
-      console.error("Error fetching production tasks:", error);
       toast({ title: "Error", description: "Could not fetch production tasks.", variant: "destructive" });
       setIsLoading(false);
     });
@@ -186,7 +185,6 @@ export default function ProductionPage() {
       
       await setDoc(taskRef, dataToSave, { merge: true });
     } catch (error) {
-      console.error(`Error saving task ${task.name}:`, error);
       toast({ title: "Save Error", description: `Could not save task: ${task.name}.`, variant: "destructive" });
     }
   };
@@ -229,7 +227,7 @@ export default function ProductionPage() {
   
   const handleStopAndSave = async (task: ProductionTask) => {
     if (!db) return;
-     let finalTaskState = { ...task };
+     const finalTaskState = { ...task };
      let finalElapsedSeconds = task.elapsedSeconds;
      const HOURLY_RATE = 20; // $20 per hour
 
@@ -274,10 +272,9 @@ export default function ProductionPage() {
       setTasks(prev => new Map(prev).set(task.name, freshTask));
       await handleTaskUpdate(freshTask);
 
-      toast({ title: 'Task Saved', description: `Task "${task.name}" has been saved to history and reset.` });
+      toast({ title: 'Task Saved', description: `Task "${task.name}&quot; has been saved to history and reset.` });
 
     } catch(error) {
-      console.error("Error saving task history:", error);
       toast({ title: "Save Error", description: "Could not save task to history.", variant: "destructive" });
     }
   };

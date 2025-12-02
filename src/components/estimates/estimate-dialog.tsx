@@ -143,7 +143,6 @@ export function EstimateDialog({
   
   const handleSaveCustomerWrapper = (c: Omit<Customer, "id"> & { id?: string }) => {
     void onSaveCustomer(c).catch((err) => {
-      console.error("Failed to save customer:", err);
     });
   };
 

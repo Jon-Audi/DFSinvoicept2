@@ -31,7 +31,6 @@ export default function UsersSettingsPage() {
         setIsLoading(false);
       },
       (error) => {
-        console.error("Error fetching users: ", error);
         toast({ title: "Error", description: "Could not fetch users.", variant: "destructive" });
         setIsLoading(false);
       }
@@ -56,7 +55,6 @@ export default function UsersSettingsPage() {
         description: `User ${userToSave.firstName} ${userToSave.lastName} has been saved.`,
       });
     } catch (error) {
-      console.error("Error saving user:", error);
       toast({ title: "Error", description: "Could not save user data.", variant: "destructive" });
     }
   };
@@ -71,7 +69,6 @@ export default function UsersSettingsPage() {
         variant: "default",
       });
     } catch (error) {
-      console.error("Error deleting user document:", error);
       toast({
         title: "Error",
         description: "Could not delete user document.",

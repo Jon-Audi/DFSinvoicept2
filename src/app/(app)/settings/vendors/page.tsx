@@ -31,7 +31,6 @@ export default function VendorsPage() {
         setIsLoading(false);
       },
       (error) => {
-        console.error("Error fetching vendors: ", error);
         toast({ title: "Error", description: "Could not fetch vendors.", variant: "destructive" });
         setIsLoading(false);
       }
@@ -47,13 +46,12 @@ export default function VendorsPage() {
       if (id) {
         const vendorDocRef = doc(db, 'vendors', id);
         await setDoc(vendorDocRef, vendorData, { merge: true });
-        toast({ title: "Vendor Updated", description: `Vendor "${vendorData.name}" has been updated.` });
+        toast({ title: "Vendor Updated", description: `Vendor "${vendorData.name}&quot; has been updated.` });
       } else {
         await addDoc(collection(db, 'vendors'), vendorData);
-        toast({ title: "Vendor Added", description: `Vendor "${vendorData.name}" has been added.` });
+        toast({ title: "Vendor Added", description: `Vendor "${vendorData.name}&quot; has been added.` });
       }
     } catch (error) {
-      console.error("Error saving vendor:", error);
       toast({ title: "Error", description: "Could not save vendor data.", variant: "destructive" });
     }
   };
@@ -64,7 +62,6 @@ export default function VendorsPage() {
       await deleteDoc(doc(db, 'vendors', vendorId));
       toast({ title: "Vendor Deleted", description: "The vendor has been removed.", variant: "default" });
     } catch (error) {
-      console.error("Error deleting vendor:", error);
       toast({ title: "Error", description: "Could not delete vendor.", variant: "destructive" });
     }
   };

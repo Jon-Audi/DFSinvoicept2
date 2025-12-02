@@ -69,7 +69,6 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     } catch (e) {
-      console.error("Failed to initialize Firebase", e);
       setLoading(false);
     }
   }, []);

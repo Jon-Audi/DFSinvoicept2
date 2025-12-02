@@ -47,7 +47,6 @@ interface PdfDemoDocumentData {
  * The 'Birthday' field is converted from '1985/06/20' to a Firestore Timestamp.
  */
 export async function createPdfDemoDocument(): Promise<string | null> {
-  console.log("Attempting to create PDF demo document in Firestore...");
   try {
     // This server action uses a client-side SDK pattern, which is not ideal.
     // A better approach would be to use the Firebase Admin SDK on the server.
@@ -89,10 +88,8 @@ export async function createPdfDemoDocument(): Promise<string | null> {
     };
 
     const docRef = await addDoc(collection(db, "pdfPlumDemoDocs"), docData);
-    console.log("PDF demo document created with ID: ", docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error("Error creating PDF demo document in Firestore:", error);
     return null;
   }
 }

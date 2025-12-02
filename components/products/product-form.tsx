@@ -252,7 +252,7 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                           }}
                           className="cursor-pointer p-2 text-sm hover:bg-accent"
                         >
-                          {inputValue.trim() ? `Add "${inputValue.trim()}"` : "Type to search or add"}
+                          {inputValue.trim() ? `Add "${inputValue.trim()}&quot;` : "Type to search or add"}
                         </CommandEmpty>
                         <CommandGroup>
                           {productCategories

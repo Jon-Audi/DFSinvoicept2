@@ -173,7 +173,6 @@ export function InvoiceDialog({
 
   const handleSaveCustomerWrapper = (c: Omit<Customer, "id"> & { id?: string }) => {
     void onSaveCustomer(c as Customer).catch((err) => {
-      console.error("Failed to save customer:", err);
       // Optionally surface a toast notification here if you have a toast context
     });
   };

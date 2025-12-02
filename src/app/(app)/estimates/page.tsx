@@ -186,7 +186,7 @@ export default function EstimatesPage() {
     }
   };
 
-  const handleSaveCustomer = async (customerToSave: Customer): Promise<string | void> => {
+  const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id'> & { id?: string }): Promise<string | void> => {
     if (!db) return;
     const { id, ...customerData } = customerToSave;
     try {
@@ -216,7 +216,6 @@ export default function EstimatesPage() {
         });
         return docRef.id;
       } catch (error) {
-        console.error("Error saving new product from estimate:", error);
         toast({
           title: "Error Saving Product",
           description: "Could not save the new item to the product list.",
@@ -327,7 +326,6 @@ export default function EstimatesPage() {
       });
       setIsEmailModalOpen(false);
     } catch (error: any) {
-      console.error("Error queueing email:", error);
       toast({
         title: "Email Queue Failed",
         description: error.message || "Could not queue the email. Check Firestore permissions and console.",
@@ -364,7 +362,7 @@ export default function EstimatesPage() {
         validUntil: new Date(new Date().setDate(new Date().getDate() + 30)),
         status: 'Draft',
         poNumber: estimateToClone.poNumber,
-        lineItems: estimateToClone.lineItems.map(li => ({...li, id: crypto.randomUUID()})),
+        lineItems: estimateToClone.lineItems.map(li => ({...li, id: crypto.randomUUID(), isNonStock: li.isNonStock ?? false, addToProductList: li.addToProductList ?? false})),
         notes: estimateToClone.notes,
     };
     setClonedEstimateData(newEstimateData);
@@ -391,7 +389,7 @@ export default function EstimatesPage() {
   };
 
   const sortedAndFilteredEstimates = useMemo(() => {
-    let sortableItems = estimates.filter(estimate => {
+    const sortableItems = estimates.filter(estimate => {
         if (!searchTerm.trim()) return true;
         const lowercasedFilter = searchTerm.toLowerCase();
         const searchFields = [
@@ -442,7 +440,6 @@ export default function EstimatesPage() {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching company settings:", error);
       toast({ title: "Error", description: "Could not fetch company settings for printing.", variant: "destructive" });
       return null;
     }

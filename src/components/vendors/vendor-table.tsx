@@ -98,7 +98,7 @@ export function VendorTable({ vendors, onSave, onDelete }: VendorTableProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the vendor "{vendorToDelete.name}". This action cannot be undone.
+                This will permanently delete the vendor &quot;{vendorToDelete.name}&quot;. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
