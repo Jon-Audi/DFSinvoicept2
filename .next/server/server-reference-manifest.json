@@ -1,1 +1,51 @@
-{"node":{"40216dcf3cbd48d98146bfb4dfffe38772249c0974":{"workers":{"app/(app)/estimates/page":{"moduleId":"36393","async":false}},"layer":{"app/(app)/estimates/page":"action-browser"}},"40b26e14ce12a1a3752aee14640cba573870363cee":{"workers":{"app/(app)/orders/page":{"moduleId":"60048","async":false}},"layer":{"app/(app)/orders/page":"action-browser"}},"405516a304c3708194ec3fb8856e7b949d896c068a":{"workers":{"app/(app)/invoices/page":{"moduleId":"32016","async":false}},"layer":{"app/(app)/invoices/page":"action-browser"}}},"edge":{},"encryptionKey":"nvjxzaHnkCECt96hqI9UIhETTJ3GiVakkW9vbRama/w="}
+{
+  "node": {
+    "407a3b3e8566d7a6568fb83e9053e7348bb431c206": {
+      "workers": {
+        "app/(app)/estimates/page": {
+          "moduleId": 79361,
+          "async": false,
+          "exportedName": "estimateEmailDraft",
+          "filename": "src/ai/flows/estimate-email-draft.ts"
+        }
+      },
+      "layer": {
+        "app/(app)/estimates/page": "action-browser"
+      },
+      "filename": "src/ai/flows/estimate-email-draft.ts",
+      "exportedName": "estimateEmailDraft"
+    },
+    "40cd0ca3a0c0eea85183fee03892353a6acf517282": {
+      "workers": {
+        "app/(app)/invoices/page": {
+          "moduleId": 80704,
+          "async": false,
+          "exportedName": "generateInvoiceEmailDraft",
+          "filename": "src/ai/flows/invoice-email-draft.ts"
+        }
+      },
+      "layer": {
+        "app/(app)/invoices/page": "action-browser"
+      },
+      "filename": "src/ai/flows/invoice-email-draft.ts",
+      "exportedName": "generateInvoiceEmailDraft"
+    },
+    "40839f1ffdd68fea08d796fdd91805e9fd89241aa7": {
+      "workers": {
+        "app/(app)/orders/page": {
+          "moduleId": 96528,
+          "async": false,
+          "exportedName": "generateOrderEmailDraft",
+          "filename": "src/ai/flows/order-email-draft.ts"
+        }
+      },
+      "layer": {
+        "app/(app)/orders/page": "action-browser"
+      },
+      "filename": "src/ai/flows/order-email-draft.ts",
+      "exportedName": "generateOrderEmailDraft"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "nvjxzaHnkCECt96hqI9UIhETTJ3GiVakkW9vbRama/w="
+}
