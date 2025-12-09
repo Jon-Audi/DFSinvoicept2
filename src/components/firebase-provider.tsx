@@ -49,28 +49,35 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const storage = getStorage(app);
-      
-      let analytics: Analytics | null = null;
-      if (firebaseConfig.measurementId) {
-        isSupported().then(supported => {
-          if (supported) {
-            analytics = getAnalytics(app);
+    const initFirebase = async () => {
+      try {
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let analytics: Analytics | null = null;
+        if (firebaseConfig.measurementId) {
+          try {
+            const supported = await isSupported();
+            if (supported) {
+              analytics = getAnalytics(app);
+            }
+          } catch (error) {
+            // Analytics not supported, continue without it
+            console.warn('Firebase Analytics not supported:', error);
           }
-          setServices({ app, auth, db, storage, analytics });
-          setLoading(false);
-        });
-      } else {
-        setServices({ app, auth, db, storage, analytics: null });
+        }
+
+        setServices({ app, auth, db, storage, analytics });
+        setLoading(false);
+      } catch (e) {
+        console.error('Firebase initialization error:', e);
         setLoading(false);
       }
-    } catch (e) {
-      setLoading(false);
-    }
+    };
+
+    initFirebase();
   }, []);
 
   const value = { ...services, loading };
