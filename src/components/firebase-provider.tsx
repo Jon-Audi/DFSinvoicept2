@@ -49,28 +49,56 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const storage = getStorage(app);
-      
-      let analytics: Analytics | null = null;
-      if (firebaseConfig.measurementId) {
-        isSupported().then(supported => {
-          if (supported) {
-            analytics = getAnalytics(app);
-          }
-          setServices({ app, auth, db, storage, analytics });
-          setLoading(false);
-        });
-      } else {
-        setServices({ app, auth, db, storage, analytics: null });
+    let mounted = true;
+
+    // Safety timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.error('Firebase initialization timeout - forcing load complete');
         setLoading(false);
       }
-    } catch (e) {
-      setLoading(false);
-    }
+    }, 10000); // 10 second timeout
+
+    const initFirebase = async () => {
+      try {
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let analytics: Analytics | null = null;
+        if (firebaseConfig.measurementId) {
+          try {
+            const supported = await isSupported();
+            if (supported) {
+              analytics = getAnalytics(app);
+            }
+          } catch (error) {
+            // Analytics not supported, continue without it
+            console.warn('Firebase Analytics not supported:', error);
+          }
+        }
+
+        if (mounted) {
+          setServices({ app, auth, db, storage, analytics });
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
+      } catch (e) {
+        console.error('Firebase initialization error:', e);
+        if (mounted) {
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    initFirebase();
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const value = { ...services, loading };
