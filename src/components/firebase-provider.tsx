@@ -19,6 +19,12 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Validate Firebase config
+if (typeof window !== 'undefined' && !firebaseConfig.apiKey) {
+  console.error('Firebase configuration is missing! Please check environment variables.');
+  console.log('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')));
+}
+
 interface FirebaseContextType {
   app: FirebaseApp | null;
   db: Firestore | null;
@@ -47,6 +53,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     analytics: null,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -55,9 +62,10 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const timeoutId = setTimeout(() => {
       if (mounted) {
         console.error('Firebase initialization timeout - forcing load complete');
+        setError('Firebase is taking longer than expected to initialize. Please check your internet connection and refresh the page.');
         setLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 5000); // 5 second timeout
 
     const initFirebase = async () => {
       try {
@@ -106,9 +114,14 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseContext.Provider value={value}>
       {loading ? (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
           <Icon name="Loader2" className="h-10 w-10 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Connecting to services...</p>
+          {error && (
+            <div className="mt-6 max-w-md text-center p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          )}
         </div>
       ) : (
         children
