@@ -239,14 +239,14 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                     <Command shouldFilter={false}>
-                      <CommandInput 
+                      <CommandInput
                         placeholder="Search or add category..."
                         value={inputValue}
                         onValueChange={(search) => setInputValue(search)}
                       />
-                       <CommandList>
+                       <CommandList className="max-h-[300px]">
                         <CommandEmpty
                           onMouseDown={(e) => { 
                             e.preventDefault(); 
@@ -347,10 +347,10 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                           <Command>
                             <CommandInput placeholder="Search product..." />
-                            <CommandList><CommandEmpty>No product found.</CommandEmpty>
+                            <CommandList className="max-h-[300px]"><CommandEmpty>No product found.</CommandEmpty>
                               <CommandGroup>
                                 {allProducts.filter(p => !p.isAssembly).map(p => (
                                   <CommandItem key={p.id} value={p.name} onSelect={() => handleSelectComponentProduct(index, p.id)}>
