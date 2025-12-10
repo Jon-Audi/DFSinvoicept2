@@ -480,15 +480,24 @@ export function EstimateForm({
             </FormItem>
           )} />
         </div>
-        <FormField control={form.control} name="status" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Status</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-              <SelectContent>{ESTIMATE_STATUSES.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
-            </Select><FormMessage />
-          </FormItem>
-        )} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="status" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                <SelectContent>{ESTIMATE_STATUSES.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
+              </Select><FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="poNumber" render={({ field }) => (
+            <FormItem>
+              <FormLabel>P.O. Number / Job Name (Optional)</FormLabel>
+              <FormControl><Input {...field} placeholder="Enter P.O. number or job name" /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
 
         <Separator /><h3 className="text-lg font-medium">Line Items</h3>
         {fields.map((fieldItem, index) => {

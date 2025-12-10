@@ -29,7 +29,7 @@ import {
   AlertCircle,
   XCircle,
   CheckCircle2,
-  UsersRound, 
+  UsersRound,
   UserCog,
   Paintbrush,
   Loader2,
@@ -49,6 +49,8 @@ import {
   StopCircle,
   FolderSymlink,
   Truck,
+  FolderTree,
+  X,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -105,6 +107,8 @@ const iconComponents = {
   StopCircle,
   FolderSymlink,
   Truck,
+  FolderTree,
+  X,
 };
 
 type IconProps = {

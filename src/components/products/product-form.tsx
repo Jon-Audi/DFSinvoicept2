@@ -23,6 +23,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/components/firebase-provider';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const assemblyComponentSchema = z.object({
   productId: z.string().min(1, "Product must be selected"),
@@ -55,6 +57,11 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, allProducts = [], onSubmit, onClose, productCategories, onAddNewCategory }: ProductFormProps) {
+  const { db } = useFirebase();
+  const [subcategories, setSubcategories] = useState<string[]>([]);
+  const [subcategoryComboboxOpen, setSubcategoryComboboxOpen] = useState(false);
+  const [subcategoryInputValue, setSubcategoryInputValue] = useState('');
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -97,12 +104,38 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
   const [inputValue, setInputValue] = useState(formCategoryValue || "");
 
 
+  // Fetch subcategories from Firebase
+  useEffect(() => {
+    if (!db) return;
+
+    const fetchSubcategories = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'subcategories');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setSubcategories(data.list || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+      }
+    };
+
+    fetchSubcategories();
+  }, [db]);
+
   useEffect(() => {
     const initialCategory = product?.category || (productCategories.length > 0 ? productCategories[0] : '');
     if (getValues('category') !== initialCategory) {
         setValue('category', initialCategory, { shouldValidate: true });
     }
     setInputValue(initialCategory);
+
+    // Initialize subcategory input value
+    if (product?.subcategory) {
+      setSubcategoryInputValue(product.subcategory);
+    }
   }, [product, productCategories, setValue, getValues]);
 
   useEffect(() => {
@@ -188,6 +221,42 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
        trigger("category");
     }
     setComboboxOpen(open);
+  };
+
+  const handleSubcategorySelect = async (selectedSubcategory: string) => {
+    setValue("subcategory", selectedSubcategory, { shouldValidate: true });
+    setSubcategoryInputValue(selectedSubcategory);
+    setSubcategoryComboboxOpen(false);
+  };
+
+  const handleSubcategoryOpenChange = async (open: boolean) => {
+    if (!open) {
+      const trimmedValue = subcategoryInputValue.trim();
+      if (trimmedValue) {
+        // Check if it's a new subcategory
+        const existingSub = subcategories.find(s => s.toLowerCase() === trimmedValue.toLowerCase());
+        if (existingSub) {
+          setValue("subcategory", existingSub, { shouldValidate: true });
+          setSubcategoryInputValue(existingSub);
+        } else {
+          // Save new subcategory to Firebase
+          if (db) {
+            try {
+              const updatedList = [...subcategories, trimmedValue].sort();
+              const docRef = doc(db, 'settings', 'subcategories');
+              await setDoc(docRef, { list: updatedList });
+              setSubcategories(updatedList);
+              setValue("subcategory", trimmedValue, { shouldValidate: true });
+            } catch (error) {
+              console.error('Error saving new subcategory:', error);
+            }
+          }
+        }
+      } else {
+        setValue("subcategory", '', { shouldValidate: true });
+      }
+    }
+    setSubcategoryComboboxOpen(open);
   };
 
   const handleAddComponent = () => {
@@ -290,9 +359,75 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
             control={control}
             name="subcategory"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Subcategory (Optional)</FormLabel>
-                <FormControl><Input placeholder="e.g., Privacy, Picket" {...field} /></FormControl>
+                <Popover open={subcategoryComboboxOpen} onOpenChange={handleSubcategoryOpenChange}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={subcategoryComboboxOpen}
+                        className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                      >
+                        {field.value || "Select or type subcategory..."}
+                        <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search or add subcategory..."
+                        value={subcategoryInputValue}
+                        onValueChange={(search) => setSubcategoryInputValue(search)}
+                      />
+                      <CommandList className="max-h-[300px]">
+                        <CommandEmpty
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const newSub = subcategoryInputValue.trim();
+                            if (newSub) handleSubcategorySelect(newSub);
+                            else setSubcategoryComboboxOpen(false);
+                          }}
+                          className="cursor-pointer p-2 text-sm hover:bg-accent"
+                        >
+                          {subcategoryInputValue.trim() ? `Add "${subcategoryInputValue.trim()}"` : "Type to search or add"}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {field.value && (
+                            <CommandItem
+                              value=""
+                              onSelect={() => handleSubcategorySelect('')}
+                              className="text-muted-foreground"
+                            >
+                              <Icon name="X" className="mr-2 h-4 w-4" />
+                              Clear subcategory
+                            </CommandItem>
+                          )}
+                          {subcategories
+                            .filter(sub => sub.toLowerCase().includes(subcategoryInputValue.toLowerCase()))
+                            .map((sub) => (
+                            <CommandItem
+                              value={sub}
+                              key={sub}
+                              onSelect={() => handleSubcategorySelect(sub)}
+                            >
+                              <Icon
+                                name="Check"
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  sub.toLowerCase() === field.value?.toLowerCase() ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {sub}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
