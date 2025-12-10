@@ -249,21 +249,6 @@ export default function ProductsPage() {
     }
   };
 
-  const fetchCompanySettings = async (): Promise<CompanySettings | null> => {
-    if (!db) return null;
-    try {
-      const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data() as CompanySettings;
-      }
-      return null;
-    } catch (error) {
-      toast({ title: "Error", description: "Could not fetch company settings for printing.", variant: "destructive" });
-      return null;
-    }
-  };
-
   const handlePrintRequest = async (selectedCategories: string[]) => {
     setIsPrintSheetOpen(false); // Close the category selection dialog
     if (selectedCategories.length === 0) {
@@ -271,11 +256,10 @@ export default function ProductsPage() {
       return;
     }
 
-    const companySettings = await fetchCompanySettings();
     if (!companySettings) {
+        toast({ title: "Error", description: "Company settings are required for printing.", variant: "destructive" });
         return;
     }
-    const absoluteLogoUrl = `${window.location.origin}/Logo.png`;
 
     const productsToPrint = products.filter(p => selectedCategories.includes(p.category));
 
@@ -409,7 +393,7 @@ export default function ProductsPage() {
       />
       {groupedProductsForPrinting && (
         <div style={{ display: 'none' }}>
-            <PrintablePriceSheet ref={printRef} groupedProducts={groupedProductsForPrinting} companySettings={null} />
+            <PrintablePriceSheet ref={printRef} groupedProducts={groupedProductsForPrinting} companySettings={companySettings} logoUrl={logoUrl} />
         </div>
       )}
       <SelectCategoriesDialog
