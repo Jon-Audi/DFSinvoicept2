@@ -1,8 +1,9 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Product, CompanySettings } from '@/types';
+import { imageUrlToBase64 } from '@/lib/image-utils';
 
 interface PrintablePriceSheetProps {
   groupedProducts: Map<string, Product[]>;
@@ -13,6 +14,14 @@ interface PrintablePriceSheetProps {
 
 export const PrintablePriceSheet = React.forwardRef<HTMLDivElement, PrintablePriceSheetProps>(
   ({ groupedProducts, companySettings, logoUrl, customerName }, ref) => {
+    const [base64Logo, setBase64Logo] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+      if (logoUrl) {
+        imageUrlToBase64(logoUrl).then(setBase64Logo);
+      }
+    }, [logoUrl]);
+
     if (!groupedProducts || groupedProducts.size === 0 || !companySettings) {
       return (
         <div ref={ref} className="print-only-container">
@@ -31,10 +40,10 @@ export const PrintablePriceSheet = React.forwardRef<HTMLDivElement, PrintablePri
         <div className="print-only p-8 bg-white text-black font-sans text-xs">
           <div className="grid grid-cols-2 gap-8 mb-10">
             <div>
-              {logoUrl && (
+              {base64Logo && (
                  <div style={{ textAlign: 'left', marginBottom: '1rem', width: '128px' }}>
                   <img
-                    src={logoUrl}
+                    src={base64Logo}
                     alt={`${companySettings.companyName || 'Company'} Logo`}
                     style={{ display: 'block', maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
                     data-ai-hint="company logo"
