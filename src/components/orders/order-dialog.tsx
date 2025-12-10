@@ -164,7 +164,13 @@ export function OrderDialog({
     <>
       <Dialog open={isOpen} onOpenChange={setOpen}>
         {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => {
+            // Prevent closing on outside click to avoid accidental data loss
+            e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>{dialogDescription}</DialogDescription>

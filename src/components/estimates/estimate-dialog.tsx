@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CustomerDialog } from '@/components/customers/customer-dialog';
+import { clearSavedFormData } from '@/hooks/use-form-auto-save';
 
 interface EstimateDialogProps {
   estimate?: Estimate;
@@ -140,6 +141,12 @@ export function EstimateDialog({
     };
     
     onSave(estimatePayload as Estimate);
+
+    // Clear auto-saved data after successful save
+    if (!estimate && !initialData) {
+      clearSavedFormData('estimate-form-draft');
+    }
+
     setOpen(false);
   };
   
@@ -155,7 +162,13 @@ export function EstimateDialog({
     <>
       <Dialog open={isOpen} onOpenChange={setOpen}>
         {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => {
+            // Prevent closing on outside click to avoid accidental data loss
+            e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>{dialogDescription}</DialogDescription>

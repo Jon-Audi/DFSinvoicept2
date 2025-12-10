@@ -43,6 +43,7 @@ import { format } from 'date-fns';
 import { Icon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { BulkAddProductsDialog } from './bulk-add-products-dialog';
+import { useFormAutoSave, getSavedFormData, clearSavedFormData } from '@/hooks/use-form-auto-save';
 
 
 const ESTIMATE_STATUSES: Extract<DocumentStatus, 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Voided'>[] = ['Draft', 'Sent', 'Accepted', 'Rejected', 'Voided'];
@@ -220,6 +221,27 @@ export function EstimateForm({
 
   const watchedLineItems = form.watch('lineItems');
   const watchedCustomerId = form.watch('customerId');
+  const watchedFormData = form.watch();
+
+  // Auto-save form data to localStorage (only for new estimates, not edits)
+  const AUTO_SAVE_KEY = 'estimate-form-draft';
+  const shouldAutoSave = !estimate && !initialData;
+  useFormAutoSave(AUTO_SAVE_KEY, watchedFormData, shouldAutoSave);
+
+  // Load saved form data on mount (only for new estimates)
+  React.useEffect(() => {
+    if (!estimate && !initialData) {
+      const savedData = getSavedFormData<any>(AUTO_SAVE_KEY);
+      if (savedData && savedData.lineItems && savedData.lineItems.length > 0) {
+        // Restore saved data with proper date conversions
+        form.reset({
+          ...savedData,
+          date: savedData.date ? new Date(savedData.date) : new Date(),
+          validUntil: savedData.validUntil ? new Date(savedData.validUntil) : undefined,
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (watchedCustomerId === prevCustomerIdRef.current || !watchedCustomerId || !products.length) {

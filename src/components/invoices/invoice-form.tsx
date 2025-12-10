@@ -43,6 +43,7 @@ import { format, parseISO } from 'date-fns';
 import { Icon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { BulkAddProductsDialog } from '@/components/estimates/bulk-add-products-dialog';
+import { useFormAutoSave, getSavedFormData, clearSavedFormData } from '@/hooks/use-form-auto-save';
 
 const INVOICE_STATUSES: Extract<DocumentStatus, 'Draft' | 'Sent' | 'Ordered' | 'Partial Packed' | 'Packed' | 'Ready for pick up' | 'Picked up' | 'Partially Paid' | 'Paid' | 'Voided'>[] = ['Draft', 'Sent', 'Ordered', 'Partial Packed', 'Packed', 'Ready for pick up', 'Picked up', 'Partially Paid', 'Paid', 'Voided'];
 const ALL_CATEGORIES_VALUE = "_ALL_CATEGORIES_";
@@ -259,7 +260,34 @@ export function InvoiceForm({
 
   const watchedLineItems = form.watch('lineItems') || [];
   const watchedCustomerId = form.watch('customerId');
-  
+  const watchedFormData = form.watch();
+
+  // Auto-save form data to localStorage (only for new invoices, not edits)
+  const AUTO_SAVE_KEY = 'invoice-form-draft';
+  const shouldAutoSave = !invoice && !initialData;
+  useFormAutoSave(AUTO_SAVE_KEY, watchedFormData, shouldAutoSave);
+
+  // Load saved form data on mount (only for new invoices)
+  React.useEffect(() => {
+    if (!invoice && !initialData) {
+      const savedData = getSavedFormData<any>(AUTO_SAVE_KEY);
+      if (savedData && savedData.lineItems && savedData.lineItems.length > 0) {
+        // Restore saved data with proper date conversions
+        form.reset({
+          ...savedData,
+          date: savedData.date ? new Date(savedData.date) : new Date(),
+          dueDate: savedData.dueDate ? new Date(savedData.dueDate) : undefined,
+          readyForPickUpDate: savedData.readyForPickUpDate ? new Date(savedData.readyForPickUpDate) : undefined,
+          pickedUpDate: savedData.pickedUpDate ? new Date(savedData.pickedUpDate) : undefined,
+          payments: savedData.payments?.map((p: any) => ({
+            ...p,
+            date: p.date ? new Date(p.date) : new Date(),
+          })),
+        });
+      }
+    }
+  }, []);
+
   const calculateUnitPrice = (product: Product, customer?: Customer): number => {
     let finalPrice = product.price;
     if (customer && customer.specificMarkups && customer.specificMarkups.length > 0) {
