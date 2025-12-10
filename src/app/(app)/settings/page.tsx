@@ -103,6 +103,24 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
+              <Icon name="LayoutDashboard" className="mr-2 h-5 w-5" />
+              Dashboard
+            </CardTitle>
+            <CardDescription>Customize dashboard widgets and alert thresholds.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/settings/dashboard" passHref>
+              <Button variant="outline">
+                Dashboard Settings
+                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
               <Icon name="Paintbrush" className="mr-2 h-5 w-5" />
               Appearance
             </CardTitle>

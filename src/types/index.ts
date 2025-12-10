@@ -210,6 +210,14 @@ export interface CompanySettings {
   invoiceDisclaimer?: string;
 }
 
+export interface DashboardPreferences {
+  showLowStockAlert: boolean;
+  showUnpaidInvoices: boolean;
+  showQuickStats: boolean;
+  showQuickActions: boolean;
+  lowStockThreshold: number;
+}
+
 // New type for the detailed customer balance/outstanding invoices report
 export interface CustomerInvoiceDetail {
   customerId: string;
