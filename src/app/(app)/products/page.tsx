@@ -19,6 +19,7 @@ import { SelectCategoriesDialog } from '@/components/products/select-categories-
 import { CustomerPriceSheetDialog } from '@/components/products/customer-price-sheet-dialog';
 import { ExcelImportExport } from '@/components/products/excel-import-export';
 import type { Customer } from '@/types';
+import { useReactToPrint } from 'react-to-print';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
@@ -36,7 +37,20 @@ export default function ProductsPage() {
   const [isPrintSheetOpen, setIsPrintSheetOpen] = useState(false);
   const [groupedProductsForPrinting, setGroupedProductsForPrinting] = useState<Map<string, Product[]> | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string>();
+
+  const handlePrintSheet = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Price_Sheet_${new Date().toLocaleDateString()}`,
+    print: async (printIframe) => {
+      // Wait a bit for images to load from URL before printing
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const document = printIframe.contentDocument;
+      if (document) {
+        document.defaultView?.print();
+      }
+    },
+  });
 
 
   // Fetch customers
@@ -62,7 +76,6 @@ export default function ProductsPage() {
         if (docSnap.exists()) {
           const settings = docSnap.data() as CompanySettings;
           setCompanySettings(settings);
-          setLogoUrl(settings.logoUrl);
         }
       } catch (error) {
         console.error('Could not fetch company settings:', error);
@@ -273,25 +286,12 @@ export default function ProductsPage() {
     }, new Map<string, Product[]>());
 
     setGroupedProductsForPrinting(grouped);
-    
-    // Use timeout to allow state to update before triggering print
+
+    // Use react-to-print which properly waits for images to load
+    // Small delay to ensure state update is reflected in DOM
     setTimeout(() => {
-        if (printRef.current) {
-            const printContents = printRef.current.innerHTML;
-            const win = window.open('', '_blank');
-            if (win) {
-                win.document.write('<html><head><title>Print Price Sheet</title>');
-                win.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
-                win.document.write('<style>body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }</style>');
-                win.document.write('</head><body>');
-                win.document.write(printContents);
-                win.document.write('</body></html>');
-                win.document.close();
-                win.print();
-            }
-        }
-        setGroupedProductsForPrinting(null); // Clear after printing
-    }, 100);
+        handlePrintSheet();
+    }, 50);
   };
 
 
@@ -334,7 +334,6 @@ export default function ProductsPage() {
               customers={customers}
               products={products}
               companySettings={companySettings}
-              logoUrl={logoUrl}
             />
             <ExcelImportExport
               products={products}
@@ -391,11 +390,14 @@ export default function ProductsPage() {
         onBulkStockUpdate={handleBulkStockUpdate}
         onBulkSubcategoryUpdate={handleBulkSubcategoryUpdate}
       />
-      {groupedProductsForPrinting && (
-        <div style={{ display: 'none' }}>
-            <PrintablePriceSheet ref={printRef} groupedProducts={groupedProductsForPrinting} companySettings={companySettings} logoUrl={logoUrl} />
-        </div>
-      )}
+      {/* Hidden print component */}
+      <div style={{ display: 'none' }}>
+        <PrintablePriceSheet
+          ref={printRef}
+          groupedProducts={groupedProductsForPrinting || new Map()}
+          companySettings={companySettings}
+        />
+      </div>
       <SelectCategoriesDialog
         isOpen={isPrintSheetOpen}
         onOpenChange={setIsPrintSheetOpen}

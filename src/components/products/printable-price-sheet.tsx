@@ -1,26 +1,17 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Product, CompanySettings } from '@/types';
-import { imageUrlToBase64 } from '@/lib/image-utils';
 
 interface PrintablePriceSheetProps {
   groupedProducts: Map<string, Product[]>;
   companySettings: CompanySettings | null;
-  logoUrl?: string; 
   customerName?: string;
 }
 
 export const PrintablePriceSheet = React.forwardRef<HTMLDivElement, PrintablePriceSheetProps>(
-  ({ groupedProducts, companySettings, logoUrl, customerName }, ref) => {
-    const [base64Logo, setBase64Logo] = useState<string | undefined>(undefined);
-
-    useEffect(() => {
-      if (logoUrl) {
-        imageUrlToBase64(logoUrl).then(setBase64Logo);
-      }
-    }, [logoUrl]);
+  ({ groupedProducts, companySettings, customerName }, ref) => {
 
     if (!groupedProducts || groupedProducts.size === 0 || !companySettings) {
       return (
@@ -37,66 +28,56 @@ export const PrintablePriceSheet = React.forwardRef<HTMLDivElement, PrintablePri
 
     return (
       <div ref={ref} className="print-only-container">
-        <div className="print-only p-8 bg-white text-black font-sans text-xs">
-          <div className="grid grid-cols-2 gap-8 mb-10">
-            <div>
-              {base64Logo && (
-                 <div style={{ textAlign: 'left', marginBottom: '1rem', width: '128px' }}>
-                  <img
-                    src={base64Logo}
-                    alt={`${companySettings.companyName || 'Company'} Logo`}
-                    style={{ display: 'block', maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
-                    data-ai-hint="company logo"
-                  />
-                </div>
-              )}
-              <h1 className="text-xl font-bold text-gray-800 mb-1">{companySettings.companyName || 'Your Company'}</h1>
-              <p className="text-xs">{companySettings.addressLine1 || ''}</p>
-              {companySettings.addressLine2 && <p className="text-xs">{companySettings.addressLine2}</p>}
-              <p className="text-xs">
+        <div className="print-only" style={{ padding: '0.5in', backgroundColor: 'white', color: 'black' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'block' }}>
+              <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#000', marginBottom: '0.5rem', marginTop: '0' }}>{companySettings.companyName || 'Your Company'}</h1>
+              <p style={{ fontSize: '11px', margin: '0', lineHeight: '1.4' }}>{companySettings.addressLine1 || ''}</p>
+              {companySettings.addressLine2 && <p style={{ fontSize: '11px', margin: '0', lineHeight: '1.4' }}>{companySettings.addressLine2}</p>}
+              <p style={{ fontSize: '11px', margin: '0', lineHeight: '1.4' }}>
                 {companySettings.city || ''}{companySettings.city && (companySettings.state || companySettings.zipCode) ? ', ' : ''}
                 {companySettings.state || ''} {companySettings.zipCode || ''}
               </p>
-              {companySettings.phone && <p className="text-xs">Phone: {companySettings.phone}</p>}
-              {companySettings.email && <p className="text-xs">Email: {companySettings.email}</p>}
+              {companySettings.phone && <p style={{ fontSize: '11px', margin: '0', lineHeight: '1.4' }}>Phone: {companySettings.phone}</p>}
+              {companySettings.email && <p style={{ fontSize: '11px', margin: '0', lineHeight: '1.4' }}>Email: {companySettings.email}</p>}
             </div>
-            <div className="text-right">
-              <h2 className="text-2xl font-bold text-gray-700">{reportTitle}</h2>
-              <p className="text-sm"><span className="font-semibold">Date:</span> {currentDate}</p>
+            <div style={{ display: 'block', textAlign: 'right' }}>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#000', margin: '0 0 0.5rem 0' }}>{reportTitle}</h2>
+              <p style={{ fontSize: '13px', margin: '0' }}><span style={{ fontWeight: '600' }}>Date:</span> {currentDate}</p>
             </div>
           </div>
 
           {Array.from(groupedProducts.entries()).map(([category, productsInCategory]) => (
-            <div key={category} className="mb-6 last:mb-0" style={{ pageBreakInside: 'avoid' }}>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2 pb-1 border-b border-gray-300">{category}</h3>
+            <div key={category} style={{ marginBottom: '1.5rem', pageBreakInside: 'avoid' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '0.5rem', paddingBottom: '0.25rem', borderBottom: '1px solid #d1d5db' }}>{category}</h3>
               {productsInCategory.length > 0 ? (
-                <table className="w-full border-collapse text-xs">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left p-1.5 border border-gray-300 font-semibold text-gray-600 w-3/5">Product Name</th>
-                      <th className="text-left p-1.5 border border-gray-300 font-semibold text-gray-600 w-1/5">Unit</th>
-                      <th className="text-right p-1.5 border border-gray-300 font-semibold text-gray-600 w-1/5">Price</th>
+                    <tr style={{ backgroundColor: '#f9fafb' }}>
+                      <th style={{ textAlign: 'left', padding: '6px', border: '1px solid #d1d5db', fontWeight: '600', color: '#4b5563', width: '60%' }}>Product Name</th>
+                      <th style={{ textAlign: 'left', padding: '6px', border: '1px solid #d1d5db', fontWeight: '600', color: '#4b5563', width: '20%' }}>Unit</th>
+                      <th style={{ textAlign: 'right', padding: '6px', border: '1px solid #d1d5db', fontWeight: '600', color: '#4b5563', width: '20%' }}>Price</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productsInCategory.map((product) => (
                       <tr key={product.id} style={{ pageBreakInside: 'avoid' }}>
-                        <td className="p-1.5 border border-gray-300">{product.name}</td>
-                        <td className="p-1.5 border border-gray-300">{product.unit}</td>
-                        <td className="text-right p-1.5 border border-gray-300">${product.price.toFixed(2)}</td>
+                        <td style={{ padding: '6px', border: '1px solid #d1d5db' }}>{product.name}</td>
+                        <td style={{ padding: '6px', border: '1px solid #d1d5db' }}>{product.unit}</td>
+                        <td style={{ textAlign: 'right', padding: '6px', border: '1px solid #d1d5db' }}>${product.price.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p className="text-xs text-gray-500">No products in this category.</p>
+                <p style={{ fontSize: '12px', color: '#6b7280' }}>No products in this category.</p>
               )}
             </div>
           ))}
 
-          <footer className="text-center text-gray-500 pt-6 mt-6 border-t border-gray-300">
-            <p>Prices subject to change without notice.</p>
-            <p>{companySettings.companyName}</p>
+          <footer style={{ textAlign: 'center', color: '#6b7280', paddingTop: '1.5rem', marginTop: '1.5rem', borderTop: '1px solid #d1d5db' }}>
+            <p style={{ margin: '0.25rem 0' }}>Prices subject to change without notice.</p>
+            <p style={{ margin: '0.25rem 0' }}>{companySettings.companyName}</p>
           </footer>
         </div>
       </div>

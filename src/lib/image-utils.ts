@@ -34,8 +34,8 @@ export async function imageUrlToBase64(url: string): Promise<string> {
       }
     };
     
-    img.onerror = () => {
-      console.error('Error loading image for base64 conversion');
+    img.onerror = (error) => {
+      console.warn('Image failed to load for base64 conversion:', url, error);
       resolve(url); // Fallback to original URL
     };
     

@@ -123,24 +123,27 @@
     display: none !important;
   }
   
-  .print-only-container, .print-only-container * {
-    display: revert !important; /* Allow children to display normally if hidden by other means */
+  .print-only-container {
+    visibility: visible !important; /* Ensure visibility if previously hidden by it */
+  }
+
+  .print-only-container * {
     visibility: visible !important; /* Ensure visibility if previously hidden by it */
   }
 
   .print-only-container {
-    display: block !important; /* Ensure the container itself is block */
-    position: static !important; /* Change from absolute to static for flow */
+    display: block !important;
+    position: static !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 0.5in !important; /* This acts as the page margin */
+    padding: 0 !important;
     background-color: white !important;
     color: black !important;
-    z-index: auto !important; /* Not critical for static positioning */
+    z-index: auto !important;
     box-sizing: border-box !important;
   }
 
@@ -150,18 +153,12 @@
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    background-color: white !important;
-    color: black !important;
     box-sizing: border-box !important;
-    padding: 0 !important; /* Padding is on container */
   }
   
-  .print-only *, .print-only *::before, .print-only *::after {
-    background-color: transparent !important;
-    color: black !important;
+  .print-only *::before, .print-only *::after {
     text-shadow: none !important;
     box-shadow: none !important;
-    border-color: #ccc !important;
     -webkit-print-color-adjust: exact !important;
     color-adjust: exact !important;
     box-sizing: border-box !important;
@@ -186,6 +183,6 @@
   
   @page {
     size: auto;
-    margin: 0; /* Margins handled by .print-only-container padding */
+    margin: 0.5in; /* Standard printable margins */
   }
 }

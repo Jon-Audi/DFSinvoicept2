@@ -16,14 +16,12 @@ interface CustomerPriceSheetDialogProps {
   customers: Customer[];
   products: Product[];
   companySettings: CompanySettings | null;
-  logoUrl?: string;
 }
 
 export function CustomerPriceSheetDialog({
   customers,
   products,
   companySettings,
-  logoUrl,
 }: CustomerPriceSheetDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -34,6 +32,15 @@ export function CustomerPriceSheetDialog({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Price_Sheet_${selectedCustomer?.companyName || selectedCustomer?.firstName}_${new Date().toLocaleDateString()}`,
+    print: async (printIframe) => {
+      // Wait a bit for images to load from URL before printing
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const document = printIframe.contentDocument;
+      if (document) {
+        document.defaultView?.print();
+      }
+    },
   });
 
   const calculateCustomerPrice = (product: Product, customer: Customer): number => {
@@ -162,7 +169,6 @@ export function CustomerPriceSheetDialog({
           ref={printRef}
           groupedProducts={groupedProducts}
           companySettings={companySettings}
-          logoUrl={logoUrl}
           customerName={customerDisplayName}
         />
       </div>
