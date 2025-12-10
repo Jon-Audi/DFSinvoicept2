@@ -57,7 +57,7 @@ export default function ProductsPage() {
     if (!db) return;
     const fetchSettings = async () => {
       try {
-        const docRef = doc(db, 'settings', COMPANY_SETTINGS_DOC_ID);
+        const docRef = doc(db, 'companySettings', COMPANY_SETTINGS_DOC_ID);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const settings = docSnap.data() as CompanySettings;
