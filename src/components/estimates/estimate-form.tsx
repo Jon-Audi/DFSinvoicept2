@@ -433,10 +433,43 @@ export function EstimateForm({
     form.setValue(`lineItems.${index}.unitPrice`, 0, { shouldValidate: true });
     form.trigger(`lineItems.${index}.productId`);
   };
-  
+
+  const handleClearForm = () => {
+    // Clear saved draft
+    clearSavedFormData(AUTO_SAVE_KEY);
+
+    // Reset form to initial empty state
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    form.reset({
+      id: undefined,
+      estimateNumber: `EST-${new Date().getFullYear()}-${String(Math.floor(Math.random()*9000)+1000).padStart(4, '0')}`,
+      customerId: '',
+      date: new Date(),
+      status: 'Draft',
+      poNumber: '',
+      lineItems: [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false, addToProductList: false }],
+      notes: '',
+      validUntil: thirtyDaysFromNow,
+    });
+
+    // Reset filters
+    setLineItemCategoryFilters([undefined]);
+    setLineItemSubcategoryFilters([undefined]);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+        {!estimate && !initialData && (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={handleClearForm}>
+              <Icon name="X" className="mr-2 h-4 w-4" />
+              Clear Form
+            </Button>
+          </div>
+        )}
         <FormField control={form.control} name="estimateNumber" render={({ field }) => (
           <FormItem><FormLabel>Estimate Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />

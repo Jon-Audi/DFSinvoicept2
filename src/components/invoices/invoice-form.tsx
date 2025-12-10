@@ -574,10 +574,40 @@ export function InvoiceForm({
     }
   };
 
+  const handleClearForm = () => {
+    // Clear saved draft
+    clearSavedFormData(AUTO_SAVE_KEY);
+
+    // Reset form to initial empty state
+    form.reset({
+      id: undefined,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random()*9000)+1000).padStart(4, '0')}`,
+      customerId: '',
+      date: new Date(),
+      status: 'Draft',
+      poNumber: '',
+      lineItems: [{ id: crypto.randomUUID(), productId: '', productName: '', quantity: 1, unitPrice: 0, isReturn: false, isNonStock: false, addToProductList: false }],
+      notes: '',
+      payments: [],
+      distributor: '',
+    });
+
+    // Reset filters
+    setLineItemCategoryFilters([undefined]);
+    setLineItemSubcategoryFilters([undefined]);
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+        {!invoice && !initialData && (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={handleClearForm}>
+              <Icon name="X" className="mr-2 h-4 w-4" />
+              Clear Form
+            </Button>
+          </div>
+        )}
         <FormField control={form.control} name="invoiceNumber" render={({ field }) => (
           <FormItem><FormLabel>Invoice Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />
