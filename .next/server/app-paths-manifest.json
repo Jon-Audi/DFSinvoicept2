@@ -15,6 +15,7 @@
   "/(app)/settings/company/page": "app/(app)/settings/company/page.js",
   "/(app)/settings/page": "app/(app)/settings/page.js",
   "/(app)/settings/profile/page": "app/(app)/settings/profile/page.js",
+  "/(app)/settings/subcategories/page": "app/(app)/settings/subcategories/page.js",
   "/(app)/settings/users/page": "app/(app)/settings/users/page.js",
   "/(app)/settings/vendors/page": "app/(app)/settings/vendors/page.js",
   "/_global-error/page": "app/_global-error/page.js",

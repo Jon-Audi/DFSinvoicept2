@@ -16,22 +16,60 @@ import { customerDisplayName, buildSearchIndex } from '@/lib/utils';
 import { BulkAddProductsDialog } from '@/components/products/bulk-add-products-dialog';
 import { PrintablePriceSheet } from '@/components/products/printable-price-sheet';
 import { SelectCategoriesDialog } from '@/components/products/select-categories-dialog';
+import { CustomerPriceSheetDialog } from '@/components/products/customer-price-sheet-dialog';
+import { ExcelImportExport } from '@/components/products/excel-import-export';
+import type { Customer } from '@/types';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function ProductsPage() {
   const { db } = useFirebase();
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
   const [productSubcategories, setProductSubcategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-  
+
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrintSheetOpen, setIsPrintSheetOpen] = useState(false);
   const [groupedProductsForPrinting, setGroupedProductsForPrinting] = useState<Map<string, Product[]> | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string>();
 
+
+  // Fetch customers
+  useEffect(() => {
+    if (!db) return;
+    const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
+      const fetchedCustomers: Customer[] = [];
+      snapshot.forEach(docSnap => {
+        fetchedCustomers.push({ ...docSnap.data() as Omit<Customer, 'id'>, id: docSnap.id });
+      });
+      setCustomers(fetchedCustomers);
+    });
+    return () => unsubscribe();
+  }, [db]);
+
+  // Fetch company settings
+  useEffect(() => {
+    if (!db) return;
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', COMPANY_SETTINGS_DOC_ID);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const settings = docSnap.data() as CompanySettings;
+          setCompanySettings(settings);
+          setLogoUrl(settings.logoUrl);
+        }
+      } catch (error) {
+        console.error('Could not fetch company settings:', error);
+      }
+    };
+    fetchSettings();
+  }, [db]);
 
   useEffect(() => {
     if (!db) return;
@@ -308,6 +346,16 @@ export default function ProductsPage() {
             <Button variant="outline" onClick={() => setIsPrintSheetOpen(true)}>
                 <Icon name="Printer" className="mr-2 h-4 w-4" /> Print Price Sheet
             </Button>
+            <CustomerPriceSheetDialog
+              customers={customers}
+              products={products}
+              companySettings={companySettings}
+              logoUrl={logoUrl}
+            />
+            <ExcelImportExport
+              products={products}
+              onImport={handleBulkSaveProducts}
+            />
             <BulkAddProductsDialog
               triggerButton={
                 <Button variant="outline">
