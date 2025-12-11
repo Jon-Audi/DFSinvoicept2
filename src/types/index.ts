@@ -361,3 +361,82 @@ export interface ReadyForPickupReportItem {
   readyForPickUpDate?: string;
   total: number;
 }
+
+// Chainlink Estimation Types
+export type ChainlinkFenceType = 'residential' | 'commercial';
+export type ChainlinkFenceHeight = '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
+
+export interface ChainlinkRun {
+  length: number;
+}
+
+export interface ChainlinkEstimationInput {
+  runs: ChainlinkRun[];
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  ends: number;
+  corners: number;
+}
+
+export interface ChainlinkEstimationResult {
+  interiorLinePosts?: number;
+  fabricType: string;
+  fabricFootage: number;
+  topRailSticks?: number;
+  tieWires?: number;
+  loopCaps?: number;
+  postCaps?: number;
+  braceBands?: number;
+  tensionBars?: number;
+  tensionBands?: number;
+  nutsAndBolts?: number;
+  pipeWeight: string;
+  userSpecifiedEnds?: number;
+  userSpecifiedCorners?: number;
+}
+
+export interface ChainlinkMaterialPricing {
+  id: string;
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  interiorLinePostPrice: number;
+  fabricPricePerFoot: number;
+  topRailPricePerStick: number;
+  tieWirePrice: number;
+  loopCapPrice: number;
+  postCapPrice: number;
+  braceBandPrice: number;
+  tensionBarPrice: number;
+  tensionBandPrice: number;
+  nutAndBoltPrice: number;
+}
+
+export interface ChainlinkProductMapping {
+  id: string;
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  // Product IDs from the products collection
+  terminalPostProductId?: string; // For ends
+  cornerPostProductId?: string;
+  gatePostProductId?: string;
+  linePostProductId?: string;
+  fabricProductId?: string;
+  topRailProductId?: string;
+  tieWireProductId?: string;
+  loopCapProductId?: string;
+  postCapProductId?: string;
+  braceBandProductId?: string;
+  tensionBarProductId?: string;
+  tensionBandProductId?: string;
+  nutAndBoltProductId?: string;
+}
+
+export interface ChainlinkEstimateLineItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+  price: number;
+  total: number;
+  category: string;
+}

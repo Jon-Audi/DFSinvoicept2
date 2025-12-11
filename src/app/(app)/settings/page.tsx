@@ -121,6 +121,24 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
+              <Icon name="Link" className="mr-2 h-5 w-5" />
+              Chainlink Pricing
+            </CardTitle>
+            <CardDescription>Configure material pricing for chainlink estimations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/settings/chainlink" passHref>
+              <Button variant="outline">
+                Chainlink Settings
+                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
               <Icon name="Paintbrush" className="mr-2 h-5 w-5" />
               Appearance
             </CardTitle>

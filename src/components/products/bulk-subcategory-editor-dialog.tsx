@@ -16,6 +16,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +41,9 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Icon } from '@/components/icons';
+import { useFirebase } from '@/components/firebase-provider';
+import { doc, getDoc } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
 
 const subcategoryEditSchema = z.object({
   id: z.string(),
@@ -65,11 +75,44 @@ export function BulkSubcategoryEditorDialog({
   onSave,
 }: BulkSubcategoryEditorDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [subcategories, setSubcategories] = useState<string[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(true);
+  const { db } = useFirebase();
+  const { toast } = useToast();
 
   const form = useForm<BulkSubcategoryFormData>({
     resolver: zodResolver(bulkSubcategoryFormSchema),
   });
-  
+
+  // Load subcategories from settings
+  useEffect(() => {
+    if (!db) return;
+
+    const fetchSubcategories = async () => {
+      setIsLoadingSubcategories(true);
+      try {
+        const docRef = doc(db, 'settings', 'subcategories');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setSubcategories(data.list || []);
+        }
+      } catch (error) {
+        console.error('Error loading subcategories:', error);
+        toast({
+          title: "Error",
+          description: "Could not load subcategories.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingSubcategories(false);
+      }
+    };
+
+    fetchSubcategories();
+  }, [db, toast]);
+
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -104,9 +147,22 @@ export function BulkSubcategoryEditorDialog({
         <DialogHeader>
           <DialogTitle>Bulk Edit Subcategories for: {categoryName}</DialogTitle>
           <DialogDescription>
-            Assign or update the subcategory for products in this category.
+            Assign or update the subcategory for products in this category. Select from your configured subcategories.
           </DialogDescription>
         </DialogHeader>
+        {!isLoadingSubcategories && subcategories.length === 0 && (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-900 p-4 text-sm">
+            <div className="flex items-start gap-2">
+              <Icon name="AlertTriangle" className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+              <div>
+                <p className="font-medium text-yellow-900 dark:text-yellow-200">No subcategories configured</p>
+                <p className="text-yellow-700 dark:text-yellow-300 mt-1">
+                  Go to Settings &gt; Subcategories to add subcategories before using bulk edit.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <ScrollArea className="h-[60vh] mt-4">
@@ -128,10 +184,33 @@ export function BulkSubcategoryEditorDialog({
                           render={({ field: subcategoryField }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  placeholder="Enter subcategory"
-                                  {...subcategoryField}
-                                />
+                                {isLoadingSubcategories ? (
+                                  <div className="flex items-center gap-2">
+                                    <Icon name="Loader2" className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm text-muted-foreground">Loading...</span>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={subcategoryField.value || '__NONE__'}
+                                    onValueChange={(value) => {
+                                      subcategoryField.onChange(value === '__NONE__' ? '' : value);
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select subcategory" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__NONE__">
+                                        <span className="text-muted-foreground">None</span>
+                                      </SelectItem>
+                                      {subcategories.map((subcategory) => (
+                                        <SelectItem key={subcategory} value={subcategory}>
+                                          {subcategory}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
                               </FormControl>
                               <FormMessage />
                             </FormItem>
