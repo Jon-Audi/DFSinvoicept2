@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -43,7 +44,9 @@ export default function SubcategoriesPage() {
   const [subcategories, setSubcategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [newSubcategory, setNewSubcategory] = useState('');
+  const [bulkSubcategories, setBulkSubcategories] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
@@ -148,6 +151,62 @@ export default function SubcategoriesPage() {
     }
   };
 
+  const handleBulkAddSubcategories = async () => {
+    const input = bulkSubcategories.trim();
+    if (!input) {
+      toast({ title: "Error", description: "Please enter at least one subcategory.", variant: "destructive" });
+      return;
+    }
+
+    // Split by comma or newline, trim, filter empty, and remove duplicates
+    const newItems = input
+      .split(/[,\n]+/)
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+
+    if (newItems.length === 0) {
+      toast({ title: "Error", description: "No valid subcategories found.", variant: "destructive" });
+      return;
+    }
+
+    // Check for duplicates in existing list
+    const existingLowercase = subcategories.map(s => s.toLowerCase());
+    const toAdd: string[] = [];
+    const skipped: string[] = [];
+
+    newItems.forEach(item => {
+      if (existingLowercase.includes(item.toLowerCase()) || toAdd.map(s => s.toLowerCase()).includes(item.toLowerCase())) {
+        skipped.push(item);
+      } else {
+        toAdd.push(item);
+      }
+    });
+
+    if (toAdd.length === 0) {
+      toast({
+        title: "No New Subcategories",
+        description: "All subcategories already exist.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await saveSubcategoriesToFirestore([...subcategories, ...toAdd]);
+
+      let description = `Added ${toAdd.length} subcategor${toAdd.length === 1 ? 'y' : 'ies'}.`;
+      if (skipped.length > 0) {
+        description += ` Skipped ${skipped.length} duplicate${skipped.length === 1 ? '' : 's'}.`;
+      }
+
+      toast({ title: "Success", description });
+      setBulkSubcategories('');
+      setIsBulkDialogOpen(false);
+    } catch (error) {
+      // Error already toasted in saveSubcategoriesToFirestore
+    }
+  };
+
   if (isLoading) {
     return (
       <PageHeader title="Subcategory Management" description="Loading subcategories...">
@@ -164,42 +223,82 @@ export default function SubcategoriesPage() {
         title="Subcategory Management"
         description="Manage product subcategories. These will be available as dropdown options when creating or editing products."
       >
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Icon name="PlusCircle" className="mr-2 h-4 w-4" />
-              Add Subcategory
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Subcategory</DialogTitle>
-              <DialogDescription>
-                Enter a name for the new product subcategory.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Input
-                placeholder="e.g., Privacy, Picket, Gates"
-                value={newSubcategory}
-                onChange={(e) => setNewSubcategory(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddSubcategory();
-                  }
-                }}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddSubcategory}>
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Icon name="PlusCircle" className="mr-2 h-4 w-4" />
                 Add Subcategory
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Subcategory</DialogTitle>
+                <DialogDescription>
+                  Enter a name for the new product subcategory.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Input
+                  placeholder="e.g., Privacy, Picket, Gates"
+                  value={newSubcategory}
+                  onChange={(e) => setNewSubcategory(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddSubcategory();
+                    }
+                  }}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddSubcategory}>
+                  Add Subcategory
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Icon name="ListPlus" className="mr-2 h-4 w-4" />
+                Bulk Add
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Bulk Add Subcategories</DialogTitle>
+                <DialogDescription>
+                  Enter multiple subcategories separated by commas or new lines. Duplicates will be skipped automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Textarea
+                  placeholder="Privacy, Picket, Gates&#10;Shadow Box&#10;Chain Link"
+                  value={bulkSubcategories}
+                  onChange={(e) => setBulkSubcategories(e.target.value)}
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  You can separate items with commas or put each on a new line.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleBulkAddSubcategories}>
+                  <Icon name="Plus" className="mr-2 h-4 w-4" />
+                  Add All
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </PageHeader>
 
       <div className="rounded-lg border shadow-sm">
