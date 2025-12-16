@@ -1,5 +1,6 @@
 import type React from "react";
 import { Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 import { Toaster } from "@/components/ui/toaster";
@@ -24,6 +25,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
