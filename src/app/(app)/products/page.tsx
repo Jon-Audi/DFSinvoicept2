@@ -115,14 +115,22 @@ export default function ProductsPage() {
     if (!db) return;
     const { id, ...productData } = productToSave;
 
+    // Clean undefined values - Firestore doesn't accept undefined, use null or omit the field
+    const cleanedData = Object.entries(productData).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+
     try {
       if (id) {
         const docRef = doc(db, 'products', id);
-        await setDoc(docRef, productData, { merge: true });
-        toast({ title: "Product Updated", description: `Updated details for ${productData.name}.` });
+        await setDoc(docRef, cleanedData, { merge: true });
+        toast({ title: "Product Updated", description: `Updated details for ${cleanedData.name}.` });
       } else {
-        const docRef = await addDoc(collection(db, 'products'), productData);
-        toast({ title: "Product Added", description: `${productData.name} has been added.` });
+        const docRef = await addDoc(collection(db, 'products'), cleanedData);
+        toast({ title: "Product Added", description: `${cleanedData.name} has been added.` });
       }
     } catch (error: any) {
       console.error('Error saving product:', error);
