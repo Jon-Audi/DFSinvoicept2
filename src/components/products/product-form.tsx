@@ -54,9 +54,11 @@ interface ProductFormProps {
   onClose?: () => void;
   productCategories: string[];
   onAddNewCategory: (category: string) => void;
+  productSubcategories?: string[];
+  onAddNewSubcategory?: (subcategory: string) => void;
 }
 
-export function ProductForm({ product, allProducts = [], onSubmit, onClose, productCategories, onAddNewCategory }: ProductFormProps) {
+export function ProductForm({ product, allProducts = [], onSubmit, onClose, productCategories, onAddNewCategory, productSubcategories = [], onAddNewSubcategory }: ProductFormProps) {
   const { db } = useFirebase();
   const [subcategories, setSubcategories] = useState<string[]>([]);
   const [subcategoryComboboxOpen, setSubcategoryComboboxOpen] = useState(false);
@@ -104,8 +106,13 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
   const [inputValue, setInputValue] = useState(formCategoryValue || "");
 
 
-  // Fetch subcategories from Firebase
+  // Fetch subcategories from Firebase or use passed ones
   useEffect(() => {
+    if (productSubcategories && productSubcategories.length > 0) {
+      setSubcategories(productSubcategories);
+      return;
+    }
+
     if (!db) return;
 
     const fetchSubcategories = async () => {
@@ -123,7 +130,7 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
     };
 
     fetchSubcategories();
-  }, [db]);
+  }, [db, productSubcategories]);
 
   useEffect(() => {
     const initialCategory = product?.category || (productCategories.length > 0 ? productCategories[0] : '');
@@ -239,18 +246,25 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
           setValue("subcategory", existingSub, { shouldValidate: true });
           setSubcategoryInputValue(existingSub);
         } else {
-          // Save new subcategory to Firebase
+          // Save new subcategory
+          if (onAddNewSubcategory) {
+            onAddNewSubcategory(trimmedValue);
+          }
+          // Also save to Firebase if db is available
           if (db) {
             try {
               const updatedList = [...subcategories, trimmedValue].sort();
               const docRef = doc(db, 'settings', 'subcategories');
               await setDoc(docRef, { list: updatedList });
               setSubcategories(updatedList);
-              setValue("subcategory", trimmedValue, { shouldValidate: true });
             } catch (error) {
               console.error('Error saving new subcategory:', error);
             }
+          } else {
+            // If no db, just update local state
+            setSubcategories([...subcategories, trimmedValue].sort());
           }
+          setValue("subcategory", trimmedValue, { shouldValidate: true });
         }
       } else {
         setValue("subcategory", '', { shouldValidate: true });
@@ -382,7 +396,7 @@ export function ProductForm({ product, allProducts = [], onSubmit, onClose, prod
                         value={subcategoryInputValue}
                         onValueChange={(search) => setSubcategoryInputValue(search)}
                       />
-                      <CommandList className="max-h-[300px]">
+                      <CommandList className="max-h-[300px] overflow-y-auto">
                         <CommandEmpty
                           onMouseDown={(e) => {
                             e.preventDefault();

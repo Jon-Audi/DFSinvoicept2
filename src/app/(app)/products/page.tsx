@@ -114,7 +114,7 @@ export default function ProductsPage() {
   const handleSaveProduct = async (productToSave: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
     if (!db) return;
     const { id, ...productData } = productToSave;
-    
+
     try {
       if (id) {
         const docRef = doc(db, 'products', id);
@@ -124,8 +124,9 @@ export default function ProductsPage() {
         const docRef = await addDoc(collection(db, 'products'), productData);
         toast({ title: "Product Added", description: `${productData.name} has been added.` });
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Could not save product details.", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      toast({ title: "Error", description: `Could not save product details. ${error?.message || ''}`, variant: "destructive" });
     }
   };
 
