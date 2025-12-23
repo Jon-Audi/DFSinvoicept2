@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Invoice, Customer, Product, Vendor } from '@/types';
+import type { Invoice, Customer, Product, Vendor, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Table,
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { InvoiceDialog } from './invoice-dialog';
+import { PDFExportButton } from '@/components/pdf-export-button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,7 @@ interface InvoiceTableProps {
   sortConfig: { key: SortableInvoiceKeys; direction: 'asc' | 'desc' };
   requestSort: (key: SortableInvoiceKeys) => void;
   renderSortArrow: (columnKey: SortableInvoiceKeys) => JSX.Element | null;
+  companySettings?: CompanySettings | null;
 }
 
 export function InvoiceTable({
@@ -88,6 +90,7 @@ export function InvoiceTable({
   sortConfig,
   requestSort,
   renderSortArrow,
+  companySettings,
 }: InvoiceTableProps) {
   const [invoiceToDelete, setInvoiceToDelete] = React.useState<Invoice | null>(null);
   const { user } = useAuth();
@@ -238,7 +241,18 @@ export function InvoiceTable({
                     <DropdownMenuItem onSelect={() => onGenerateEmail(invoice)}>
                       <Icon name="Mail" className="mr-2 h-4 w-4" /> Email Invoice
                     </DropdownMenuItem>
-                    
+
+                    <PDFExportButton
+                      document={invoice}
+                      type="invoice"
+                      companySettings={companySettings}
+                      triggerButton={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Icon name="FileText" className="mr-2 h-4 w-4" /> Export PDF
+                        </DropdownMenuItem>
+                      }
+                    />
+
                      <DropdownMenuItem onSelect={() => onSendToPacking(invoice)}>
                       <Icon name="PackageCheck" className="mr-2 h-4 w-4" /> Send to Packing
                     </DropdownMenuItem>

@@ -79,6 +79,7 @@ export default function InvoicesPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [stableProductCategories, setStableProductCategories] = useState<string[]>([]);
   const [stableProductSubcategories, setStableProductSubcategories] = useState<string[]>([]);
 
@@ -261,6 +262,19 @@ export default function InvoicesPage() {
         unsubscribes.forEach(unsub => unsub());
     };
 }, [db, toast]);
+
+  // Fetch company settings for PDF export
+  useEffect(() => {
+    if (!db) return;
+    const fetchSettings = async () => {
+      const docRef = doc(db, 'companySettings', 'main');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setCompanySettings(docSnap.data() as CompanySettings);
+      }
+    };
+    fetchSettings();
+  }, [db]);
 
   // ---------- SAVE INVOICE (transaction-safe) ----------
   const handleSaveInvoice = async (invoiceToSave: Invoice) => {
@@ -934,6 +948,7 @@ export default function InvoicesPage() {
             sortConfig={sortConfig}
             requestSort={requestSort}
             renderSortArrow={renderSortArrow}
+            companySettings={companySettings}
           />
 
           {sortedAndFilteredInvoices.length === 0 && (

@@ -208,6 +208,14 @@ export interface CompanySettings {
   taxId?: string;
   estimateDisclaimer?: string;
   invoiceDisclaimer?: string;
+  // PDF Export Settings
+  pdfHeaderColor?: string; // Hex color for header background
+  pdfAccentColor?: string; // Hex color for table headers, accents
+  pdfShowLogo?: boolean; // Toggle logo display
+  pdfLogoWidth?: number; // Logo width in mm (default: 40)
+  pdfLogoHeight?: number; // Logo height in mm (default: 20)
+  pdfFontSize?: number; // Base font size (default: 10)
+  pdfLayout?: 'standard' | 'compact' | 'detailed'; // Layout style
 }
 
 export interface DashboardPreferences {

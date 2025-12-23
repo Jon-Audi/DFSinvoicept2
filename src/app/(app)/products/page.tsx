@@ -23,6 +23,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Skeleton } from '@/components/ui/skeleton';
 import { recordPriceChange } from '@/lib/price-history';
 import { useAuth } from '@/contexts/auth-context';
+import { exportPriceSheetToPDF } from '@/lib/pdf-export';
 
 // Lazy load heavy Excel component
 const ExcelImportExport = dynamic(
@@ -48,6 +49,7 @@ export default function ProductsPage() {
 
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrintSheetOpen, setIsPrintSheetOpen] = useState(false);
+  const [isExportPDFSheetOpen, setIsExportPDFSheetOpen] = useState(false);
   const [groupedProductsForPrinting, setGroupedProductsForPrinting] = useState<Map<string, Product[]> | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
 
@@ -339,6 +341,38 @@ export default function ProductsPage() {
     }, 50);
   };
 
+  const handleExportPriceSheetToPDF = async (selectedCategories: string[]) => {
+    setIsExportPDFSheetOpen(false); // Close the category selection dialog
+    if (selectedCategories.length === 0) {
+      toast({ title: "No Categories Selected", description: "Please select at least one category to export.", variant: "default" });
+      return;
+    }
+
+    if (!companySettings) {
+        toast({ title: "Error", description: "Company settings are required for PDF export.", variant: "destructive" });
+        return;
+    }
+
+    try {
+      const productsToPrint = products.filter(p => selectedCategories.includes(p.category));
+
+      const grouped = productsToPrint.reduce((acc, product) => {
+          const category = product.category || 'Uncategorized';
+          if (!acc.has(category)) {
+              acc.set(category, []);
+          }
+          acc.get(category)!.push(product);
+          return acc;
+      }, new Map<string, Product[]>());
+
+      await exportPriceSheetToPDF(grouped, companySettings);
+      toast({ title: "PDF Exported", description: "Price sheet has been exported successfully." });
+    } catch (error) {
+      console.error('Error exporting price sheet:', error);
+      toast({ title: "Export Failed", description: "Could not export price sheet to PDF.", variant: "destructive" });
+    }
+  };
+
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) {
@@ -374,6 +408,9 @@ export default function ProductsPage() {
         <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setIsPrintSheetOpen(true)}>
                 <Icon name="Printer" className="mr-2 h-4 w-4" /> Print Price Sheet
+            </Button>
+            <Button variant="outline" onClick={() => setIsExportPDFSheetOpen(true)}>
+                <Icon name="FileText" className="mr-2 h-4 w-4" /> Export Price Sheet PDF
             </Button>
             <CustomerPriceSheetDialog
               customers={customers}
@@ -448,6 +485,12 @@ export default function ProductsPage() {
         onOpenChange={setIsPrintSheetOpen}
         allCategories={productCategories}
         onSubmit={handlePrintRequest}
+      />
+      <SelectCategoriesDialog
+        isOpen={isExportPDFSheetOpen}
+        onOpenChange={setIsExportPDFSheetOpen}
+        allCategories={productCategories}
+        onSubmit={handleExportPriceSheetToPDF}
       />
     </>
   );
