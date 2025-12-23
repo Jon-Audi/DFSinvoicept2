@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context"; 
+import { useAuth } from "@/contexts/auth-context";
+import { GlobalSearch } from "@/components/layout/global-search"; 
 
 export function AppHeader() {
   const { toast } = useToast();
@@ -31,8 +32,8 @@ export function AppHeader() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <div className="flex-1">
-        {/* Search or other header content can go here */}
+      <div className="flex-1 flex items-center justify-center md:justify-start">
+        <GlobalSearch />
       </div>
       <div className="flex items-center gap-4">
         {user && ( // Only show dropdown if user is logged in

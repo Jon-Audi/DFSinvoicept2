@@ -28,7 +28,7 @@ import type { Estimate, Product, Customer, CompanySettings, EmailContact } from 
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
 import { EstimateTable, type SortableEstimateKeys } from '@/components/estimates/estimate-table';
@@ -81,7 +81,15 @@ export default function EstimatesPage() {
   useEffect(() => {
     if (!db) return;
     setIsLoadingEstimates(true);
-    const unsubscribe = onSnapshot(collection(db, 'estimates'), (snapshot) => {
+
+    // Optimize: Load only recent 100 estimates sorted by date
+    const estimatesQuery = query(
+      collection(db, 'estimates'),
+      orderBy('date', 'desc'),
+      limit(100)
+    );
+
+    const unsubscribe = onSnapshot(estimatesQuery, (snapshot) => {
       const fetchedEstimates: Estimate[] = [];
       snapshot.forEach((docSnap) => {
         fetchedEstimates.push({ ...docSnap.data() as Omit<Estimate, 'id'>, id: docSnap.id });

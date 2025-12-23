@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
@@ -17,9 +18,18 @@ import { BulkAddProductsDialog } from '@/components/products/bulk-add-products-d
 import { PrintablePriceSheet } from '@/components/products/printable-price-sheet';
 import { SelectCategoriesDialog } from '@/components/products/select-categories-dialog';
 import { CustomerPriceSheetDialog } from '@/components/products/customer-price-sheet-dialog';
-import { ExcelImportExport } from '@/components/products/excel-import-export';
 import type { Customer } from '@/types';
 import { useReactToPrint } from 'react-to-print';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load heavy Excel component
+const ExcelImportExport = dynamic(
+  () => import('@/components/products/excel-import-export').then(mod => mod.ExcelImportExport),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-10 w-32" />
+  }
+);
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 

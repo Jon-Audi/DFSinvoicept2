@@ -440,3 +440,18 @@ export interface ChainlinkEstimateLineItem {
   total: number;
   category: string;
 }
+
+export interface PriceHistoryEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  timestamp: string; // ISO string
+  oldCost?: number;
+  newCost: number;
+  oldPrice?: number;
+  newPrice: number;
+  oldMarkup?: number;
+  newMarkup: number;
+  changedBy?: string; // User email or ID
+  reason?: string; // Optional note about why price changed
+}

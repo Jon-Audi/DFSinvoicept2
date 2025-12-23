@@ -15,6 +15,7 @@ export const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { href: '/customers', label: 'CRM', icon: 'Users' },
   { href: '/products', label: 'Products', icon: 'Package' },
+  { href: '/pricing-review', label: 'Pricing Review', icon: 'DollarSign' },
   { href: '/inventory', label: 'Inventory', icon: 'ClipboardList' },
   { href: '/estimates', label: 'Estimates', icon: 'FileText' },
   { href: '/orders', label: 'Orders', icon: 'ShoppingCart' },

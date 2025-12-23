@@ -5,7 +5,13 @@ import { Providers } from './providers';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial']
+});
 
 export const metadata = {
   title: 'Delaware Fence Pro',

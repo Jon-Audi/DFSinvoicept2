@@ -14,7 +14,7 @@ import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact,
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, runTransaction, DocumentReference } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, runTransaction, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -191,7 +191,11 @@ export default function OrdersPage() {
         };
 
         for (const [path, setter] of Object.entries(collectionsToWatch)) {
-            const q = collection(db, path);
+            // Optimize: limit orders to 100 most recent
+            const q = path === 'orders'
+                ? query(collection(db, path), orderBy('date', 'desc'), limit(100))
+                : collection(db, path);
+
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 if (active) {
                     const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));

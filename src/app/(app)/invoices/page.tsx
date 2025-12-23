@@ -47,6 +47,9 @@ import {
   doc,
   getDoc,
   runTransaction,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { PrintableInvoice } from "@/components/invoices/printable-invoice";
 import { PrintableInvoicePackingSlip } from "@/components/invoices/printable-invoice-packing-slip";
@@ -234,7 +237,9 @@ export default function InvoicesPage() {
         };
 
         for (const [path, setter] of Object.entries(collectionsToWatch)) {
-            const q = collection(db, path);
+            const q = path === 'invoices'
+              ? query(collection(db, path), orderBy('date', 'desc'), limit(100))
+              : collection(db, path);
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 if (active) {
                     const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
