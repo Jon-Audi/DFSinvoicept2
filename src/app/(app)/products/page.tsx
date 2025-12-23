@@ -21,6 +21,8 @@ import { CustomerPriceSheetDialog } from '@/components/products/customer-price-s
 import type { Customer } from '@/types';
 import { useReactToPrint } from 'react-to-print';
 import { Skeleton } from '@/components/ui/skeleton';
+import { recordPriceChange } from '@/lib/price-history';
+import { useAuth } from '@/contexts/auth-context';
 
 // Lazy load heavy Excel component
 const ExcelImportExport = dynamic(
@@ -35,6 +37,7 @@ const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function ProductsPage() {
   const { db } = useFirebase();
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [productCategories, setProductCategories] = useState<string[]>([]);
@@ -135,11 +138,34 @@ export default function ProductsPage() {
 
     try {
       if (id) {
+        // Get old product data BEFORE updating for price history tracking
+        const oldProduct = products.find(p => p.id === id) || null;
+
         const docRef = doc(db, 'products', id);
         await setDoc(docRef, cleanedData, { merge: true });
+
+        // Record price history AFTER update
+        await recordPriceChange(
+          db,
+          oldProduct,
+          { ...cleanedData, id } as Product,
+          user?.email,
+          undefined // Optional: add a reason field to your product form
+        );
+
         toast({ title: "Product Updated", description: `Updated details for ${cleanedData.name}.` });
       } else {
         const docRef = await addDoc(collection(db, 'products'), cleanedData);
+
+        // Record initial price for new products
+        await recordPriceChange(
+          db,
+          null,
+          { ...cleanedData, id: docRef.id } as Product,
+          user?.email,
+          "Initial product creation"
+        );
+
         toast({ title: "Product Added", description: `${cleanedData.name} has been added.` });
       }
     } catch (error: any) {

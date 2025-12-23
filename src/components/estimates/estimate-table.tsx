@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { Estimate, Customer, Product } from '@/types';
+import type { Estimate, Customer, Product, CompanySettings } from '@/types';
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { EstimateDialog } from './estimate-dialog';
+import { PDFExportButton } from '@/components/pdf-export-button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +57,7 @@ interface EstimateTableProps {
   sortConfig: { key: SortableEstimateKeys; direction: 'asc' | 'desc' };
   requestSort: (key: SortableEstimateKeys) => void;
   renderSortArrow: (columnKey: SortableEstimateKeys) => JSX.Element | null;
+  companySettings?: CompanySettings | null;
 }
 
 export function EstimateTable({
@@ -78,6 +80,7 @@ export function EstimateTable({
   sortConfig,
   requestSort,
   renderSortArrow,
+  companySettings,
 }: EstimateTableProps) {
   const [estimateToDelete, setEstimateToDelete] = React.useState<Estimate | null>(null);
 
@@ -149,6 +152,16 @@ export function EstimateTable({
                       <DropdownMenuItem onClick={() => onGenerateEmail(estimate)}>
                         <Icon name="Mail" className="mr-2 h-4 w-4" /> Email Draft
                       </DropdownMenuItem>
+                      <PDFExportButton
+                        document={estimate}
+                        type="estimate"
+                        companySettings={companySettings}
+                        triggerButton={
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Icon name="FileText" className="mr-2 h-4 w-4" /> Export PDF
+                          </DropdownMenuItem>
+                        }
+                      />
                       <DropdownMenuItem onClick={() => onPrint(estimate)}>
                          <Icon name="Printer" className="mr-2 h-4 w-4" /> Print Estimate
                       </DropdownMenuItem>

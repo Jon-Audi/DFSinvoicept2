@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { ProductDialog } from '@/components/products/product-dialog';
+import { PriceHistoryDialog } from '@/components/products/price-history-dialog';
 
 type PricingIssue = 'low-markup' | 'zero-price' | 'zero-cost' | 'negative-margin' | 'none';
 
@@ -354,14 +355,26 @@ export default function PricingReviewPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingProduct(product)}
-                      >
-                        <Icon name="Edit" className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <PriceHistoryDialog
+                          productId={product.id}
+                          productName={product.name}
+                          triggerButton={
+                            <Button variant="ghost" size="sm">
+                              <Icon name="History" className="mr-2 h-4 w-4" />
+                              History
+                            </Button>
+                          }
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingProduct(product)}
+                        >
+                          <Icon name="Edit" className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )) : (

@@ -39,6 +39,7 @@ export default function EstimatesPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const { db } = useFirebase();
 
   const [isLoadingEstimates, setIsLoadingEstimates] = useState(true);
@@ -136,7 +137,20 @@ export default function EstimatesPage() {
     });
     return () => unsubscribe();
   }, [db, toast]);
-  
+
+  // Fetch company settings for PDF export
+  useEffect(() => {
+    if (!db) return;
+    const fetchSettings = async () => {
+      const docRef = doc(db, 'companySettings', 'main');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setCompanySettings(docSnap.data() as CompanySettings);
+      }
+    };
+    fetchSettings();
+  }, [db]);
+
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -578,6 +592,7 @@ export default function EstimatesPage() {
             onConvertToOrder={handleConvertToOrder}
             onConvertToInvoice={handleConvertToInvoice}
             onClone={handleCloneEstimate}
+            companySettings={companySettings}
             formatDate={formatDateForDisplay}
             onViewItems={handleViewItems}
             onSaveProduct={handleSaveProduct}

@@ -14,9 +14,10 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { ProductDialog } from './product-dialog';
-import { BulkPriceEditorDialog } from './bulk-price-editor-dialog'; 
+import { BulkPriceEditorDialog } from './bulk-price-editor-dialog';
 import { BulkStockEditorDialog } from './bulk-stock-editor-dialog';
 import { BulkSubcategoryEditorDialog } from './bulk-subcategory-editor-dialog';
+import { PriceHistoryDialog } from './price-history-dialog';
 import {
   Accordion,
   AccordionContent,
@@ -293,6 +294,16 @@ export function ProductTable({
                                   productSubcategories={productSubcategories}
                                   onAddNewSubcategory={onAddNewSubcategory}
                                 />
+                                <PriceHistoryDialog
+                                  productId={product.id}
+                                  productName={product.name}
+                                  triggerButton={
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                      <Icon name="History" className="mr-2 h-4 w-4" /> Price History
+                                    </DropdownMenuItem>
+                                  }
+                                />
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                   onSelect={(e) => {
