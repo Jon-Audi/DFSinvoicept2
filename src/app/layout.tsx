@@ -1,5 +1,6 @@
 import type React from "react";
 import { Inter } from 'next/font/google';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 import { Toaster } from "@/components/ui/toaster";
@@ -30,6 +31,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
