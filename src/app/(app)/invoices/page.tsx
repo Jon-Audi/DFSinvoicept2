@@ -239,7 +239,7 @@ export default function InvoicesPage() {
 
         for (const [path, setter] of Object.entries(collectionsToWatch)) {
             const q = path === 'invoices'
-              ? query(collection(db, path), orderBy('date', 'desc'), limit(100))
+              ? query(collection(db, path), orderBy('date', 'desc'))
               : collection(db, path);
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 if (active) {

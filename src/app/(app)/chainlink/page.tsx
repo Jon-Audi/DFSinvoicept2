@@ -244,19 +244,26 @@ export default function ChainlinkEstimationPage() {
       // Build line items from calculation results
       const lineItems: LineItem[] = [];
 
+      // Helper function to create a line item from a product
+      const createLineItem = (product: Product, quantity: number): LineItem => ({
+        id: crypto.randomUUID(),
+        productId: product.id,
+        productName: product.name,
+        quantity: quantity,
+        unit: product.unit,
+        unitPrice: product.price,
+        total: product.price * quantity,
+        isNonStock: false,
+        isReturn: false,
+        cost: product.cost || 0,
+        markupPercentage: product.markupPercentage || 0,
+      });
+
       // Terminal Posts (Ends)
       if (ends > 0 && mapping.terminalPostProductId) {
         const product = productsMap.get(mapping.terminalPostProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: ends,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * ends,
-          });
+          lineItems.push(createLineItem(product, ends));
         }
       }
 
@@ -264,15 +271,7 @@ export default function ChainlinkEstimationPage() {
       if (corners > 0 && mapping.cornerPostProductId) {
         const product = productsMap.get(mapping.cornerPostProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: corners,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * corners,
-          });
+          lineItems.push(createLineItem(product, corners));
         }
       }
 
@@ -280,15 +279,7 @@ export default function ChainlinkEstimationPage() {
       if (result.interiorLinePosts && result.interiorLinePosts > 0 && mapping.linePostProductId) {
         const product = productsMap.get(mapping.linePostProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.interiorLinePosts,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.interiorLinePosts,
-          });
+          lineItems.push(createLineItem(product, result.interiorLinePosts));
         }
       }
 
@@ -296,15 +287,7 @@ export default function ChainlinkEstimationPage() {
       if (result.fabricFootage && mapping.fabricProductId) {
         const product = productsMap.get(mapping.fabricProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.fabricFootage,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.fabricFootage,
-          });
+          lineItems.push(createLineItem(product, result.fabricFootage));
         }
       }
 
@@ -312,15 +295,7 @@ export default function ChainlinkEstimationPage() {
       if (result.topRailSticks && mapping.topRailProductId) {
         const product = productsMap.get(mapping.topRailProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.topRailSticks,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.topRailSticks,
-          });
+          lineItems.push(createLineItem(product, result.topRailSticks));
         }
       }
 
@@ -328,15 +303,7 @@ export default function ChainlinkEstimationPage() {
       if (result.tieWires && mapping.tieWireProductId) {
         const product = productsMap.get(mapping.tieWireProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.tieWires,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.tieWires,
-          });
+          lineItems.push(createLineItem(product, result.tieWires));
         }
       }
 
@@ -344,15 +311,7 @@ export default function ChainlinkEstimationPage() {
       if (result.loopCaps && mapping.loopCapProductId) {
         const product = productsMap.get(mapping.loopCapProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.loopCaps,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.loopCaps,
-          });
+          lineItems.push(createLineItem(product, result.loopCaps));
         }
       }
 
@@ -360,15 +319,7 @@ export default function ChainlinkEstimationPage() {
       if (result.postCaps && mapping.postCapProductId) {
         const product = productsMap.get(mapping.postCapProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.postCaps,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.postCaps,
-          });
+          lineItems.push(createLineItem(product, result.postCaps));
         }
       }
 
@@ -376,15 +327,7 @@ export default function ChainlinkEstimationPage() {
       if (result.braceBands && mapping.braceBandProductId) {
         const product = productsMap.get(mapping.braceBandProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.braceBands,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.braceBands,
-          });
+          lineItems.push(createLineItem(product, result.braceBands));
         }
       }
 
@@ -392,15 +335,7 @@ export default function ChainlinkEstimationPage() {
       if (result.tensionBars && mapping.tensionBarProductId) {
         const product = productsMap.get(mapping.tensionBarProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.tensionBars,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.tensionBars,
-          });
+          lineItems.push(createLineItem(product, result.tensionBars));
         }
       }
 
@@ -408,15 +343,7 @@ export default function ChainlinkEstimationPage() {
       if (result.tensionBands && mapping.tensionBandProductId) {
         const product = productsMap.get(mapping.tensionBandProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.tensionBands,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.tensionBands,
-          });
+          lineItems.push(createLineItem(product, result.tensionBands));
         }
       }
 
@@ -424,15 +351,7 @@ export default function ChainlinkEstimationPage() {
       if (result.nutsAndBolts && mapping.nutAndBoltProductId) {
         const product = productsMap.get(mapping.nutAndBoltProductId);
         if (product) {
-          lineItems.push({
-            id: crypto.randomUUID(),
-            productId: product.id,
-            productName: product.name,
-            quantity: result.nutsAndBolts,
-            unit: product.unit,
-            unitPrice: product.price,
-            total: product.price * result.nutsAndBolts,
-          });
+          lineItems.push(createLineItem(product, result.nutsAndBolts));
         }
       }
 
@@ -479,36 +398,45 @@ export default function ChainlinkEstimationPage() {
   const handleSaveEstimate = async (estimate: any) => {
     if (!db) return;
     try {
-      await addDoc(collection(db, 'estimates'), estimate);
+      // Remove id field before adding to Firestore (Firestore auto-generates IDs)
+      const { id, ...estimateData } = estimate;
+      await addDoc(collection(db, 'estimates'), estimateData);
       toast({ title: "Success", description: "Estimate created successfully." });
       setIsEstimateDialogOpen(false);
       setInitialFormData(null);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create estimate.", variant: "destructive" });
+      console.error('Error creating estimate:', error);
+      toast({ title: "Error", description: `Failed to create estimate: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
     }
   };
 
   const handleSaveOrder = async (order: any) => {
     if (!db) return;
     try {
-      await addDoc(collection(db, 'orders'), order);
+      // Remove id field before adding to Firestore (Firestore auto-generates IDs)
+      const { id, ...orderData } = order;
+      await addDoc(collection(db, 'orders'), orderData);
       toast({ title: "Success", description: "Order created successfully." });
       setIsOrderDialogOpen(false);
       setInitialFormData(null);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create order.", variant: "destructive" });
+      console.error('Error creating order:', error);
+      toast({ title: "Error", description: `Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
     }
   };
 
   const handleSaveInvoice = async (invoice: any) => {
     if (!db) return;
     try {
-      await addDoc(collection(db, 'invoices'), invoice);
+      // Remove id field before adding to Firestore (Firestore auto-generates IDs)
+      const { id, ...invoiceData } = invoice;
+      await addDoc(collection(db, 'invoices'), invoiceData);
       toast({ title: "Success", description: "Invoice created successfully." });
       setIsInvoiceDialogOpen(false);
       setInitialFormData(null);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create invoice.", variant: "destructive" });
+      console.error('Error creating invoice:', error);
+      toast({ title: "Error", description: `Failed to create invoice: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
     }
   };
 
