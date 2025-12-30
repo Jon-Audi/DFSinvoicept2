@@ -76,6 +76,7 @@ export const PrintableOutstandingInvoicesReport = React.forwardRef<HTMLDivElemen
                     <tr>
                       <th className="text-left p-1.5 border border-gray-300 font-semibold">Invoice #</th>
                       <th className="text-left p-1.5 border border-gray-300 font-semibold">PO #</th>
+                      <th className="text-left p-1.5 border border-gray-300 font-semibold">Status</th>
                       <th className="text-left p-1.5 border border-gray-300 font-semibold">Inv. Date</th>
                       <th className="text-left p-1.5 border border-gray-300 font-semibold">Due Date</th>
                       <th className="text-right p-1.5 border border-gray-300 font-semibold">Inv. Total</th>
@@ -88,6 +89,7 @@ export const PrintableOutstandingInvoicesReport = React.forwardRef<HTMLDivElemen
                       <tr key={invoice.invoiceId || `invoice-row-${index}`}>
                         <td className="p-1.5 border border-gray-300">{invoice.invoiceNumber}</td>
                         <td className="p-1.5 border border-gray-300">{invoice.poNumber || 'N/A'}</td>
+                        <td className="p-1.5 border border-gray-300">{(invoice as any).status || 'Unknown'}</td>
                         <td className="p-1.5 border border-gray-300">{format(new Date(invoice.invoiceDate), "MM/dd/yy")}</td>
                         <td className="p-1.5 border border-gray-300">{invoice.dueDate ? format(new Date(invoice.dueDate), "MM/dd/yy") : 'N/A'}</td>
                         <td className="text-right p-1.5 border border-gray-300">${invoice.invoiceTotal.toFixed(2)}</td>
@@ -96,7 +98,7 @@ export const PrintableOutstandingInvoicesReport = React.forwardRef<HTMLDivElemen
                       </tr>
                     ))}
                     <tr key={`summary-${sectionKey}`} className="bg-gray-50">
-                      <td colSpan={6} className="text-right p-1.5 border border-gray-300 font-bold">Customer Total Outstanding:</td>
+                      <td colSpan={7} className="text-right p-1.5 border border-gray-300 font-bold">Customer Total Outstanding:</td>
                       <td className="text-right p-1.5 border border-gray-300 font-bold">${group.totalCustomerBalance.toFixed(2)}</td>
                     </tr>
                   </tbody>

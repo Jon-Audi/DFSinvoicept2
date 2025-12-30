@@ -32,12 +32,12 @@ import { PrintableReadyForPickupReport } from '@/components/reports/printable-re
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PAYMENT_METHODS } from '@/lib/constants';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
 type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup';
 type DatePreset = 'custom' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear';
+type OutstandingInvoiceFilter = 'all' | 'ordered' | 'pickedUp' | 'allStatuses';
 
 interface ReportToPrintData {
   reportType: ReportType;
@@ -60,7 +60,7 @@ export default function ReportsPage() {
   const [generatedReportData, setGeneratedReportData] = useState<any | null>(null);
   const [generatedProfitabilitySummaryData, setGeneratedProfitabilitySummaryData] = useState<ProfitSummaryItem[] | null>(null);
   const [activeDatePreset, setActiveDatePreset] = useState<DatePreset>('thisMonth');
-  const [showOnlyPickedUpUnpaid, setShowOnlyPickedUpUnpaid] = useState(false);
+  const [outstandingInvoiceFilter, setOutstandingInvoiceFilter] = useState<OutstandingInvoiceFilter>('all');
   
   const [isLoading, setIsLoading] = useState(false);
   const [reportToPrintData, setReportToPrintData] = useState<ReportToPrintData | null>(null);
@@ -401,35 +401,50 @@ export default function ReportsPage() {
         const invoicesRef = collection(db, 'invoices');
         let qConstraints: any[] = [];
 
-        if (showOnlyPickedUpUnpaid) {
-            currentReportTitle = "Outstanding Invoices (Picked Up, Unpaid)";
+        // Apply status filters based on selected option
+        switch (outstandingInvoiceFilter) {
+          case 'ordered':
+            currentReportTitle = "Outstanding Invoices (Ordered)";
             qConstraints = [
-                where('status', '==', 'Picked up'),
-                where('balanceDue', '>', 0)
+              where('status', '==', 'Ordered'),
+              where('balanceDue', '>', 0)
             ];
-        } else {
-            currentReportTitle = "Outstanding Invoices Report (All)";
+            break;
+          case 'pickedUp':
+            currentReportTitle = "Outstanding Invoices (Picked Up)";
             qConstraints = [
-                where('status', 'not-in', ['Draft', 'Ordered', 'Paid', 'Voided', 'Ready for pick up']),
-                where('balanceDue', '>', 0)
+              where('status', '==', 'Picked up'),
+              where('balanceDue', '>', 0)
             ];
+            break;
+          case 'allStatuses':
+            currentReportTitle = "All Invoices (Any Status)";
+            // No status filter, just balance due check removed to show ALL invoices
+            qConstraints = [];
+            break;
+          case 'all':
+          default:
+            currentReportTitle = "Outstanding Invoices (Unpaid Only)";
+            qConstraints = [
+              where('status', 'not-in', ['Draft', 'Paid', 'Voided']),
+              where('balanceDue', '>', 0)
+            ];
+            break;
         }
 
         if (selectedCustomerId !== 'all') {
           const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-          currentReportTitle = `Outstanding Invoices for ${selectedCustomer?.companyName || `${selectedCustomer?.firstName} ${selectedCustomer?.lastName}` || 'Selected Customer'}`;
-          if (showOnlyPickedUpUnpaid) {
-            currentReportTitle += " (Picked Up)";
-          }
+          const customerName = selectedCustomer?.companyName || `${selectedCustomer?.firstName} ${selectedCustomer?.lastName}` || 'Selected Customer';
+          currentReportTitle = `${currentReportTitle} for ${customerName}`;
           qConstraints.push(where('customerId', '==', selectedCustomerId));
         }
         
         const qInvoices = query(invoicesRef, ...qConstraints);
         const invoicesSnapshot = await getDocs(qInvoices);
         
-        const customerInvoiceDetails: CustomerInvoiceDetail[] = [];
+        const customerInvoiceDetails: any[] = [];
         invoicesSnapshot.forEach(docSnap => {
-          const invoice = docSnap.data() as Omit<Invoice, 'id'>;
+          const invoice = docSnap.data() as Invoice;
           const customer = customers.find(c => c.id === invoice.customerId);
           customerInvoiceDetails.push({
             customerId: invoice.customerId,
@@ -437,6 +452,7 @@ export default function ReportsPage() {
             invoiceId: docSnap.id,
             invoiceNumber: invoice.invoiceNumber,
             poNumber: invoice.poNumber,
+            status: invoice.status,
             invoiceDate: invoice.date,
             dueDate: invoice.dueDate,
             balanceDue: invoice.balanceDue || 0,
@@ -728,7 +744,18 @@ export default function ReportsPage() {
         );
     }
     if (reportType === 'customerBalances') {
-      return <p>Total Outstanding: <span className="font-semibold">${(generatedReportData as CustomerInvoiceDetail[]).reduce((sum, item) => sum + item.balanceDue, 0).toFixed(2)}</span></p>;
+      const invoices = generatedReportData as any[];
+      const totalOutstanding = invoices.reduce((sum, item) => sum + item.balanceDue, 0);
+      const totalInvoices = invoices.reduce((sum, item) => sum + item.invoiceTotal, 0);
+      const totalPaid = invoices.reduce((sum, item) => sum + item.amountPaid, 0);
+      return (
+        <div className="space-y-1">
+          <p>Number of Invoices: <span className="font-semibold">{invoices.length}</span></p>
+          <p>Total Invoice Amount: <span className="font-semibold">${totalInvoices.toFixed(2)}</span></p>
+          <p>Total Amount Paid: <span className="font-semibold text-green-600 dark:text-green-400">${totalPaid.toFixed(2)}</span></p>
+          <p>Total Outstanding Balance: <span className="font-semibold text-destructive">${totalOutstanding.toFixed(2)}</span></p>
+        </div>
+      );
     }
     if (reportType === 'sales') {
       return <p>Total Sales Amount: <span className="font-semibold">${(generatedReportData as Invoice[]).reduce((sum, item) => sum + item.total, 0).toFixed(2)}</span></p>;
@@ -918,8 +945,14 @@ export default function ReportsPage() {
     }
     
     if (reportType === 'customerBalances') {
-        const reportData = generatedReportData as CustomerInvoiceDetail[];
-        if (reportData.length === 0) return <p className="text-center text-muted-foreground py-4">No outstanding invoices found for the selected criteria.</p>;
+        const reportData = generatedReportData as any[];
+        if (reportData.length === 0) return <p className="text-center text-muted-foreground py-4">No invoices found for the selected criteria.</p>;
+
+        const totals = {
+          invoiceTotal: reportData.reduce((sum, item) => sum + item.invoiceTotal, 0),
+          amountPaid: reportData.reduce((sum, item) => sum + item.amountPaid, 0),
+          balanceDue: reportData.reduce((sum, item) => sum + item.balanceDue, 0),
+        };
 
         return (
             <Table>
@@ -927,8 +960,12 @@ export default function ReportsPage() {
                     <TableRow>
                         <TableHead>Customer</TableHead>
                         <TableHead>Invoice #</TableHead>
+                        <TableHead>PO #</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Inv. Date</TableHead>
                         <TableHead>Due Date</TableHead>
+                        <TableHead className="text-right">Invoice Total</TableHead>
+                        <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -936,12 +973,26 @@ export default function ReportsPage() {
                     {reportData.map((item) => (
                         <TableRow key={item.invoiceId}>
                             <TableCell>{item.customerName}</TableCell>
-                            <TableCell>{item.invoiceNumber}</TableCell>
+                            <TableCell className="font-medium">{item.invoiceNumber}</TableCell>
+                            <TableCell className="text-muted-foreground">{item.poNumber || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge variant={item.balanceDue > 0 ? 'destructive' : 'default'}>
+                                {item.status || 'Unknown'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{format(new Date(item.invoiceDate), 'P')}</TableCell>
                             <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'P') : 'N/A'}</TableCell>
+                            <TableCell className="text-right">${item.invoiceTotal.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-green-600 dark:text-green-400">${item.amountPaid.toFixed(2)}</TableCell>
                             <TableCell className="text-right font-semibold text-destructive">${item.balanceDue.toFixed(2)}</TableCell>
                         </TableRow>
                     ))}
+                    <TableRow className="font-bold bg-muted/50 border-t-2">
+                        <TableCell colSpan={6} className="text-right">Totals ({reportData.length} invoices):</TableCell>
+                        <TableCell className="text-right">${totals.invoiceTotal.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-green-600 dark:text-green-400">${totals.amountPaid.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-destructive">${totals.balanceDue.toFixed(2)}</TableCell>
+                    </TableRow>
                 </TableBody>
             </Table>
         );
@@ -1145,20 +1196,59 @@ export default function ReportsPage() {
                 </SelectContent>
               </Select>
               {reportType === 'customerBalances' && (
-                  <p className="text-xs text-muted-foreground">
-                    This report shows currently outstanding invoices. Date range is not applicable unless the 'Picked Up' filter is used.
-                  </p>
-              )}
-               {reportType === 'customerBalances' && (
-                <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
-                    id="show-picked-up"
-                    checked={showOnlyPickedUpUnpaid}
-                    onCheckedChange={(checked) => setShowOnlyPickedUpUnpaid(!!checked)}
-                  />
-                  <Label htmlFor="show-picked-up" className="font-normal">
-                    Only show invoices that are "Picked up" and not fully paid.
-                  </Label>
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label className="text-sm font-medium">Filter by Status</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Choose which invoices to include in the report
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={outstandingInvoiceFilter === 'all' ? 'default' : 'outline'}
+                      onClick={() => setOutstandingInvoiceFilter('all')}
+                      className="justify-start h-auto py-3 px-4"
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">Unpaid Only</div>
+                        <div className="text-xs opacity-90">Excludes Draft, Paid, and Voided</div>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={outstandingInvoiceFilter === 'ordered' ? 'default' : 'outline'}
+                      onClick={() => setOutstandingInvoiceFilter('ordered')}
+                      className="justify-start h-auto py-3 px-4"
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">Ordered</div>
+                        <div className="text-xs opacity-90">Only "Ordered" status with balance due</div>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={outstandingInvoiceFilter === 'pickedUp' ? 'default' : 'outline'}
+                      onClick={() => setOutstandingInvoiceFilter('pickedUp')}
+                      className="justify-start h-auto py-3 px-4"
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">Picked Up</div>
+                        <div className="text-xs opacity-90">Only "Picked up" status with balance due</div>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={outstandingInvoiceFilter === 'allStatuses' ? 'default' : 'outline'}
+                      onClick={() => setOutstandingInvoiceFilter('allStatuses')}
+                      className="justify-start h-auto py-3 px-4"
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">All Invoices</div>
+                        <div className="text-xs opacity-90">Every invoice regardless of status</div>
+                      </div>
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
