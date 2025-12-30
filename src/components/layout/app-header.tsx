@@ -28,7 +28,7 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-md px-4 md:px-6 transition-all duration-300 shadow-sm">
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
@@ -39,31 +39,31 @@ export function AppHeader() {
         {user && ( // Only show dropdown if user is logged in
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:ring-2 hover:ring-primary/20 transition-all duration-200">
+                <Avatar className="h-8 w-8 transition-transform duration-200 hover:scale-110">
                   <AvatarImage src={user.photoURL || "https://placehold.co/40x40.png"} alt="User Profile Picture" data-ai-hint="profile picture" />
                   <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user.displayName || user.email || 'My Account'}</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-56 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2">
+              <DropdownMenuLabel className="font-semibold">{user.displayName || user.email || 'My Account'}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <Link href="/settings/profile" passHref>
-                <DropdownMenuItem disabled={loading}>
-                  <Icon name="UserCog" className="mr-2 h-4 w-4" />
+                <DropdownMenuItem disabled={loading} className="cursor-pointer transition-colors">
+                  <Icon name="UserCog" className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                   Profile
                 </DropdownMenuItem>
               </Link>
               <Link href="/settings" passHref>
-                <DropdownMenuItem disabled={loading}>
-                  <Icon name="Settings" className="mr-2 h-4 w-4" />
+                <DropdownMenuItem disabled={loading} className="cursor-pointer transition-colors">
+                  <Icon name="Settings" className="mr-2 h-4 w-4 transition-transform group-hover:rotate-45" />
                   Settings
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogoutClick} disabled={loading}>
-                <Icon name="LogOut" className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={handleLogoutClick} disabled={loading} className="cursor-pointer text-destructive focus:text-destructive transition-colors">
+                <Icon name="LogOut" className="mr-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

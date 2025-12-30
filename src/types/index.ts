@@ -224,6 +224,13 @@ export interface DashboardPreferences {
   showQuickStats: boolean;
   showQuickActions: boolean;
   lowStockThreshold: number;
+  // Analytics widgets
+  showAnalyticsMetrics: boolean;
+  showRevenueChart: boolean;
+  showTopProducts: boolean;
+  // Default time periods
+  defaultChartPeriod: 7 | 30 | 60 | 90;
+  defaultTopProductsPeriod: 'all' | 30 | 60 | 90;
 }
 
 // New type for the detailed customer balance/outstanding invoices report

@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import type { Product, Invoice, DashboardPreferences } from '@/types';
+import { AnalyticsMetrics } from '@/components/dashboard/analytics-metrics';
+import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import { TopProducts } from '@/components/dashboard/top-products';
 
 const DEFAULT_PREFERENCES: DashboardPreferences = {
   showLowStockAlert: true,
@@ -21,6 +24,11 @@ const DEFAULT_PREFERENCES: DashboardPreferences = {
   showQuickStats: true,
   showQuickActions: true,
   lowStockThreshold: 10,
+  showAnalyticsMetrics: true,
+  showRevenueChart: true,
+  showTopProducts: true,
+  defaultChartPeriod: 30,
+  defaultTopProductsPeriod: 'all',
 };
 
 export default function DashboardPage() {
@@ -53,7 +61,7 @@ export default function DashboardPage() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setPreferences(docSnap.data() as DashboardPreferences);
+          setPreferences({ ...DEFAULT_PREFERENCES, ...docSnap.data() } as DashboardPreferences);
         } else {
           setPreferences(DEFAULT_PREFERENCES);
         }
@@ -182,6 +190,25 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader title="Dashboard" description="Welcome back! Here's what's happening today." />
+
+      {/* Analytics Metrics */}
+      {preferences.showAnalyticsMetrics && (
+        <div className="mb-6">
+          <AnalyticsMetrics />
+        </div>
+      )}
+
+      {/* Revenue Chart and Top Products */}
+      {(preferences.showRevenueChart || preferences.showTopProducts) && (
+        <div className="grid gap-6 mb-6 lg:grid-cols-2">
+          {preferences.showRevenueChart && (
+            <RevenueChart defaultPeriod={preferences.defaultChartPeriod} />
+          )}
+          {preferences.showTopProducts && (
+            <TopProducts defaultPeriod={preferences.defaultTopProductsPeriod} />
+          )}
+        </div>
+      )}
 
       {/* Quick Stats */}
       {preferences.showQuickStats && (

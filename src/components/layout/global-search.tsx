@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CommandDialog,
@@ -15,6 +15,7 @@ import { Icon } from '@/components/icons';
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot } from 'firebase/firestore';
 import type { Customer, Product, Order, Invoice, Estimate } from '@/types';
+import { debounce } from '@/hooks/use-optimistic-update';
 
 type SearchResult = {
   id: string;
@@ -27,6 +28,7 @@ type SearchResult = {
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const router = useRouter();
   const { db } = useFirebase();
 
@@ -35,6 +37,18 @@ export function GlobalSearch() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
+
+  // Debounce search input for better performance
+  const debouncedSetSearch = useCallback(
+    debounce((value: string) => {
+      setDebouncedSearch(value);
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    debouncedSetSearch(search);
+  }, [search, debouncedSetSearch]);
 
   // Keyboard shortcut: Cmd+K or Ctrl+K
   useEffect(() => {
@@ -94,10 +108,10 @@ export function GlobalSearch() {
   }, [db]);
 
   const searchResults = useMemo((): SearchResult[] => {
-    if (!search) return [];
+    if (!debouncedSearch) return [];
 
     const results: SearchResult[] = [];
-    const searchLower = search.toLowerCase();
+    const searchLower = debouncedSearch.toLowerCase();
 
     // Search customers
     customers.forEach(customer => {
@@ -184,7 +198,7 @@ export function GlobalSearch() {
     });
 
     return results.slice(0, 50); // Limit to 50 results
-  }, [search, customers, products, orders, invoices, estimates]);
+  }, [debouncedSearch, customers, products, orders, invoices, estimates]);
 
   const groupedResults = useMemo(() => {
     const grouped: Record<string, SearchResult[]> = {

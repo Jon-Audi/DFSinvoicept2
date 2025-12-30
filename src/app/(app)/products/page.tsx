@@ -103,9 +103,11 @@ export default function ProductsPage() {
     if (!db) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      // Only process changes, not the entire snapshot
       const fetchedProducts: Product[] = [];
       const categories = new Set<string>();
       const subcategories = new Set<string>();
+
       snapshot.forEach(docSnap => {
         const productData = { ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id };
         fetchedProducts.push(productData);
@@ -114,10 +116,14 @@ export default function ProductsPage() {
             subcategories.add(productData.subcategory);
         }
       });
-      setProducts(fetchedProducts);
-      setProductCategories(Array.from(categories).sort());
-      setProductSubcategories(Array.from(subcategories).sort());
-      setIsLoading(false);
+
+      // Use React.startTransition to make state updates non-blocking
+      React.startTransition(() => {
+        setProducts(fetchedProducts);
+        setProductCategories(Array.from(categories).sort());
+        setProductSubcategories(Array.from(subcategories).sort());
+        setIsLoading(false);
+      });
     }, (error) => {
       toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
       setIsLoading(false);
@@ -126,7 +132,7 @@ export default function ProductsPage() {
     return () => unsubscribe();
   }, [db, toast]);
   
-  const handleSaveProduct = async (productToSave: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+  const handleSaveProduct = React.useCallback(async (productToSave: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
     if (!db) return;
     const { id, ...productData } = productToSave;
 
@@ -174,7 +180,7 @@ export default function ProductsPage() {
       console.error('Error saving product:', error);
       toast({ title: "Error", description: `Could not save product details. ${error?.message || ''}`, variant: "destructive" });
     }
-  };
+  }, [db, products, user?.email, toast]);
 
   const handleBulkSaveProducts = async (productsToSave: Omit<Product, 'id'>[]) => {
       if (!db) return;

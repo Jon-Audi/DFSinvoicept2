@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 import { FirebaseProvider } from '@/components/firebase-provider';
 import { AuthProvider } from '@/contexts/auth-context';
+import { ColorThemeProvider } from '@/contexts/color-theme-context';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,13 +23,15 @@ const queryClient = new QueryClient({
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <FirebaseProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </FirebaseProvider>
-      </QueryClientProvider>
+      <ColorThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <FirebaseProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </FirebaseProvider>
+        </QueryClientProvider>
+      </ColorThemeProvider>
     </NextThemesProvider>
   );
 }

@@ -32,7 +32,12 @@ export async function recordPriceChange(
       reason,
     };
 
-    await addDoc(collection(db, 'priceHistory'), historyEntry);
+    // Remove undefined values - Firestore doesn't accept them
+    const cleanedEntry = Object.fromEntries(
+      Object.entries(historyEntry).filter(([_, value]) => value !== undefined)
+    ) as Omit<PriceHistoryEntry, 'id'>;
+
+    await addDoc(collection(db, 'priceHistory'), cleanedEntry);
   }
 }
 

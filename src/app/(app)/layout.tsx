@@ -45,12 +45,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Only render the main layout if the user is authenticated
   return user ? (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background transition-colors duration-300">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
           <AppHeader />
-          <main className="flex-1 p-6 overflow-auto">
-            <div className="w-full max-w-[1440px] mx-auto">
+          <main className="flex-1 p-6 md:p-8 overflow-auto scroll-smooth">
+            <div className="w-full max-w-[1440px] mx-auto space-y-6">
               {children}
             </div>
           </main>

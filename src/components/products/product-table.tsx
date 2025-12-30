@@ -73,7 +73,7 @@ interface ProductTableProps {
   onBulkSubcategoryUpdate: (products: Pick<Product, 'id' | 'subcategory'>[]) => Promise<void>;
 }
 
-export function ProductTable({ 
+export const ProductTable = React.memo(function ProductTable({ 
   groupedProducts, 
   allProducts,
   onSave, 
@@ -450,4 +450,4 @@ export function ProductTable({
       )}
     </>
   );
-}
+});
