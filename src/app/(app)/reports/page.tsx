@@ -31,6 +31,7 @@ import { PrintableProductionReport } from '@/components/reports/printable-produc
 import { PrintableReadyForPickupReport } from '@/components/reports/printable-ready-for-pickup-report';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { PAYMENT_METHODS } from '@/lib/constants';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
