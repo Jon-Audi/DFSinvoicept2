@@ -244,10 +244,12 @@ export default function InvoicesPage() {
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 if (active) {
                     const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    console.log(`Loaded ${docsData.length} documents from ${path}`);
                     setter(docsData as any);
                 }
             }, (error) => {
-                toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
+                console.error(`Error fetching ${path}:`, error);
+                toast({ title: "Error", description: `Could not fetch ${path}: ${error.message}`, variant: "destructive" });
             });
             unsubscribes.push(unsubscribe);
         }

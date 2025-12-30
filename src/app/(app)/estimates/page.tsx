@@ -83,11 +83,10 @@ export default function EstimatesPage() {
     if (!db) return;
     setIsLoadingEstimates(true);
 
-    // Optimize: Load only recent 100 estimates sorted by date
+    // Load all estimates sorted by date
     const estimatesQuery = query(
       collection(db, 'estimates'),
-      orderBy('date', 'desc'),
-      limit(100)
+      orderBy('date', 'desc')
     );
 
     const unsubscribe = onSnapshot(estimatesQuery, (snapshot) => {

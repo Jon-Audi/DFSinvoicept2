@@ -191,9 +191,9 @@ export default function OrdersPage() {
         };
 
         for (const [path, setter] of Object.entries(collectionsToWatch)) {
-            // Optimize: limit orders to 100 most recent
+            // Load all documents sorted by date
             const q = path === 'orders'
-                ? query(collection(db, path), orderBy('date', 'desc'), limit(100))
+                ? query(collection(db, path), orderBy('date', 'desc'))
                 : collection(db, path);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
