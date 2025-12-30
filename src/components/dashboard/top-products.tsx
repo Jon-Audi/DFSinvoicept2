@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/icons';
-import { useFirebase } from '@/components/firebase-provider';
-import { getTopProducts, formatCurrency } from '@/lib/analytics';
-import type { ProductSalesData } from '@/lib/analytics';
+import { useTopProducts } from '@/hooks/use-analytics';
+import { formatCurrency } from '@/lib/analytics';
 import {
   BarChart,
   Bar,
@@ -40,34 +39,14 @@ interface TopProductsProps {
 }
 
 export function TopProducts({ defaultPeriod = 'all' }: TopProductsProps) {
-  const { db } = useFirebase();
   const [viewMode, setViewMode] = useState<ViewMode>('chart');
   const [timePeriod, setTimePeriod] = useState<'all' | 30 | 60 | 90>(defaultPeriod);
-  const [data, setData] = useState<ProductSalesData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!db) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const topProducts = await getTopProducts(
-          db,
-          10,
-          timePeriod === 'all' ? undefined : timePeriod
-        );
-        console.log('Top products loaded:', topProducts);
-        setData(topProducts);
-      } catch (error) {
-        console.error('Error loading top products:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [db, timePeriod]);
+  // Use cached top products data with React Query
+  const { data = [], isLoading } = useTopProducts(
+    10,
+    timePeriod === 'all' ? undefined : timePeriod
+  );
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -144,8 +123,22 @@ export function TopProducts({ defaultPeriod = 'all' }: TopProductsProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-[300px] w-full" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3 flex-1">
+                  <Skeleton className="w-8 h-8 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-40 rounded-md" />
+                    <Skeleton className="h-3 w-24 rounded-md" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-20 rounded-md ml-auto" />
+                  <Skeleton className="h-3 w-16 rounded-md ml-auto" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">

@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/icons';
-import { useFirebase } from '@/components/firebase-provider';
-import { getRevenueTrends, formatCurrency, formatChartDate } from '@/lib/analytics';
-import type { RevenueDataPoint } from '@/lib/analytics';
+import { useRevenueTrends } from '@/hooks/use-analytics';
+import { formatCurrency, formatChartDate } from '@/lib/analytics';
 import {
   AreaChart,
   Area,
@@ -16,7 +15,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 type TimePeriod = 7 | 30 | 60 | 90;
@@ -27,31 +25,11 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
-  const { db } = useFirebase();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(defaultPeriod);
   const [metricType, setMetricType] = useState<MetricType>('revenue');
-  const [data, setData] = useState<RevenueDataPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!db) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const revenueData = await getRevenueTrends(db, timePeriod);
-        console.log('Revenue chart data loaded:', revenueData);
-        console.log('Sample data point:', revenueData[0]);
-        setData(revenueData);
-      } catch (error) {
-        console.error('Error loading revenue data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [db, timePeriod]);
+  // Use cached revenue trends data with React Query
+  const { data = [], isLoading } = useRevenueTrends(timePeriod);
 
   const totalRevenue = data.reduce((sum, point) => sum + point.revenue, 0);
   const totalInvoices = data.reduce((sum, point) => sum + point.invoices, 0);
@@ -150,9 +128,18 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-[300px] w-full" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24 rounded-md" />
+                <Skeleton className="h-8 w-32 rounded-md" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24 rounded-md" />
+                <Skeleton className="h-8 w-28 rounded-md" />
+              </div>
+            </div>
+            <Skeleton className="h-[300px] w-full rounded-lg" />
           </div>
         ) : (
           <>

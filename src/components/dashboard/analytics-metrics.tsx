@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/icons';
-import { useFirebase } from '@/components/firebase-provider';
-import { getAnalyticsSummary, formatCurrency, calculatePercentageChange } from '@/lib/analytics';
-import type { AnalyticsSummary } from '@/lib/analytics';
-import { cn } from '@/lib/utils';
+import { useAnalyticsSummary } from '@/hooks/use-analytics';
+import { formatCurrency } from '@/lib/analytics';
 
 interface MetricCardProps {
   title: string;
@@ -27,8 +25,8 @@ function MetricCard({ title, value, subtitle, icon, isLoading }: MetricCardProps
       <CardContent>
         {isLoading ? (
           <>
-            <Skeleton className="h-8 w-24 mb-1" />
-            {subtitle && <Skeleton className="h-4 w-16" />}
+            <Skeleton className="h-8 w-32 mb-2 rounded-md" />
+            {subtitle && <Skeleton className="h-3 w-24 rounded-md" />}
           </>
         ) : (
           <>
@@ -44,27 +42,8 @@ function MetricCard({ title, value, subtitle, icon, isLoading }: MetricCardProps
 }
 
 export function AnalyticsMetrics() {
-  const { db } = useFirebase();
-  const [currentPeriod, setCurrentPeriod] = useState<AnalyticsSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const current = await getAnalyticsSummary(db, 30);
-        setCurrentPeriod(current);
-      } catch (error) {
-        console.error('Error loading analytics:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [db]);
+  // Use cached analytics data with React Query
+  const { data: currentPeriod, isLoading } = useAnalyticsSummary(30);
 
   const metrics = [
     {

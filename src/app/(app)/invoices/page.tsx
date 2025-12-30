@@ -57,6 +57,7 @@ import { LineItemsViewerDialog } from "@/components/shared/line-items-viewer-dia
 import { BulkPaymentDialog } from "@/components/invoices/bulk-payment-dialog";
 import { PrintableBulkPaymentReceipt } from "@/components/invoices/printable-bulk-payment-receipt";
 import { BulkPaymentToastAction } from "@/components/invoices/bulk-payment-toast-action";
+import { useInvalidateAnalytics } from "@/hooks/use-analytics";
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
@@ -74,6 +75,7 @@ type SortableInvoiceKeys =
 export default function InvoicesPage() {
   const { db } = useFirebase();
   const { toast } = useToast();
+  const { invalidateAll: invalidateAnalytics } = useInvalidateAnalytics();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -348,6 +350,9 @@ export default function InvoicesPage() {
         title: invoiceToSave.id ? "Invoice Updated" : "Invoice Added",
         description: `Invoice ${invoiceToSave.invoiceNumber} and stock levels have been updated.`,
       });
+
+      // Invalidate analytics cache since invoice/payment data changed
+      invalidateAnalytics();
     } catch (error: any) {
       toast({
         title: "Error Saving Invoice",
@@ -356,7 +361,7 @@ export default function InvoicesPage() {
         duration: 8000,
       });
     }
-  
+
     if (isConvertingInvoice) {
       setIsConvertingInvoice(false);
       setConversionInvoiceData(null);
@@ -493,6 +498,10 @@ export default function InvoicesPage() {
         description: `Payment of $${paymentDetails.amount.toFixed(2)} applied successfully.`,
         action: <BulkPaymentToastAction onPrint={() => handlePrepareAndPrintBulkReceipt(receiptData)} />,
       });
+
+      // Invalidate analytics cache since payment data changed
+      invalidateAnalytics();
+
       setIsBulkPaymentDialogOpen(false);
     } catch (error: any) {
       toast({
