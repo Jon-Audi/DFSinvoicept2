@@ -39,11 +39,12 @@ interface CustomerTableProps {
   customers: Customer[];
   onSave: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => void;
   onDelete: (customerId: string) => void;
+  onManageCredit?: (customer: Customer) => void;
   isLoading: boolean;
   onRowClick: (customerId: string) => void;
 }
 
-export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowClick }: CustomerTableProps) {
+export function CustomerTable({ customers, onSave, onDelete, onManageCredit, isLoading, onRowClick }: CustomerTableProps) {
   const [customerToDelete, setCustomerToDelete] = React.useState<Customer | null>(null);
 
   if (isLoading) {
@@ -65,6 +66,7 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowCli
               <TableHead>Customer</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead className="text-right">Credit Balance</TableHead>
               <TableHead>Date Added</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
@@ -78,6 +80,15 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowCli
                 <TableCell onClick={() => onRowClick(customer.id)}>{customer.emailContacts?.[0]?.email || 'N/A'}</TableCell>
                 <TableCell onClick={() => onRowClick(customer.id)}>
                   <Badge variant="secondary">{customer.customerType}</Badge>
+                </TableCell>
+                <TableCell className="text-right" onClick={() => onRowClick(customer.id)}>
+                  {customer.creditBalance && customer.creditBalance > 0 ? (
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      ${customer.creditBalance.toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">$0.00</span>
+                  )}
                 </TableCell>
                 <TableCell onClick={() => onRowClick(customer.id)}>
                   {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'}
@@ -99,6 +110,11 @@ export function CustomerTable({ customers, onSave, onDelete, isLoading, onRowCli
                         }
                         onSave={onSave}
                       />
+                      {onManageCredit && (
+                        <DropdownMenuItem onSelect={() => onManageCredit(customer)}>
+                          <Icon name="Wallet" className="mr-2 h-4 w-4" /> Manage Credit
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         onSelect={() => setCustomerToDelete(customer)}

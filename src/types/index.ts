@@ -72,6 +72,7 @@ export interface Customer {
   emailContacts: EmailContact[];
   specificMarkups?: SpecificMarkup[];
   notes?: string;
+  creditBalance?: number; // Account credit balance (can be applied to invoices)
   createdAt?: string;
   updatedAt?: string;
   searchIndex?: string | null;

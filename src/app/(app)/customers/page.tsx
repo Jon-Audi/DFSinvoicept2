@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { CustomerTable } from '@/components/customers/customer-table';
 import { CustomerDialog } from '@/components/customers/customer-dialog';
+import { CustomerCreditDialog } from '@/components/customers/customer-credit-dialog';
 import type { Customer, Estimate, Order, Invoice } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
@@ -81,6 +82,7 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof CustomerWithLastInteraction; direction: 'asc' | 'desc' }>({ key: 'companyName', direction: 'asc' });
+  const [creditDialogCustomer, setCreditDialogCustomer] = useState<Customer | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -154,6 +156,27 @@ export default function CustomersPage() {
       toast({ title: "Customer Deleted", description: "The customer has been removed." });
     } catch (error) {
       toast({ title: "Error", description: "Could not delete customer.", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateCredit = async (customerId: string, newCreditBalance: number, notes: string) => {
+    if (!db) return;
+    try {
+      const customerRef = doc(db, 'customers', customerId);
+      await setDoc(customerRef, {
+        creditBalance: newCreditBalance,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      const customer = customers.find(c => c.id === customerId);
+      const customerName = customer?.companyName || `${customer?.firstName} ${customer?.lastName}`;
+
+      toast({
+        title: "Credit Updated",
+        description: `${customerName}'s credit balance is now $${newCreditBalance.toFixed(2)}${notes ? `. ${notes}` : ''}`
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Could not update credit balance.", variant: "destructive" });
     }
   };
 
@@ -286,8 +309,16 @@ export default function CustomersPage() {
         customers={filteredAndSortedCustomers}
         onSave={handleSaveCustomer}
         onDelete={handleDeleteCustomer}
+        onManageCredit={(customer) => setCreditDialogCustomer(customer)}
         isLoading={isLoading}
         onRowClick={handleRowClick}
+      />
+
+      <CustomerCreditDialog
+        open={!!creditDialogCustomer}
+        onOpenChange={(open) => !open && setCreditDialogCustomer(null)}
+        customer={creditDialogCustomer}
+        onSave={handleUpdateCredit}
       />
        {filteredAndSortedCustomers.length === 0 && !isLoading && (
         <p className="p-4 text-center text-muted-foreground">
