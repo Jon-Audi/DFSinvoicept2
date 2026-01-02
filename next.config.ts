@@ -3,6 +3,12 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+
+  // Remove X-Powered-By header for security
+  poweredByHeader: false,
+
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
@@ -10,24 +16,39 @@ const nextConfig: NextConfig = {
     } : false,
   },
 
+  // Enable compression
+  compress: true,
+
+  // Disable production source maps for smaller bundle size
+  productionBrowserSourceMaps: false,
+
   experimental: {
     serverActions: {}, // Explicitly enable server actions
-    optimizeCss: true, // Optimize CSS
+    // Optimize package imports
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      'recharts',
+      'date-fns',
+    ],
   },
 
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
+    // TODO: Fix type errors before production deployment
+    // Set to false before deploying to production
+    ignoreBuildErrors: process.env.NODE_ENV !== 'production',
   },
 
   images: {
     formats: ['image/avif', 'image/webp'], // Modern image formats
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60, // Cache images for 60 seconds
+    minimumCacheTTL: 60 * 60 * 24 * 7, // Cache images for 7 days
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: 'https',
@@ -50,11 +71,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Add cache headers for static assets
+  // Add cache headers for static assets and security headers
   async headers() {
     return [
       {
-        source: '/:all*(svg|jpg|jpeg|png|gif|webp|avif|ico)',
+        source: '/:all*(svg|jpg|jpeg|png|gif|webp|avif|ico|woff|woff2)',
         headers: [
           {
             key: 'Cache-Control',
@@ -71,7 +92,50 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
     ];
+  },
+
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Production optimizations
+    if (!dev && !isServer) {
+      // Replace lodash with lodash-es for better tree shaking
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        lodash: 'lodash-es',
+      };
+    }
+
+    return config;
   },
 };
 

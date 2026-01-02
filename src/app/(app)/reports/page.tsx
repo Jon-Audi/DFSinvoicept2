@@ -36,7 +36,7 @@ import { PAYMENT_METHODS } from '@/lib/constants';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
-type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup';
+type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup' | 'quarterlySummary';
 type DatePreset = 'custom' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear';
 type OutstandingInvoiceFilter = 'all' | 'ordered' | 'pickedUp' | 'allStatuses';
 
@@ -376,11 +376,57 @@ export default function ReportsPage() {
         }, {} as Record<string, ProfitSummaryItem>));
         setGeneratedProfitabilitySummaryData(summaryData.sort((a,b) => b.totalProfit - a.totalProfit));
 
+      } else if (targetReportType === 'quarterlySummary') {
+        currentReportTitle = `Quarterly Summary (${format(rangeStart, "P")} - ${format(rangeEnd, "P")})`;
+        const invoicesRef = collection(db, 'invoices');
+        const q = query(invoicesRef,
+                        where('date', '>=', rangeStart.toISOString()),
+                        where('date', '<=', rangeEnd.toISOString()));
+        const querySnapshot = await getDocs(q);
+
+        let totalInvoices = 0;
+        let totalSales = 0;
+        let totalPaid = 0;
+        let totalOutstanding = 0;
+        const invoices: Invoice[] = [];
+
+        querySnapshot.forEach(docSnap => {
+          const invoice = { id: docSnap.id, ...docSnap.data() } as Invoice;
+          if (invoice.status !== 'Voided') {
+            totalInvoices++;
+            totalSales += invoice.total || 0;
+
+            const payments = invoice.payments || [];
+            const paid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            totalPaid += paid;
+            totalOutstanding += (invoice.total || 0) - paid;
+            invoices.push(invoice);
+          }
+        });
+
+        // Calculate profit
+        const profitData = await generateProfitabilityReportData(rangeStart, rangeEnd);
+        const totalProfit = profitData.reduce((sum, item) => sum + item.profit, 0);
+        const totalCost = profitData.reduce((sum, item) => sum + item.totalCostOfGoods, 0);
+
+        data = {
+          quarterStart: rangeStart,
+          quarterEnd: rangeEnd,
+          totalInvoices,
+          totalSales,
+          totalPaid,
+          totalOutstanding,
+          totalProfit,
+          totalCost,
+          profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
+          invoices: invoices.sort((a, b) => toTime(b.date) - toTime(a.date))
+        };
+
       } else if (targetReportType === 'sales') {
         currentReportTitle = `Sales Report (Invoice Dates: ${format(rangeStart, "P")} - ${format(rangeEnd, "P")})`;
         const invoicesRef = collection(db, 'invoices');
-        const q = query(invoicesRef, 
-                        where('date', '>=', rangeStart.toISOString()), 
+        const q = query(invoicesRef,
+                        where('date', '>=', rangeStart.toISOString()),
                         where('date', '<=', rangeEnd.toISOString()));
         const querySnapshot = await getDocs(q);
         const fetchedInvoices: Invoice[] = [];
@@ -782,6 +828,49 @@ export default function ReportsPage() {
       const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
       return <p>Total Value Ready for Pickup: <span className="font-semibold">${grandTotal.toFixed(2)}</span></p>;
     }
+    if (reportType === 'quarterlySummary') {
+      const data = generatedReportData as any;
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Sales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${data.totalSales.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">{data.totalInvoices} invoices</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Amount Paid</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">${data.totalPaid.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">{((data.totalPaid / data.totalSales) * 100).toFixed(1)}% collected</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">${data.totalOutstanding.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">{((data.totalOutstanding / data.totalSales) * 100).toFixed(1)}% unpaid</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">${data.totalProfit.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">{data.profitMargin.toFixed(1)}% margin</p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return null;
   };
   
@@ -1000,6 +1089,47 @@ export default function ReportsPage() {
     }
 
 
+    if (reportType === 'quarterlySummary') {
+        const data = generatedReportData as any;
+        const invoices = data.invoices || [];
+        return (
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Invoice #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {invoices.map((invoice: Invoice) => {
+                    const paid = (invoice.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+                    const outstanding = (invoice.total || 0) - paid;
+                    return (
+                        <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                            <TableCell>{invoice.customerName || 'N/A'}</TableCell>
+                            <TableCell>{format(new Date(invoice.date), 'P')}</TableCell>
+                            <TableCell>
+                                <Badge variant={invoice.status === 'Paid' ? 'default' : invoice.status === 'Voided' ? 'secondary' : 'outline'}>
+                                    {invoice.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">${(invoice.total || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-green-600 dark:text-green-400">${paid.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-destructive">${outstanding.toFixed(2)}</TableCell>
+                        </TableRow>
+                    );
+                })}
+            </TableBody>
+            </Table>
+        );
+    }
+
     if (reportType === 'weeklySummary') {
         return (
             <Table>
@@ -1113,28 +1243,164 @@ export default function ReportsPage() {
           <CardTitle>Report Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Tabs value={reportType} onValueChange={(value) => {
-            const newReportType = value as ReportType;
-            setReportType(newReportType);
-            setGeneratedReportData(null); 
-            setGeneratedProfitabilitySummaryData(null);
-            setSelectedCustomerId('all');
-            handleDatePresetChange('thisMonth');
-          }}>
-            <TabsList className="grid w-full grid-cols-5 sm:grid-cols-11">
-              <TabsTrigger value="sales">Sales</TabsTrigger>
-              <TabsTrigger value="salesByCustomer">Sales by Cust.</TabsTrigger>
-              <TabsTrigger value="profitability">Profitability</TabsTrigger>
-              <TabsTrigger value="production">Production</TabsTrigger>
-              <TabsTrigger value="orders">Orders</TabsTrigger>
-              <TabsTrigger value="readyForPickup">Ready for Pickup</TabsTrigger>
-              <TabsTrigger value="statement">Statement</TabsTrigger>
-              <TabsTrigger value="customerBalances">Outstanding</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="weeklySummary">Weekly</TabsTrigger>
-              <TabsTrigger value="paymentByType">By Type</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold mb-3 block">Select Report Type</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Financial Reports */}
+                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'sales' || reportType === 'salesByCustomer' || reportType === 'quarterlySummary' ? "ring-2 ring-primary" : "")}>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Icon name="DollarSign" className="h-4 w-4" />
+                      Sales & Revenue
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-1">
+                    <Button
+                      variant={reportType === 'sales' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('sales'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Sales Report
+                    </Button>
+                    <Button
+                      variant={reportType === 'salesByCustomer' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('salesByCustomer'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      By Customer
+                    </Button>
+                    <Button
+                      variant={reportType === 'quarterlySummary' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('quarterlySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisQuarter'); }}
+                    >
+                      Quarterly Summary
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Profitability Reports */}
+                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'profitability' || reportType === 'profitabilitySummary' ? "ring-2 ring-primary" : "")}>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Icon name="TrendingUp" className="h-4 w-4" />
+                      Profitability
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-1">
+                    <Button
+                      variant={reportType === 'profitability' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('profitability'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Detailed Report
+                    </Button>
+                    <Button
+                      variant={reportType === 'profitabilitySummary' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('profitabilitySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Summary
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Payment Reports */}
+                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'payments' || reportType === 'paymentByType' || reportType === 'weeklySummary' ? "ring-2 ring-primary" : "")}>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Icon name="CreditCard" className="h-4 w-4" />
+                      Payments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-1">
+                    <Button
+                      variant={reportType === 'payments' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('payments'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      All Payments
+                    </Button>
+                    <Button
+                      variant={reportType === 'paymentByType' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('paymentByType'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      By Type
+                    </Button>
+                    <Button
+                      variant={reportType === 'weeklySummary' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('weeklySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Weekly Summary
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Operations Reports */}
+                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'orders' || reportType === 'production' || reportType === 'readyForPickup' || reportType === 'statement' || reportType === 'customerBalances' ? "ring-2 ring-primary" : "")}>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Icon name="Package" className="h-4 w-4" />
+                      Operations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-1">
+                    <Button
+                      variant={reportType === 'orders' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('orders'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Orders
+                    </Button>
+                    <Button
+                      variant={reportType === 'production' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('production'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Production
+                    </Button>
+                    <Button
+                      variant={reportType === 'readyForPickup' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('readyForPickup'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Ready for Pickup
+                    </Button>
+                    <Button
+                      variant={reportType === 'customerBalances' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('customerBalances'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Outstanding
+                    </Button>
+                    <Button
+                      variant={reportType === 'statement' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('statement'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Statement
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
 
           {datePresetsToRender.length > 0 && (
             <div className="space-y-4">

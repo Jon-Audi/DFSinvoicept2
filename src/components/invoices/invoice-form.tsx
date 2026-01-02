@@ -44,6 +44,7 @@ import { Icon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { BulkAddProductsDialog } from '@/components/estimates/bulk-add-products-dialog';
 import { useFormAutoSave, getSavedFormData, clearSavedFormData } from '@/hooks/use-form-auto-save';
+import { CustomerDialog } from '@/components/customers/customer-dialog';
 
 const INVOICE_STATUSES: Extract<DocumentStatus, 'Draft' | 'Sent' | 'Ordered' | 'Partial Packed' | 'Packed' | 'Ready for pick up' | 'Picked up' | 'Partially Paid' | 'Paid' | 'Voided'>[] = ['Draft', 'Sent', 'Ordered', 'Partial Packed', 'Packed', 'Ready for pick up', 'Picked up', 'Partially Paid', 'Paid', 'Voided'];
 const ALL_CATEGORIES_VALUE = "_ALL_CATEGORIES_";
@@ -144,8 +145,9 @@ interface InvoiceFormProps {
   vendors: Vendor[];
   productCategories: string[];
   productSubcategories: string[];
-  isDataLoading?: boolean; 
+  isDataLoading?: boolean;
   onViewCustomer: (customer: Customer) => void;
+  onSaveCustomer?: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
 }
 
 
@@ -161,8 +163,10 @@ export function InvoiceForm({
   productSubcategories,
   isDataLoading = false,
   onViewCustomer,
+  onSaveCustomer,
 }: InvoiceFormProps) {
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
   const [lineItemCategoryFilters, setLineItemCategoryFilters] = useState<(string | undefined)[]>([]);
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
   const [editingPayment, setEditingPayment] = useState<FormPayment | null>(null);
@@ -638,7 +642,14 @@ export function InvoiceForm({
                         })}
                     </CommandGroup></CommandList>
                 </Command></PopoverContent></Popover>
-              <Button type="button" variant="outline" size="icon" onClick={() => {const c = customers.find(c => c.id === field.value); if(c) onViewCustomer(c)}} disabled={!field.value}><Icon name="UserCog" /></Button>
+              {onSaveCustomer && (
+                <Button type="button" variant="outline" size="icon" onClick={() => setIsAddCustomerDialogOpen(true)} title="Add new customer">
+                  <Icon name="UserPlus" />
+                </Button>
+              )}
+              <Button type="button" variant="outline" size="icon" onClick={() => {const c = customers.find(c => c.id === field.value); if(c) onViewCustomer(c)}} disabled={!field.value} title="View/edit customer">
+                <Icon name="UserCog" />
+              </Button>
               </div>
               <FormMessage />
             </FormItem>
@@ -850,9 +861,9 @@ export function InvoiceForm({
                                 <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                         </FormControl></PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start"><Command>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start"><Command className="max-h-[400px]">
                             <CommandInput placeholder="Search product..." />
-                            <CommandList className="max-h-[300px]"><CommandEmpty>No product found.</CommandEmpty>
+                            <CommandList className="max-h-[300px] overflow-y-auto"><CommandEmpty>No product found.</CommandEmpty>
                             <CommandGroup>
                               {filteredProductsForLine.map((product) => {
                                 const searchableValue = [product.name, product.category, product.unit].filter(Boolean).join(' ').toLowerCase();
@@ -1021,6 +1032,19 @@ export function InvoiceForm({
       </form>
       {isBulkAddDialogOpen && (
         <BulkAddProductsDialog isOpen={isBulkAddDialogOpen} onOpenChange={setIsBulkAddDialogOpen} products={products} productCategories={productCategories} onAddItems={handleBulkAddItems} />
+      )}
+      {onSaveCustomer && (
+        <CustomerDialog
+          isOpen={isAddCustomerDialogOpen}
+          onOpenChange={setIsAddCustomerDialogOpen}
+          onSave={async (customer) => {
+            const newCustomerId = await onSaveCustomer(customer);
+            if (newCustomerId) {
+              form.setValue('customerId', newCustomerId, { shouldValidate: true });
+              setIsAddCustomerDialogOpen(false);
+            }
+          }}
+        />
       )}
     </Form>
   );

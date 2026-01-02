@@ -72,6 +72,7 @@ export interface Customer {
   emailContacts: EmailContact[];
   specificMarkups?: SpecificMarkup[];
   notes?: string;
+  creditBalance?: number; // Account credit balance (can be applied to invoices)
   createdAt?: string;
   updatedAt?: string;
   searchIndex?: string | null;
@@ -207,6 +208,29 @@ export interface CompanySettings {
   taxId?: string;
   estimateDisclaimer?: string;
   invoiceDisclaimer?: string;
+  // PDF Export Settings
+  pdfHeaderColor?: string; // Hex color for header background
+  pdfAccentColor?: string; // Hex color for table headers, accents
+  pdfShowLogo?: boolean; // Toggle logo display
+  pdfLogoWidth?: number; // Logo width in mm (default: 40)
+  pdfLogoHeight?: number; // Logo height in mm (default: 20)
+  pdfFontSize?: number; // Base font size (default: 10)
+  pdfLayout?: 'standard' | 'compact' | 'detailed'; // Layout style
+}
+
+export interface DashboardPreferences {
+  showLowStockAlert: boolean;
+  showUnpaidInvoices: boolean;
+  showQuickStats: boolean;
+  showQuickActions: boolean;
+  lowStockThreshold: number;
+  // Analytics widgets
+  showAnalyticsMetrics: boolean;
+  showRevenueChart: boolean;
+  showTopProducts: boolean;
+  // Default time periods
+  defaultChartPeriod: 7 | 30 | 60 | 90;
+  defaultTopProductsPeriod: 'all' | 30 | 60 | 90;
 }
 
 // New type for the detailed customer balance/outstanding invoices report
@@ -351,4 +375,98 @@ export interface ReadyForPickupReportItem {
   documentDate: string;
   readyForPickUpDate?: string;
   total: number;
+}
+
+// Chainlink Estimation Types
+export type ChainlinkFenceType = 'residential' | 'commercial';
+export type ChainlinkFenceHeight = '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
+
+export interface ChainlinkRun {
+  length: number;
+}
+
+export interface ChainlinkEstimationInput {
+  runs: ChainlinkRun[];
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  ends: number;
+  corners: number;
+}
+
+export interface ChainlinkEstimationResult {
+  interiorLinePosts?: number;
+  fabricType: string;
+  fabricFootage: number;
+  topRailSticks?: number;
+  tieWires?: number;
+  loopCaps?: number;
+  postCaps?: number;
+  braceBands?: number;
+  tensionBars?: number;
+  tensionBands?: number;
+  nutsAndBolts?: number;
+  pipeWeight: string;
+  userSpecifiedEnds?: number;
+  userSpecifiedCorners?: number;
+}
+
+export interface ChainlinkMaterialPricing {
+  id: string;
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  interiorLinePostPrice: number;
+  fabricPricePerFoot: number;
+  topRailPricePerStick: number;
+  tieWirePrice: number;
+  loopCapPrice: number;
+  postCapPrice: number;
+  braceBandPrice: number;
+  tensionBarPrice: number;
+  tensionBandPrice: number;
+  nutAndBoltPrice: number;
+}
+
+export interface ChainlinkProductMapping {
+  id: string;
+  fenceHeight: ChainlinkFenceHeight;
+  fenceType: ChainlinkFenceType;
+  // Product IDs from the products collection
+  terminalPostProductId?: string; // For ends
+  cornerPostProductId?: string;
+  gatePostProductId?: string;
+  linePostProductId?: string;
+  fabricProductId?: string;
+  topRailProductId?: string;
+  tieWireProductId?: string;
+  loopCapProductId?: string;
+  postCapProductId?: string;
+  braceBandProductId?: string;
+  tensionBarProductId?: string;
+  tensionBandProductId?: string;
+  nutAndBoltProductId?: string;
+}
+
+export interface ChainlinkEstimateLineItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+  price: number;
+  total: number;
+  category: string;
+}
+
+export interface PriceHistoryEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  timestamp: string; // ISO string
+  oldCost?: number;
+  newCost: number;
+  oldPrice?: number;
+  newPrice: number;
+  oldMarkup?: number;
+  newMarkup: number;
+  changedBy?: string; // User email or ID
+  reason?: string; // Optional note about why price changed
 }

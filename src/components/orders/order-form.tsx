@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Icon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
+import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { BulkAddProductsDialog } from '@/components/estimates/bulk-add-products-dialog';
 
 const ORDER_STATUSES: Extract<DocumentStatus, 'Draft' | 'Ordered' | 'Ready for pick up' | 'Picked up' | 'Invoiced' | 'Voided' | 'Partial Packed' | 'Packed'>[] = ['Draft', 'Ordered', 'Partial Packed', 'Packed', 'Ready for pick up', 'Picked up', 'Invoiced', 'Voided'];
@@ -122,10 +123,12 @@ interface OrderFormProps {
   productCategories: string[];
   productSubcategories: string[];
   onViewCustomer: (customer: Customer) => void;
+  onSaveCustomer?: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
 }
 
-export function OrderForm({ order, initialData, onSubmit, onClose, customers, products, vendors, productCategories = [], productSubcategories, onViewCustomer }: OrderFormProps) {
+export function OrderForm({ order, initialData, onSubmit, onClose, customers, products, vendors, productCategories = [], productSubcategories, onViewCustomer, onSaveCustomer }: OrderFormProps) {
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
   const [lineItemCategoryFilters, setLineItemCategoryFilters] = useState<(string | undefined)[]>([]);
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
   const [editingPayment, setEditingPayment] = useState<FormPayment | null>(null);
@@ -388,7 +391,14 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
                   <CommandGroup>{customers.map((c) => (<CommandItem value={`${c.companyName} ${c.firstName} ${c.lastName}`} key={c.id} onSelect={() => form.setValue("customerId", c.id, { shouldValidate: true })}><Icon name="Check" className={cn("mr-2 h-4 w-4", c.id === field.value ? "opacity-100" : "opacity-0")}/>{c.companyName || `${c.firstName} ${c.lastName}`}</CommandItem>))}</CommandGroup>
                   </CommandList>
               </Command></PopoverContent></Popover>
-              <Button type="button" variant="outline" size="icon" onClick={() => {const c = customers.find(c => c.id === field.value); if(c) onViewCustomer(c)}} disabled={!field.value}><Icon name="UserCog" /></Button>
+              {onSaveCustomer && (
+                <Button type="button" variant="outline" size="icon" onClick={() => setIsAddCustomerDialogOpen(true)} title="Add new customer">
+                  <Icon name="UserPlus" />
+                </Button>
+              )}
+              <Button type="button" variant="outline" size="icon" onClick={() => {const c = customers.find(c => c.id === field.value); if(c) onViewCustomer(c)}} disabled={!field.value} title="View/edit customer">
+                <Icon name="UserCog" />
+              </Button>
               </div><FormMessage />
             </FormItem>
         )} />
@@ -540,9 +550,9 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
                                 <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                         </FormControl></PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start"><Command className="max-h-[400px]">
                             <CommandInput placeholder="Search product..." />
-                            <CommandList><CommandEmpty>No product found.</CommandEmpty>
+                            <CommandList className="max-h-[300px] overflow-y-auto"><CommandEmpty>No product found.</CommandEmpty>
                             <CommandGroup>
                               {filteredProductsForLine.map((product) => {
                                 const searchableValue = [product.name, product.category, product.unit].filter(Boolean).join(' ').toLowerCase();
@@ -616,6 +626,19 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
       </form>
        {isBulkAddDialogOpen && (
         <BulkAddProductsDialog isOpen={isBulkAddDialogOpen} onOpenChange={setIsBulkAddDialogOpen} products={products} productCategories={productCategories} onAddItems={handleBulkAddItems} />
+      )}
+      {onSaveCustomer && (
+        <CustomerDialog
+          isOpen={isAddCustomerDialogOpen}
+          onOpenChange={setIsAddCustomerDialogOpen}
+          onSave={async (customer) => {
+            const newCustomerId = await onSaveCustomer(customer);
+            if (newCustomerId) {
+              form.setValue('customerId', newCustomerId, { shouldValidate: true });
+              setIsAddCustomerDialogOpen(false);
+            }
+          }}
+        />
       )}
     </Form>
   );

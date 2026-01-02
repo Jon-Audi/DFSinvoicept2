@@ -214,6 +214,7 @@ export function InvoiceDialog({
             productSubcategories={productSubcategories}
             isDataLoading={isDataLoading}
             onViewCustomer={(customer) => setCustomerToView(customer)}
+            onSaveCustomer={onSaveCustomer}
           />
         </DialogContent>
       </Dialog>

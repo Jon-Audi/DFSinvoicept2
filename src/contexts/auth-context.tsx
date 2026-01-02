@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const userDocRef = doc(db, "users", firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
             const appUser: AppUser = {
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(appUser);
           } else {
             // Self-healing: User is authenticated but has no DB record.
-            
+
             const [firstName, lastName] = (firebaseUser.displayName || "New User").split(" ");
 
             const newUserProfile: User = {
@@ -86,12 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               firstName: firstName || "User",
               lastName: lastName || "",
               role: 'Admin', // Default to Admin for self-healed accounts
-              isActive: true, 
+              isActive: true,
               permissions: ROLE_PERMISSIONS['Admin'],
               createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
             };
             await setDoc(userDocRef, newUserProfile);
-            
+
             const appUser: AppUser = {
               ...firebaseUser,
               ...newUserProfile,
@@ -111,7 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, [auth, db, firebaseLoading, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth, db, firebaseLoading]);
 
   const login = async (email: string, pass: string) => {
     if (!auth) return;

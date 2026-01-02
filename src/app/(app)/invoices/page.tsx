@@ -513,6 +513,37 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleSaveAsCredit = async (customerId: string, amount: number, notes: string) => {
+    if (!db) return;
+    try {
+      const customer = customers.find(c => c.id === customerId);
+      const currentBalance = customer?.creditBalance || 0;
+      const newBalance = currentBalance + amount;
+
+      const customerRef = doc(db, 'customers', customerId);
+      await runTransaction(db, async (transaction) => {
+        transaction.set(customerRef, {
+          creditBalance: newBalance,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+
+      const customerName = customer?.companyName || `${customer?.firstName} ${customer?.lastName}`;
+      toast({
+        title: "Credit Added",
+        description: `$${amount.toFixed(2)} added to ${customerName}'s account. New balance: $${newBalance.toFixed(2)}`
+      });
+
+      setIsBulkPaymentDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Could not add credit to customer account.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handlePrepareAndPrintBulkReceipt = (receiptData: BulkPaymentReceiptData) => {
     setBulkPaymentReceiptToPrint(receiptData);
     setTimeout(() => {
@@ -891,6 +922,7 @@ export default function InvoicesPage() {
         onOpenChange={setIsBulkPaymentDialogOpen}
         customers={customers}
         onSave={handleBulkPaymentSave}
+        onSaveAsCredit={handleSaveAsCredit}
       />
 
       {isConvertingInvoice && conversionInvoiceData && (

@@ -52,3 +52,6 @@ ios/App/App/GoogleService-Info.plist
 
 # Project IDX
 .idx/
+
+# Claude Code local settings (may contain API keys)
+.claude/settings.local.json

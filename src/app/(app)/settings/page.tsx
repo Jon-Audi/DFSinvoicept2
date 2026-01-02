@@ -4,155 +4,181 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
+import { Label } from '@/components/ui/label';
 
 export default function SettingsPage() {
   return (
     <>
       <PageHeader title="Settings" description="Manage your application settings." />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Icon name="UserCog" className="mr-2 h-5 w-5" />
-              User Profile
-            </CardTitle>
-            <CardDescription>View and manage your personal profile information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/profile" passHref>
-              <Button variant="outline">
-                View Profile
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Icon name="UsersRound" className="mr-2 h-5 w-5" /> {/* Changed Icon */}
-              User Management
-            </CardTitle>
-            <CardDescription>Manage all user accounts, roles, and permissions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/users" passHref>
-              <Button variant="outline">
-                Manage Users
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-               <Icon name="Settings" className="mr-2 h-5 w-5" />
-              Company Information
-            </CardTitle>
-            <CardDescription>Manage your company details for estimates and invoices.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/company" passHref>
-              <Button variant="outline">
-                Company Settings
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-               <Icon name="Truck" className="mr-2 h-5 w-5" />
-              Vendors
-            </CardTitle>
-            <CardDescription>Manage your list of vendors and distributors.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/vendors" passHref>
-              <Button variant="outline">
-                Manage Vendors
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="space-y-8">
+        {/* Account & Users */}
+        <div>
+          <Label className="text-base font-semibold mb-4 block">Account & Users</Label>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="UserCog" className="h-4 w-4" />
+                  User Profile
+                </CardTitle>
+                <CardDescription className="text-xs">Your personal profile information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/profile">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    View Profile
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-               <Icon name="FolderTree" className="mr-2 h-5 w-5" />
-              Subcategories
-            </CardTitle>
-            <CardDescription>Manage product subcategories for better organization.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/subcategories" passHref>
-              <Button variant="outline">
-                Manage Subcategories
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="UsersRound" className="h-4 w-4" />
+                  User Management
+                </CardTitle>
+                <CardDescription className="text-xs">Manage accounts, roles, and permissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/users">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Manage Users
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Icon name="LayoutDashboard" className="mr-2 h-5 w-5" />
-              Dashboard
-            </CardTitle>
-            <CardDescription>Customize dashboard widgets and alert thresholds.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/dashboard" passHref>
-              <Button variant="outline">
-                Dashboard Settings
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Company Settings */}
+        <div>
+          <Label className="text-base font-semibold mb-4 block">Company Settings</Label>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="Settings" className="h-4 w-4" />
+                  Company Information
+                </CardTitle>
+                <CardDescription className="text-xs">Company details for documents</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/company">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Company Settings
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Icon name="Link" className="mr-2 h-5 w-5" />
-              Chainlink Pricing
-            </CardTitle>
-            <CardDescription>Configure material pricing for chainlink estimations.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/chainlink" passHref>
-              <Button variant="outline">
-                Chainlink Settings
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="Truck" className="h-4 w-4" />
+                  Vendors
+                </CardTitle>
+                <CardDescription className="text-xs">Manage vendors and distributors</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/vendors">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Manage Vendors
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Icon name="Paintbrush" className="mr-2 h-5 w-5" />
-              Appearance
-            </CardTitle>
-            <CardDescription>Customize the look and feel of the application.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/settings/appearance" passHref>
-              <Button variant="outline">
-                Theme Settings
-                <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Product & Inventory */}
+        <div>
+          <Label className="text-base font-semibold mb-4 block">Product & Inventory</Label>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="FolderTree" className="h-4 w-4" />
+                  Subcategories
+                </CardTitle>
+                <CardDescription className="text-xs">Organize products with subcategories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/subcategories">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Manage Subcategories
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="Link" className="h-4 w-4" />
+                  Chainlink Pricing
+                </CardTitle>
+                <CardDescription className="text-xs">Configure material pricing for estimates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/chainlink">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Chainlink Settings
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Customization */}
+        <div>
+          <Label className="text-base font-semibold mb-4 block">Customization</Label>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="LayoutDashboard" className="h-4 w-4" />
+                  Dashboard
+                </CardTitle>
+                <CardDescription className="text-xs">Customize widgets and alert thresholds</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/dashboard">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Dashboard Settings
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="Paintbrush" className="h-4 w-4" />
+                  Appearance
+                </CardTitle>
+                <CardDescription className="text-xs">Customize the look and feel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/appearance">
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Theme Settings
+                    <Icon name="ChevronRight" className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </>
   );

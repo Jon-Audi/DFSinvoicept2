@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -9,14 +10,27 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useAuth } from '@/contexts/auth-context';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import type { Product, Invoice, DashboardPreferences } from '@/types';
-import { AnalyticsMetrics } from '@/components/dashboard/analytics-metrics';
-import { RevenueChart } from '@/components/dashboard/revenue-chart';
-import { TopProducts } from '@/components/dashboard/top-products';
+
+// Dynamic imports for heavy chart components - improves initial page load
+const AnalyticsMetrics = dynamic(() => import('@/components/dashboard/analytics-metrics').then(mod => ({ default: mod.AnalyticsMetrics })), {
+  loading: () => <Skeleton className="h-32 w-full" />,
+  ssr: false,
+});
+
+const RevenueChart = dynamic(() => import('@/components/dashboard/revenue-chart').then(mod => ({ default: mod.RevenueChart })), {
+  loading: () => <Skeleton className="h-[400px] w-full" />,
+  ssr: false,
+});
+
+const TopProducts = dynamic(() => import('@/components/dashboard/top-products').then(mod => ({ default: mod.TopProducts })), {
+  loading: () => <Skeleton className="h-[400px] w-full" />,
+  ssr: false,
+});
 
 const DEFAULT_PREFERENCES: DashboardPreferences = {
   showLowStockAlert: true,
@@ -48,18 +62,18 @@ export default function DashboardPage() {
   const [unpaidInvoices, setUnpaidInvoices] = useState<Invoice[]>([]);
   const [isLoadingUnpaidInvoices, setIsLoadingUnpaidInvoices] = useState(true);
 
-  // Load user preferences
+  // Load user preferences with real-time updates
   useEffect(() => {
     if (!db || !user?.id) {
       setIsLoadingPreferences(false);
       return;
     }
 
-    const loadPreferences = async () => {
-      try {
-        const docRef = doc(db, 'dashboardPreferences', user.id);
-        const docSnap = await getDoc(docRef);
+    const docRef = doc(db, 'dashboardPreferences', user.id);
 
+    // Use onSnapshot for real-time updates
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      try {
         if (docSnap.exists()) {
           setPreferences({ ...DEFAULT_PREFERENCES, ...docSnap.data() } as DashboardPreferences);
         } else {
@@ -71,9 +85,13 @@ export default function DashboardPage() {
       } finally {
         setIsLoadingPreferences(false);
       }
-    };
+    }, (error) => {
+      console.error('Error subscribing to dashboard preferences:', error);
+      setPreferences(DEFAULT_PREFERENCES);
+      setIsLoadingPreferences(false);
+    });
 
-    loadPreferences();
+    return () => unsubscribe();
   }, [db, user]);
 
   useEffect(() => {

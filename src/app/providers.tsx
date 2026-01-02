@@ -12,10 +12,16 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime) - increased for better caching
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      retry: 1,
+      retry: 2, // Retry failed requests twice
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      networkMode: 'online', // Only fetch when online
+    },
+    mutations: {
+      retry: 1, // Retry failed mutations once
+      networkMode: 'online',
     },
   },
 });

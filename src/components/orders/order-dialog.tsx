@@ -186,6 +186,7 @@ export function OrderDialog({
             productCategories={productCategories}
             productSubcategories={productSubcategories}
             onViewCustomer={(customer) => setCustomerToView(customer)}
+            onSaveCustomer={onSaveCustomer}
           />
         </DialogContent>
       </Dialog>

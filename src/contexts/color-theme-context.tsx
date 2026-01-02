@@ -241,50 +241,59 @@ const ColorThemeContext = createContext<ColorThemeContextType | undefined>(undef
 
 export function ColorThemeProvider({ children }: { children: React.ReactNode }) {
   const [colorTheme, setColorThemeState] = useState("default");
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const applyColorTheme = (themeValue: string) => {
-    const selectedTheme = colorThemes.find(t => t.value === themeValue);
-    if (selectedTheme) {
-      const root = document.documentElement;
-      const isDark = root.classList.contains('dark');
-
-      // Parse HSL values and adjust for dark mode
-      const parsedBg = selectedTheme.colors.background.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
-      let background = selectedTheme.colors.background;
-
-      if (isDark && parsedBg) {
-        // In dark mode, use low lightness (20-25%) instead of high (96-98%)
-        const hue = parsedBg[1];
-        const saturation = parsedBg[2];
-        background = `${hue} ${Math.min(15, parseInt(saturation))}% 20%`;
-      }
-
-      // Set CSS variables with !important to override dark mode
-      const style = root.style;
-      style.setProperty('--primary', selectedTheme.colors.primary, 'important');
-      style.setProperty('--accent', selectedTheme.colors.accent, 'important');
-      style.setProperty('--background', background, 'important');
-      style.setProperty('--ring', selectedTheme.colors.primary, 'important');
-
-      console.log('Applied theme:', themeValue, { original: selectedTheme.colors, applied: background, isDark });
-    }
-  };
-
-  // Load and apply theme on mount
+  // Load theme on mount only
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isInitialized) return;
 
     const savedTheme = localStorage.getItem('colorTheme') || 'default';
     setColorThemeState(savedTheme);
-    applyColorTheme(savedTheme);
-  }, []);
+    setIsInitialized(true);
+  }, [isInitialized]);
 
-  // Watch for dark mode changes and reapply current theme
+  // Apply theme whenever colorTheme changes
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isInitialized) return;
 
-    const observer = new MutationObserver(() => {
-      applyColorTheme(colorTheme);
+    const selectedTheme = colorThemes.find(t => t.value === colorTheme);
+    if (!selectedTheme) return;
+
+    const root = document.documentElement;
+    const isDark = root.classList.contains('dark');
+
+    // Parse HSL values and adjust for dark mode
+    const parsedBg = selectedTheme.colors.background.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+    let background = selectedTheme.colors.background;
+
+    if (isDark && parsedBg) {
+      // In dark mode, use low lightness (20-25%) instead of high (96-98%)
+      const hue = parsedBg[1];
+      const saturation = parsedBg[2];
+      background = `${hue} ${Math.min(15, parseInt(saturation))}% 20%`;
+    }
+
+    // Set CSS variables
+    const style = root.style;
+    style.setProperty('--primary', selectedTheme.colors.primary, 'important');
+    style.setProperty('--accent', selectedTheme.colors.accent, 'important');
+    style.setProperty('--background', background, 'important');
+    style.setProperty('--ring', selectedTheme.colors.primary, 'important');
+  }, [colorTheme, isInitialized]);
+
+  // Watch for dark mode changes and trigger re-apply
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isInitialized) return;
+
+    const observer = new MutationObserver((mutations) => {
+      const classChanged = mutations.some(
+        mutation => mutation.attributeName === 'class'
+      );
+
+      if (classChanged) {
+        // Force re-render by setting the same theme value
+        setColorThemeState(prev => prev);
+      }
     });
 
     observer.observe(document.documentElement, {
@@ -293,20 +302,12 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     });
 
     return () => observer.disconnect();
-  }, [colorTheme]);
+  }, [isInitialized]);
 
   const setColorTheme = (theme: string) => {
     setColorThemeState(theme);
     if (typeof window !== 'undefined') {
       localStorage.setItem('colorTheme', theme);
-    }
-    applyColorTheme(theme);
-
-    // Force a repaint to ensure CSS changes take effect
-    if (typeof window !== 'undefined' && document.body) {
-      document.body.style.display = 'none';
-      document.body.offsetHeight; // Trigger reflow
-      document.body.style.display = '';
     }
   };
 
