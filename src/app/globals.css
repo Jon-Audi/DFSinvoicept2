@@ -21,12 +21,12 @@
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215.4 16.3% 35%; /* Darkened for WCAG AA compliance (4.5:1 contrast ratio) */
 
     --accent: 140 38% 73%; /* Soft Blue/Greenish: #A0D6B4 */
     --accent-foreground: 0 0% 10%; /* Dark text for Soft Blue/Greenish */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84.2% 50%; /* Darkened for better contrast against light backgrounds */
     --destructive-foreground: 0 0% 98%;
 
     --border: 214.3 31.8% 91.4%;

@@ -314,16 +314,16 @@ export default function DashboardPage() {
                   </div>
                 ))}
                 {lowStockProducts.length > 10 && (
-                  <Link href="/inventory" className="block">
-                    <Button variant="ghost" size="sm" className="w-full mt-2">
+                  <Link href="/inventory" className="block" aria-label={`View all ${lowStockProducts.length} low stock items`}>
+                    <Button variant="ghost" size="sm" className="w-full mt-2 min-h-[24px]">
                       View all {lowStockProducts.length} items <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 )}
               </div>
             )}
-            <Link href="/inventory" className="block mt-4">
-              <Button variant="outline" className="w-full">
+            <Link href="/inventory" className="block mt-4" aria-label="Manage inventory">
+              <Button variant="outline" className="w-full min-h-[24px]">
                 Manage Inventory <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -362,8 +362,8 @@ export default function DashboardPage() {
                   const isOverdue = daysOverdue !== null && daysOverdue > 0;
 
                   return (
-                    <Link key={invoice.id} href={`/invoices`}>
-                      <div className="flex items-center justify-between p-2 border rounded hover:bg-muted/50 cursor-pointer">
+                    <Link key={invoice.id} href={`/invoices`} aria-label={`View invoice #${invoice.invoiceNumber} for ${invoice.customerName}`}>
+                      <div className="flex items-center justify-between p-2 border rounded hover:bg-muted/50 cursor-pointer min-h-[48px]">
                         <div className="flex-1">
                           <p className="font-medium text-sm">Invoice #{invoice.invoiceNumber}</p>
                           <p className="text-xs text-muted-foreground">{invoice.customerName}</p>
@@ -387,8 +387,8 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-            <Link href="/invoices" className="block mt-4">
-              <Button variant="outline" className="w-full">
+            <Link href="/invoices" className="block mt-4" aria-label="View all unpaid invoices">
+              <Button variant="outline" className="w-full min-h-[24px]">
                 View All Invoices <Icon name="ChevronRight" className="ml-2 h-4 w-4" />
               </Button>
             </Link>
