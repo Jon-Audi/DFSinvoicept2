@@ -68,11 +68,23 @@ export default function DashboardSettingsPage() {
   }, [db, user, toast]);
 
   const handleSave = async () => {
-    if (!db || !user?.id) return;
+    console.log('Save button clicked');
+    console.log('DB:', db, 'User ID:', user?.id);
+
+    if (!db || !user?.id) {
+      console.log('Missing db or user.id, cannot save');
+      toast({
+        title: "Error",
+        description: "Not authenticated or database not initialized.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
       const docRef = doc(db, 'dashboardPreferences', user.id);
+      console.log('Saving preferences:', preferences);
       await setDoc(docRef, preferences);
 
       toast({
@@ -324,7 +336,7 @@ export default function DashboardSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving || isLoading}>
+          <Button type="button" onClick={handleSave} disabled={isSaving || isLoading}>
             {isSaving ? 'Saving...' : 'Save Preferences'}
           </Button>
         </div>
