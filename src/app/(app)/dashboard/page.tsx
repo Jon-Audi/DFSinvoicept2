@@ -50,12 +50,12 @@ export default function DashboardPage() {
 
   // Load user preferences with real-time updates
   useEffect(() => {
-    if (!db || !user?.id) {
+    if (!db || !user?.uid) {
       setIsLoadingPreferences(false);
       return;
     }
 
-    const docRef = doc(db, 'dashboardPreferences', user.id);
+    const docRef = doc(db, 'dashboardPreferences', user.uid);
 
     // Use onSnapshot for real-time updates
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
