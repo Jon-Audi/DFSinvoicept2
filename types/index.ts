@@ -105,6 +105,7 @@ export interface Payment {
   amount: number;
   method: PaymentMethod;
   notes?: string;
+  bulkPaymentId?: string; // ID linking to bulk payment record
 }
 
 export type DocumentStatus =
@@ -272,6 +273,23 @@ export interface PaymentByTypeReportItem {
   method: PaymentMethod;
   totalAmount: number;
   transactionCount: number;
+}
+
+export interface BulkPayment {
+  id: string;
+  customerId: string;
+  customerName: string;
+  paymentDate: string; // ISO date string
+  paymentAmount: number;
+  paymentMethod: PaymentMethod;
+  paymentNotes?: string;
+  invoices: {
+    invoiceId: string;
+    invoiceNumber: string;
+    amountApplied: number;
+  }[];
+  createdAt: string; // ISO date string
+  createdBy?: string; // User ID
 }
 
 export interface BulkPaymentReceiptData {

@@ -378,6 +378,14 @@ export interface ReadyForPickupReportItem {
   total: number;
 }
 
+export interface TopSellingProductsReportItem {
+  productId: string;
+  productName: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  numberOfInvoices: number;
+}
+
 // Chainlink Estimation Types
 export type ChainlinkFenceType = 'residential' | 'commercial';
 export type ChainlinkFenceHeight = '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';

@@ -16,7 +16,7 @@ import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, isVa
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc as getFirestoreDoc, orderBy } from 'firebase/firestore';
-import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem, ProfitSummaryItem } from '@/types';
+import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem, ProfitSummaryItem, TopSellingProductsReportItem } from '@/types';
 import { PrintableSalesReport } from '@/components/reports/printable-sales-report';
 import PrintableOrderReport from '@/components/reports/printable-order-report';
 import { PrintableOutstandingInvoicesReport } from '@/components/reports/printable-outstanding-invoices-report';
@@ -29,6 +29,7 @@ import { PrintableCustomerStatement } from '@/components/reports/printable-custo
 import { PrintableSalesByCustomerReport } from '@/components/reports/printable-sales-by-customer-report';
 import { PrintableProductionReport } from '@/components/reports/printable-production-report';
 import { PrintableReadyForPickupReport } from '@/components/reports/printable-ready-for-pickup-report';
+import { PrintableTopSellingProductsReport } from '@/components/reports/printable-top-selling-products-report';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ import { PAYMENT_METHODS } from '@/lib/constants';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
-type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup' | 'quarterlySummary';
+type ReportType = 'sales' | 'orders' | 'customerBalances' | 'payments' | 'weeklySummary' | 'paymentByType' | 'profitability' | 'statement' | 'salesByCustomer' | 'production' | 'profitabilitySummary' | 'readyForPickup' | 'quarterlySummary' | 'topSellingProducts';
 type DatePreset = 'custom' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear';
 type OutstandingInvoiceFilter = 'all' | 'ordered' | 'pickedUp' | 'allStatuses';
 
@@ -58,6 +59,8 @@ export default function ReportsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [categories, setCategories] = useState<string[]>([]);
   const [generatedReportData, setGeneratedReportData] = useState<any | null>(null);
   const [generatedProfitabilitySummaryData, setGeneratedProfitabilitySummaryData] = useState<ProfitSummaryItem[] | null>(null);
   const [activeDatePreset, setActiveDatePreset] = useState<DatePreset>('thisMonth');
@@ -90,6 +93,26 @@ export default function ReportsPage() {
     };
     fetchCustomers();
   }, [db, toast]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!db) return;
+      try {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const uniqueCategories = new Set<string>();
+        productsSnapshot.forEach(docSnap => {
+          const product = docSnap.data() as Product;
+          if (product.category) {
+            uniqueCategories.add(product.category);
+          }
+        });
+        setCategories(Array.from(uniqueCategories).sort());
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, [db]);
 
   const handleDatePresetChange = (preset: DatePreset) => {
     setActiveDatePreset(preset);
@@ -287,6 +310,67 @@ export default function ReportsPage() {
         }));
 
         data = reportItems.sort((a,b) => b.totalSales - a.totalSales);
+      }
+      else if (targetReportType === 'topSellingProducts') {
+        const categoryFilter = selectedCategory !== 'all' ? ` - ${selectedCategory}` : '';
+        currentReportTitle = `Top Selling Products${categoryFilter} (${format(rangeStart, "P")} - ${format(rangeEnd, "P")})`;
+
+        // Fetch products to get category information
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const productsMap = new Map<string, Product>();
+        productsSnapshot.forEach(doc => productsMap.set(doc.id, { id: doc.id, ...doc.data() } as Product));
+
+        const invoicesRef = collection(db, 'invoices');
+        const q = query(invoicesRef,
+                        where('date', '>=', rangeStart.toISOString()),
+                        where('date', '<=', rangeEnd.toISOString()));
+        const invoiceSnapshot = await getDocs(q);
+
+        const productSales = new Map<string, { productName: string; totalQuantitySold: number; totalRevenue: number; invoiceIds: Set<string> }>();
+
+        invoiceSnapshot.forEach(doc => {
+            const invoice = doc.data() as Invoice;
+            if(invoice.status === 'Voided') return;
+
+            invoice.lineItems.forEach(item => {
+                // Exclude clover items (case-insensitive)
+                if (item.productName && item.productName.toLowerCase().includes('clover')) return;
+
+                // Filter by category if selected
+                if (selectedCategory !== 'all') {
+                    // Only filter stock items (non-stock items don't have productId or category)
+                    const product = item.productId ? productsMap.get(item.productId) : null;
+                    if (!product || product.category !== selectedCategory) return;
+                }
+
+                const productKey = item.productId || item.productName;
+                const currentData = productSales.get(productKey) || {
+                    productName: item.productName,
+                    totalQuantitySold: 0,
+                    totalRevenue: 0,
+                    invoiceIds: new Set<string>()
+                };
+
+                // Handle returns by subtracting quantity/revenue
+                const quantityModifier = item.isReturn ? -1 : 1;
+                currentData.totalQuantitySold += item.quantity * quantityModifier;
+                currentData.totalRevenue += item.total * quantityModifier;
+                currentData.invoiceIds.add(doc.id);
+                productSales.set(productKey, currentData);
+            });
+        });
+
+        const reportItems: TopSellingProductsReportItem[] = Array.from(productSales.entries())
+            .map(([productId, data]) => ({
+                productId,
+                productName: data.productName,
+                totalQuantitySold: data.totalQuantitySold,
+                totalRevenue: data.totalRevenue,
+                numberOfInvoices: data.invoiceIds.size
+            }))
+            .filter(item => item.totalQuantitySold > 0); // Exclude products with zero or negative sales
+
+        data = reportItems.sort((a,b) => b.totalRevenue - a.totalRevenue);
       }
       else if (targetReportType === 'statement') {
         const customer = customers.find(c => c.id === selectedCustomerId);
@@ -761,6 +845,20 @@ export default function ReportsPage() {
       const grandTotal = salesData.reduce((sum, item) => sum + item.totalSales, 0);
       return <p>Total Sales (All Customers): <span className="font-semibold">${grandTotal.toFixed(2)}</span></p>;
     }
+    if (reportType === 'topSellingProducts') {
+      const productsData = generatedReportData as TopSellingProductsReportItem[];
+      const totalRevenue = productsData.reduce((sum, item) => sum + item.totalRevenue, 0);
+      const totalQuantity = productsData.reduce((sum, item) => sum + item.totalQuantitySold, 0);
+      return (
+        <div className="space-y-1">
+          {selectedCategory !== 'all' && (
+            <p>Category: <span className="font-semibold">{selectedCategory}</span></p>
+          )}
+          <p>Total Products Sold: <span className="font-semibold">{totalQuantity.toFixed(2)}</span></p>
+          <p>Total Revenue: <span className="font-semibold">${totalRevenue.toFixed(2)}</span></p>
+        </div>
+      );
+    }
     if (reportType === 'profitability') {
         const profitItems = generatedProfitabilitySummaryData || [];
         const grandTotalRevenue = profitItems.reduce((sum, item) => sum + item.totalRevenue, 0);
@@ -955,6 +1053,31 @@ export default function ReportsPage() {
                 <TableCell>{item.customerName}</TableCell>
                 <TableCell className="text-right">{item.invoiceCount}</TableCell>
                 <TableCell className="text-right font-semibold">${item.totalSales.toFixed(2)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )
+    }
+
+    if (reportType === 'topSellingProducts') {
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product Name</TableHead>
+              <TableHead className="text-right">Quantity Sold</TableHead>
+              <TableHead className="text-right">Total Revenue</TableHead>
+              <TableHead className="text-right"># of Invoices</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(generatedReportData as TopSellingProductsReportItem[]).map((item) => (
+              <TableRow key={item.productId}>
+                <TableCell className="font-medium">{item.productName}</TableCell>
+                <TableCell className="text-right">{item.totalQuantitySold.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold">${item.totalRevenue.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{item.numberOfInvoices}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -1248,7 +1371,7 @@ export default function ReportsPage() {
               <Label className="text-base font-semibold mb-3 block">Select Report Type</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Financial Reports */}
-                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'sales' || reportType === 'salesByCustomer' || reportType === 'quarterlySummary' ? "ring-2 ring-primary" : "")}>
+                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'sales' || reportType === 'salesByCustomer' || reportType === 'quarterlySummary' || reportType === 'topSellingProducts' ? "ring-2 ring-primary" : "")}>
                   <CardHeader className="p-4">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Icon name="DollarSign" className="h-4 w-4" />
@@ -1271,6 +1394,14 @@ export default function ReportsPage() {
                       onClick={() => { setReportType('salesByCustomer'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
                     >
                       By Customer
+                    </Button>
+                    <Button
+                      variant={reportType === 'topSellingProducts' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => { setReportType('topSellingProducts'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); setSelectedCategory('all'); handleDatePresetChange('thisMonth'); }}
+                    >
+                      Top Selling Products
                     </Button>
                     <Button
                       variant={reportType === 'quarterlySummary' ? 'default' : 'ghost'}
@@ -1448,6 +1579,23 @@ export default function ReportsPage() {
             </div>
           )}
           
+          {reportType === 'topSellingProducts' && (
+            <div className="space-y-2">
+              <Label htmlFor="category-select">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isLoading}>
+                <SelectTrigger id="category-select"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {(reportType === 'customerBalances' || reportType === 'statement') && (
             <div className="space-y-2">
               <Label htmlFor="customer-select">Customer</Label>
@@ -1555,6 +1703,9 @@ export default function ReportsPage() {
         )}
         {reportToPrintData && reportToPrintData.reportType === 'salesByCustomer' && (
             <PrintableSalesByCustomerReport ref={printRef} reportItems={reportToPrintData.data as SalesByCustomerReportItem[]} companySettings={reportToPrintData.companySettings} startDate={reportToPrintData.startDate!} endDate={reportToPrintData.endDate!} logoUrl={reportToPrintData.logoUrl} />
+        )}
+        {reportToPrintData && reportToPrintData.reportType === 'topSellingProducts' && (
+            <PrintableTopSellingProductsReport ref={printRef} reportItems={reportToPrintData.data as TopSellingProductsReportItem[]} companySettings={reportToPrintData.companySettings} startDate={reportToPrintData.startDate!} endDate={reportToPrintData.endDate!} logoUrl={reportToPrintData.logoUrl} />
         )}
         {reportToPrintData && reportToPrintData.reportType === 'sales' && (
           <PrintableSalesReport ref={printRef} invoices={reportToPrintData.data as Invoice[]} companySettings={reportToPrintData.companySettings} startDate={reportToPrintData.startDate!} endDate={reportToPrintData.endDate!} logoUrl={reportToPrintData.logoUrl} />

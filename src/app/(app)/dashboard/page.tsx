@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -15,22 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import type { Product, Invoice, DashboardPreferences } from '@/types';
-
-// Dynamic imports for heavy chart components - improves initial page load
-const AnalyticsMetrics = dynamic(() => import('@/components/dashboard/analytics-metrics').then(mod => ({ default: mod.AnalyticsMetrics })), {
-  loading: () => <Skeleton className="h-32 w-full" />,
-  ssr: false,
-});
-
-const RevenueChart = dynamic(() => import('@/components/dashboard/revenue-chart').then(mod => ({ default: mod.RevenueChart })), {
-  loading: () => <Skeleton className="h-[400px] w-full" />,
-  ssr: false,
-});
-
-const TopProducts = dynamic(() => import('@/components/dashboard/top-products').then(mod => ({ default: mod.TopProducts })), {
-  loading: () => <Skeleton className="h-[400px] w-full" />,
-  ssr: false,
-});
+import { AnalyticsMetrics } from '@/components/dashboard/analytics-metrics';
+import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import { TopProducts } from '@/components/dashboard/top-products';
 
 const DEFAULT_PREFERENCES: DashboardPreferences = {
   showLowStockAlert: true,

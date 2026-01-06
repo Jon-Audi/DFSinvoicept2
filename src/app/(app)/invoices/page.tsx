@@ -57,6 +57,7 @@ import { LineItemsViewerDialog } from "@/components/shared/line-items-viewer-dia
 import { BulkPaymentDialog } from "@/components/invoices/bulk-payment-dialog";
 import { PrintableBulkPaymentReceipt } from "@/components/invoices/printable-bulk-payment-receipt";
 import { BulkPaymentToastAction } from "@/components/invoices/bulk-payment-toast-action";
+import { BulkPaymentsListDialog } from "@/components/invoices/bulk-payments-list-dialog";
 import { useInvalidateAnalytics } from "@/hooks/use-analytics";
 
 const COMPANY_SETTINGS_DOC_ID = "main";
@@ -109,6 +110,7 @@ export default function InvoicesPage() {
   const [packingSlipToPrintForInvoice, setPackingSlipToPrintForInvoice] = useState<any | null>(null);
   const [bulkPaymentReceiptToPrint, setBulkPaymentReceiptToPrint] = useState<BulkPaymentReceiptData | null>(null);
   const [isBulkPaymentDialogOpen, setIsBulkPaymentDialogOpen] = useState(false);
+  const [isBulkPaymentsListOpen, setIsBulkPaymentsListOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: SortableInvoiceKeys; direction: "asc" | "desc" }>({
@@ -426,6 +428,7 @@ export default function InvoicesPage() {
   ) => {
     if (!db) return;
     let affectedInvoicesData: { invoiceNumber: string; amountApplied: number }[] = [];
+    const bulkPaymentId = crypto.randomUUID();
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -458,6 +461,7 @@ export default function InvoicesPage() {
             notes: paymentDetails.notes
               ? `${paymentDetails.notes} (Applied from bulk payment)`
               : "Bulk payment application",
+            bulkPaymentId: bulkPaymentId, // Link to bulk payment record
           };
 
           const newAmountPaid = paid + amountToApply;
@@ -471,7 +475,11 @@ export default function InvoicesPage() {
             status: newStatus,
           });
 
-          affectedInvoicesData.push({ invoiceNumber: invoice.invoiceNumber, amountApplied: amountToApply });
+          affectedInvoicesData.push({
+            invoiceNumber: invoice.invoiceNumber,
+            amountApplied: amountToApply,
+            invoiceId: invoice.id!
+          });
           remaining -= amountToApply;
         }
 
@@ -485,9 +493,26 @@ export default function InvoicesPage() {
       });
 
       const customer = customers.find((c) => c.id === customerId);
+      const customerName = customer?.companyName || `${customer?.firstName} ${customer?.lastName}` || "N/A";
+
+      // Save bulk payment record to Firestore
+      const bulkPaymentRecord = {
+        id: bulkPaymentId,
+        customerId,
+        customerName,
+        paymentDate: paymentDetails.date,
+        paymentAmount: paymentDetails.amount,
+        paymentMethod: paymentDetails.method,
+        paymentNotes: paymentDetails.notes,
+        invoices: affectedInvoicesData,
+        createdAt: new Date().toISOString(),
+      };
+
+      await addDoc(collection(db, 'bulkPayments'), bulkPaymentRecord);
+
       const receiptData: BulkPaymentReceiptData = {
         paymentDetails: { ...paymentDetails, id: crypto.randomUUID() },
-        customerName: customer?.companyName || `${customer?.firstName} ${customer?.lastName}` || "N/A",
+        customerName,
         affectedInvoices: affectedInvoicesData,
         companySettings: (await fetchCompanySettings())!,
         logoUrl: typeof window !== "undefined" ? `${window.location.origin}/Logo.png` : "/Logo.png",
@@ -898,6 +923,10 @@ export default function InvoicesPage() {
             <Icon name="ClipboardList" className="mr-2 h-4 w-4" />
             Record Bulk Payment
           </Button>
+          <Button variant="outline" onClick={() => setIsBulkPaymentsListOpen(true)} disabled={isLoading}>
+            <Icon name="Receipt" className="mr-2 h-4 w-4" />
+            View Receipts
+          </Button>
           <InvoiceDialog
             triggerButton={
               <Button>
@@ -1108,6 +1137,11 @@ export default function InvoicesPage() {
         documentType="Invoice"
         documentNumber={invoiceForViewingItems?.invoiceNumber ?? ''}
         distributor={invoiceForViewingItems?.distributor}
+      />
+
+      <BulkPaymentsListDialog
+        isOpen={isBulkPaymentsListOpen}
+        onOpenChange={setIsBulkPaymentsListOpen}
       />
 
     </>
