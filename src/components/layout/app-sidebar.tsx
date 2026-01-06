@@ -47,8 +47,10 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          <SidebarSeparator />
-           <SidebarMenuItem>
+          <SidebarMenuItem role="none">
+            <SidebarSeparator />
+          </SidebarMenuItem>
+          <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
                 tooltip={MATERIAL_CALCULATOR_LINK.label}
