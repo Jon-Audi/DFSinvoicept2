@@ -37,14 +37,14 @@ export default function DashboardSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!db || !user?.id) {
+    if (!db || !user?.uid) {
       setIsLoading(false);
       return;
     }
 
     const loadPreferences = async () => {
       try {
-        const docRef = doc(db, 'dashboardPreferences', user.id);
+        const docRef = doc(db, 'dashboardPreferences', user.uid);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -69,10 +69,10 @@ export default function DashboardSettingsPage() {
 
   const handleSave = async () => {
     console.log('Save button clicked');
-    console.log('DB:', db, 'User ID:', user?.id);
+    console.log('DB:', db, 'User UID:', user?.uid);
 
-    if (!db || !user?.id) {
-      console.log('Missing db or user.id, cannot save');
+    if (!db || !user?.uid) {
+      console.log('Missing db or user.uid, cannot save');
       toast({
         title: "Error",
         description: "Not authenticated or database not initialized.",
@@ -83,7 +83,7 @@ export default function DashboardSettingsPage() {
 
     setIsSaving(true);
     try {
-      const docRef = doc(db, 'dashboardPreferences', user.id);
+      const docRef = doc(db, 'dashboardPreferences', user.uid);
       console.log('Saving preferences:', preferences);
       await setDoc(docRef, preferences);
 
