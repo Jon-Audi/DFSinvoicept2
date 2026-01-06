@@ -287,7 +287,7 @@ export default function ChainlinkSettingsPage() {
         <div className="flex items-center gap-4">
           <Label className="font-semibold">Select Height:</Label>
           <Select value={selectedHeight} onValueChange={(value) => setSelectedHeight(value as ChainlinkFenceHeight)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40" aria-label="Select Height">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

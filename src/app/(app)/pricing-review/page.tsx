@@ -273,7 +273,7 @@ export default function PricingReviewPage() {
             <div>
               <label className="text-sm font-medium mb-2 block">Category</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Category">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -288,7 +288,7 @@ export default function PricingReviewPage() {
             <div>
               <label className="text-sm font-medium mb-2 block">Issue Type</label>
               <Select value={selectedIssue} onValueChange={(v) => setSelectedIssue(v as PricingIssue | 'all')}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Issue Type">
                   <SelectValue placeholder="All Issues" />
                 </SelectTrigger>
                 <SelectContent>

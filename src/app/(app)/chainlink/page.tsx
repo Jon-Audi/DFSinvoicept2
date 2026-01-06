@@ -517,7 +517,7 @@ export default function ChainlinkEstimationPage() {
             <div className="space-y-2">
               <Label>Fence Height</Label>
               <Select value={fenceHeight} onValueChange={(value) => setFenceHeight(value as ChainlinkFenceHeight)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Fence Height">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -532,7 +532,7 @@ export default function ChainlinkEstimationPage() {
             <div className="space-y-2">
               <Label>Fence Type</Label>
               <Select value={fenceType} onValueChange={(value) => setFenceType(value as ChainlinkFenceType)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Fence Type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

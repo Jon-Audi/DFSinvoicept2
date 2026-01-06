@@ -1583,7 +1583,7 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <Label htmlFor="category-select">Product Category</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isLoading}>
-                <SelectTrigger id="category-select"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                <SelectTrigger id="category-select" aria-label="Product Category"><SelectValue placeholder="Select Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(category => (
@@ -1600,7 +1600,7 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <Label htmlFor="customer-select">Customer</Label>
               <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId} disabled={isLoadingCustomers || isLoading}>
-                <SelectTrigger id="customer-select"><SelectValue placeholder="Select Customer" /></SelectTrigger>
+                <SelectTrigger id="customer-select" aria-label="Customer"><SelectValue placeholder="Select Customer" /></SelectTrigger>
                 <SelectContent>
                   {reportType === 'customerBalances' && <SelectItem value="all">All Customers</SelectItem>}
                   {customers.map(customer => (

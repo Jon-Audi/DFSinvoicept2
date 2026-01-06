@@ -171,7 +171,7 @@ export default function DashboardSettingsPage() {
                         defaultChartPeriod: parseInt(value) as 7 | 30 | 60 | 90,
                       }))}
                     >
-                      <SelectTrigger id="chart-period" className="w-32">
+                      <SelectTrigger id="chart-period" className="w-32" aria-label="Default Time Period for Charts">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -208,7 +208,7 @@ export default function DashboardSettingsPage() {
                         defaultTopProductsPeriod: value === 'all' ? 'all' : parseInt(value) as 30 | 60 | 90,
                       }))}
                     >
-                      <SelectTrigger id="products-period" className="w-32">
+                      <SelectTrigger id="products-period" className="w-32" aria-label="Default Time Period for Top Products">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
