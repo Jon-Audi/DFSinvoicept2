@@ -193,7 +193,7 @@ export function InvoiceDialog({
     <>
       <Sheet open={isOpen} onOpenChange={setOpen}>
         {triggerButton && <SheetTrigger asChild>{triggerButton}</SheetTrigger>}
-        <SheetContent size="2xl" className="p-0 flex flex-col !h-screen overflow-hidden">
+        <SheetContent size="2xl" className="p-0 flex flex-col !h-[100vh] overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <SheetTitle>{dialogTitle}</SheetTitle>
             <SheetDescription>{dialogDescription}</SheetDescription>
@@ -211,7 +211,7 @@ export function InvoiceDialog({
               </div>
             )}
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
             <InvoiceForm
               invoice={invoice}
               initialData={initialData}
