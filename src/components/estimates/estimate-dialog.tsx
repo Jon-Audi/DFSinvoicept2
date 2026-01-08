@@ -5,13 +5,13 @@ import React from 'react';
 import type { Estimate, Customer, Product, LineItem, Payment } from '@/types';
 import { EstimateForm, type EstimateFormData } from './estimate-form';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { clearSavedFormData } from '@/hooks/use-form-auto-save';
 
@@ -160,34 +160,30 @@ export function EstimateDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setOpen}>
-        {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
-        <DialogContent
-          className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-          onInteractOutside={(e) => {
-            // Prevent closing on outside click to avoid accidental data loss
-            e.preventDefault();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>{dialogDescription}</DialogDescription>
-          </DialogHeader>
-          <EstimateForm
-            estimate={estimate}
-            initialData={initialData}
-            onSubmit={handleSubmit}
-            onClose={() => setOpen(false)}
-            customers={customers}
-            products={products}
-            productCategories={productCategories}
-            productSubcategories={productSubcategories}
-            isDataLoading={isDataLoading}
-            onViewCustomer={(customer) => setCustomerToView(customer)}
-            onSaveCustomer={onSaveCustomer}
-          />
-        </DialogContent>
-      </Dialog>
+      <Sheet open={isOpen} onOpenChange={setOpen}>
+        {triggerButton && <SheetTrigger asChild>{triggerButton}</SheetTrigger>}
+        <SheetContent size="2xl" className="p-0 flex flex-col !h-[100vh] overflow-hidden">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <SheetTitle>{dialogTitle}</SheetTitle>
+            <SheetDescription>{dialogDescription}</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+            <EstimateForm
+              estimate={estimate}
+              initialData={initialData}
+              onSubmit={handleSubmit}
+              onClose={() => setOpen(false)}
+              customers={customers}
+              products={products}
+              productCategories={productCategories}
+              productSubcategories={productSubcategories}
+              isDataLoading={isDataLoading}
+              onViewCustomer={(customer) => setCustomerToView(customer)}
+              onSaveCustomer={onSaveCustomer}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {customerToView && (
         <CustomerDialog 
