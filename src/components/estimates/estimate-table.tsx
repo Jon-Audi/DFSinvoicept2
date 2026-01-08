@@ -90,13 +90,9 @@ export function EstimateTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead onClick={() => requestSort('estimateNumber')} className="cursor-pointer hover:bg-muted/50">
-              Number {renderSortArrow('estimateNumber')}
-            </TableHead>
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
-            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
@@ -109,23 +105,24 @@ export function EstimateTable({
             <TableHead onClick={() => requestSort('status')} className="cursor-pointer hover:bg-muted/50">
               Status {renderSortArrow('status')}
             </TableHead>
-            <TableHead className="w-[80px]">Actions</TableHead>
+            <TableHead className="w-[80px] text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {estimates.map((estimate) => {
             return (
               <TableRow key={estimate.id}>
-                <TableCell>{estimate.estimateNumber}</TableCell>
-                <TableCell>{estimate.customerName}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {getEmployeeNameFromEmail(estimate.createdBy)}
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{estimate.customerName}</span>
+                    <span className="text-xs text-muted-foreground">#{estimate.estimateNumber}</span>
+                  </div>
                 </TableCell>
                 <TableCell>{estimate.poNumber || 'N/A'}</TableCell>
                 <TableCell>{formatDate(estimate.date)}</TableCell>
-                <TableCell className="text-right">${estimate.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-medium">${estimate.total.toFixed(2)}</TableCell>
                 <TableCell><Badge variant={estimate.status === 'Sent' || estimate.status === 'Accepted' ? 'default' : 'outline'}>{estimate.status}</Badge></TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">

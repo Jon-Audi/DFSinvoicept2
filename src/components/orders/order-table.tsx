@@ -115,13 +115,9 @@ export function OrderTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead onClick={() => requestSort('orderNumber')} className="cursor-pointer hover:bg-muted/50">
-              Number {renderSortArrow('orderNumber')}
-            </TableHead>
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
-            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
@@ -129,23 +125,12 @@ export function OrderTable({
               Date {renderSortArrow('date')}
             </TableHead>
             {canViewPricing && (
-                <>
-                    <TableHead onClick={() => requestSort('total')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Total {renderSortArrow('total')}
-                    </TableHead>
-                    <TableHead onClick={() => requestSort('amountPaid')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Paid {renderSortArrow('amountPaid')}
-                    </TableHead>
-                    <TableHead onClick={() => requestSort('balanceDue')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Balance {renderSortArrow('balanceDue')}
-                    </TableHead>
-                </>
+                <TableHead onClick={() => requestSort('total')} className="text-right cursor-pointer hover:bg-muted/50">
+                    Total {renderSortArrow('total')}
+                </TableHead>
             )}
             <TableHead onClick={() => requestSort('status')} className="cursor-pointer hover:bg-muted/50">
               Status {renderSortArrow('status')}
-            </TableHead>
-            <TableHead onClick={() => requestSort('orderState')} className="cursor-pointer hover:bg-muted/50">
-              Order State {renderSortArrow('orderState')}
             </TableHead>
             <TableHead className="w-[80px] text-center">Actions</TableHead>
           </TableRow>
@@ -153,40 +138,32 @@ export function OrderTable({
         <TableBody>
           {orders.map((order) => (
             <TableRow key={order.id}>
-              <TableCell>{order.orderNumber}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {getEmployeeNameFromEmail(order.createdBy)}
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium">{order.customerName}</span>
+                  <span className="text-xs text-muted-foreground">#{order.orderNumber}</span>
+                </div>
               </TableCell>
               <TableCell>{order.poNumber || 'N/A'}</TableCell>
               <TableCell>{formatDate(order.date)}</TableCell>
               {canViewPricing && (
-                  <>
-                    <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-green-600">${(order.amountPaid || 0).toFixed(2)}</TableCell>
-                    <TableCell className={cn("text-right", (order.balanceDue !== undefined && order.balanceDue > 0) ? "text-destructive" : "text-green-600")}>
-                        ${(order.balanceDue || 0).toFixed(2)}
-                    </TableCell>
-                  </>
+                <TableCell className="text-right font-medium">${order.total.toFixed(2)}</TableCell>
               )}
               <TableCell>
-                <Badge variant={getStatusVariant(order.status)}
-                  className={cn(
-                    order.status === 'Picked up' && 'bg-green-500 hover:bg-green-600 text-white',
-                    order.status === 'Invoiced' && 'bg-blue-500 hover:bg-blue-600 text-white',
-                    order.status === 'Ready for pick up' && 'bg-yellow-500 hover:bg-yellow-600 text-black',
-                  )}
-                >
-                  {order.status}
-                  {order.distributor && ` (${order.distributor})`}
-                  {order.status === 'Ready for pick up' && order.readyForPickUpDate && ` (${formatDate(order.readyForPickUpDate, { month: '2-digit', day: '2-digit' })})`}
-                  {order.status === 'Picked up' && order.pickedUpDate && ` (${formatDate(order.pickedUpDate, { month: '2-digit', day: '2-digit' })})`}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant={getOrderStateVariant(order.orderState)}>
-                  {order.orderState}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={getStatusVariant(order.status)}
+                    className={cn(
+                      order.status === 'Picked up' && 'bg-green-500 hover:bg-green-600 text-white',
+                      order.status === 'Invoiced' && 'bg-blue-500 hover:bg-blue-600 text-white',
+                      order.status === 'Ready for pick up' && 'bg-yellow-500 hover:bg-yellow-600 text-black',
+                    )}
+                  >
+                    {order.status}
+                  </Badge>
+                  <Badge variant={getOrderStateVariant(order.orderState)}>
+                    {order.orderState}
+                  </Badge>
+                </div>
               </TableCell>
               <TableCell className="text-center">
                 <DropdownMenu>

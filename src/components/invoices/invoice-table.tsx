@@ -130,34 +130,19 @@ export function InvoiceTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead onClick={() => requestSort('invoiceNumber')} className="cursor-pointer hover:bg-muted/50">
-              Number {renderSortArrow('invoiceNumber')}
-            </TableHead>
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
-            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
             <TableHead onClick={() => requestSort('date')} className="cursor-pointer hover:bg-muted/50">
               Date {renderSortArrow('date')}
             </TableHead>
-            <TableHead onClick={() => requestSort('dueDate')} className="cursor-pointer hover:bg-muted/50">
-              Due Date {renderSortArrow('dueDate')}
-            </TableHead>
             {canViewPricing && (
-                <>
-                    <TableHead onClick={() => requestSort('total')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Total {renderSortArrow('total')}
-                    </TableHead>
-                    <TableHead onClick={() => requestSort('amountPaid')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Paid {renderSortArrow('amountPaid')}
-                    </TableHead>
-                    <TableHead onClick={() => requestSort('balanceDue')} className="text-right cursor-pointer hover:bg-muted/50">
-                        Balance {renderSortArrow('balanceDue')}
-                    </TableHead>
-                </>
+                <TableHead onClick={() => requestSort('total')} className="text-right cursor-pointer hover:bg-muted/50">
+                    Total {renderSortArrow('total')}
+                </TableHead>
             )}
             <TableHead onClick={() => requestSort('status')} className="cursor-pointer hover:bg-muted/50">
               Status {renderSortArrow('status')}
@@ -168,31 +153,16 @@ export function InvoiceTable({
         <TableBody>
           {invoices.map((invoice) => (
             <TableRow key={invoice.id}>
-              <TableCell>{invoice.invoiceNumber}</TableCell>
-              <TableCell>{invoice.customerName}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {getEmployeeNameFromEmail(invoice.createdBy)}
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium">{invoice.customerName}</span>
+                  <span className="text-xs text-muted-foreground">#{invoice.invoiceNumber}</span>
+                </div>
               </TableCell>
               <TableCell>{invoice.poNumber || 'N/A'}</TableCell>
               <TableCell>{formatDate(invoice.date)}</TableCell>
-              <TableCell>{formatDate(invoice.dueDate)}</TableCell>
               {canViewPricing && (
-                <>
-                    <TableCell className="text-right">${invoice.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-green-600">
-                        ${(invoice.amountPaid || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell
-                        className={cn(
-                        "text-right",
-                        invoice.balanceDue !== undefined && invoice.balanceDue > 0
-                            ? "text-destructive"
-                            : "text-green-600"
-                        )}
-                    >
-                        ${(invoice.balanceDue || 0).toFixed(2)}
-                    </TableCell>
-                </>
+                <TableCell className="text-right font-medium">${invoice.total.toFixed(2)}</TableCell>
               )}
               <TableCell>
                 <div className="flex items-center gap-2">
