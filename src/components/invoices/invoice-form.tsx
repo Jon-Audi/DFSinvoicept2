@@ -605,7 +605,7 @@ export function InvoiceForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 p-1">
         {!invoice && !initialData && (
           <div className="flex justify-end">
             <Button type="button" variant="outline" size="sm" onClick={handleClearForm}>
