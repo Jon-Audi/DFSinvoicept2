@@ -5,15 +5,16 @@ import React from 'react';
 import type { Invoice, Customer, Product, LineItem, Payment, Vendor } from '@/types';
 import { InvoiceForm, type InvoiceFormData } from './invoice-form';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { clearSavedFormData } from '@/hooks/use-form-auto-save';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InvoiceDialogProps {
   invoice?: Invoice;
@@ -191,18 +192,12 @@ export function InvoiceDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setOpen}>
-        {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
-        <DialogContent
-          className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-          onInteractOutside={(e) => {
-            // Prevent closing on outside click to avoid accidental data loss
-            e.preventDefault();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>{dialogDescription}</DialogDescription>
+      <Sheet open={isOpen} onOpenChange={setOpen}>
+        {triggerButton && <SheetTrigger asChild>{triggerButton}</SheetTrigger>}
+        <SheetContent size="2xl" className="p-0 flex flex-col">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b">
+            <SheetTitle>{dialogTitle}</SheetTitle>
+            <SheetDescription>{dialogDescription}</SheetDescription>
             {isFinalized && (
               <div className="mt-3 rounded-md bg-blue-50 p-3 border border-blue-200">
                 <div className="flex items-center gap-2 text-blue-800">
@@ -216,24 +211,26 @@ export function InvoiceDialog({
                 </div>
               </div>
             )}
-          </DialogHeader>
-          <InvoiceForm
-            invoice={invoice}
-            initialData={initialData}
-            onSubmit={handleSubmit}
-            onClose={() => setOpen(false)}
-            customers={customers}
-            products={products}
-            vendors={vendors}
-            productCategories={productCategories}
-            productSubcategories={productSubcategories}
-            isDataLoading={isDataLoading}
-            onViewCustomer={(customer) => setCustomerToView(customer)}
-            onSaveCustomer={onSaveCustomer}
-            isReadOnly={isFinalized}
-          />
-        </DialogContent>
-      </Dialog>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-6">
+            <InvoiceForm
+              invoice={invoice}
+              initialData={initialData}
+              onSubmit={handleSubmit}
+              onClose={() => setOpen(false)}
+              customers={customers}
+              products={products}
+              vendors={vendors}
+              productCategories={productCategories}
+              productSubcategories={productSubcategories}
+              isDataLoading={isDataLoading}
+              onViewCustomer={(customer) => setCustomerToView(customer)}
+              onSaveCustomer={onSaveCustomer}
+              isReadOnly={isFinalized}
+            />
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {customerToView && (
         <CustomerDialog 
