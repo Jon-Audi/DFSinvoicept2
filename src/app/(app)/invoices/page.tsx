@@ -60,6 +60,7 @@ import { PrintableBulkPaymentReceipt } from "@/components/invoices/printable-bul
 import { BulkPaymentToastAction } from "@/components/invoices/bulk-payment-toast-action";
 import { BulkPaymentsListDialog } from "@/components/invoices/bulk-payments-list-dialog";
 import { useInvalidateAnalytics } from "@/hooks/use-analytics";
+import { useAuth } from "@/contexts/auth-context";
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
@@ -78,6 +79,7 @@ export default function InvoicesPage() {
   const { db } = useFirebase();
   const { toast } = useToast();
   const { invalidateAll: invalidateAnalytics } = useInvalidateAnalytics();
+  const { user } = useAuth();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
