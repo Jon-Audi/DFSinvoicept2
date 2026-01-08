@@ -14,7 +14,7 @@ import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact,
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, runTransaction, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -221,64 +221,22 @@ export default function OrdersPage() {
   const handleSaveOrder = async (orderToSave: Order) => {
     if (!db) return;
     try {
-        await runTransaction(db, async (transaction) => {
-            const { id, ...orderDataFromDialog } = orderToSave;
-            
-            const inventoryChanges = new Map<string, number>();
-            let originalOrder: Order | null = null;
-            
-            if (id) {
-                const originalOrderRef = doc(db, 'orders', id);
-                const originalOrderSnap = await transaction.get(originalOrderRef);
-                if (originalOrderSnap.exists()) {
-                    originalOrder = { id, ...originalOrderSnap.data() } as Order;
-                    originalOrder.lineItems.forEach(item => {
-                        if (item.productId && !item.isNonStock) {
-                            const change = item.isReturn ? -item.quantity : item.quantity;
-                            inventoryChanges.set(item.productId, (inventoryChanges.get(item.productId) || 0) + change);
-                        }
-                    });
-                }
-            }
+        const { id, ...orderDataFromDialog } = orderToSave;
 
-            orderDataFromDialog.lineItems.forEach(item => {
-                if (item.productId && !item.isNonStock) {
-                    const change = item.isReturn ? item.quantity : -item.quantity;
-                    inventoryChanges.set(item.productId, (inventoryChanges.get(item.productId) || 0) + change);
-                }
-            });
-
-            const productIdsToUpdate = Array.from(inventoryChanges.keys());
-            if (productIdsToUpdate.length === 0) {
-                const orderRef = id ? doc(db, 'orders', id) : doc(collection(db, 'orders'));
-                transaction.set(orderRef, orderDataFromDialog, id ? { merge: true } : {});
-                return;
-            }
-
-            const productRefs = productIdsToUpdate.map(pid => doc(db, 'products', pid));
-            const productReadPromises = productRefs.map(ref => transaction.get(ref));
-            const productSnapshots = await Promise.all(productReadPromises);
-
-            productSnapshots.forEach((productSnap, index) => {
-                if (!productSnap.exists()) {
-                    throw new Error(`Product with ID ${productRefs[index].id} not found during transaction!`);
-                }
-                const productId = productSnap.id;
-                const quantityChange = inventoryChanges.get(productId);
-                if (quantityChange === undefined) return;
-
-                const currentStock = productSnap.data().quantityInStock || 0;
-                const newStock = currentStock + quantityChange;
-                transaction.update(productSnap.ref, { quantityInStock: newStock });
-            });
-            
-            const orderRef = id ? doc(db, 'orders', id) : doc(collection(db, 'orders'));
-            transaction.set(orderRef, orderDataFromDialog, id ? { merge: true } : {});
-        });
+        // Orders do NOT affect inventory - only save the order
+        // Inventory is only deducted when an Invoice is created
+        if (id) {
+            // UPDATE existing order
+            const orderRef = doc(db, 'orders', id);
+            await setDoc(orderRef, orderDataFromDialog, { merge: true });
+        } else {
+            // ADD new order
+            await addDoc(collection(db, 'orders'), orderDataFromDialog);
+        }
 
         toast({
             title: orderToSave.id ? "Order Updated" : "Order Added",
-            description: `Order ${orderToSave.orderNumber} and stock levels have been updated.`
+            description: `Order ${orderToSave.orderNumber} has been saved.`
         });
     } catch (error: any) {
         toast({ title: "Error", description: `Could not save order: ${error.message}`, variant: "destructive" });

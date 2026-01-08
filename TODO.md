@@ -18,32 +18,6 @@
   - [ ] Add notification system for upcoming deliveries
   - [ ] Consider adding barcode scanning for receiving
 
-- [ ] **Mobile/Tablet Responsiveness Improvements**
-  - [ ] Fix viewport zoom issue on iPhone 17 Pro Max
-    - [ ] Add/verify proper viewport meta tag in layout
-    - [ ] Fix touch-action CSS to prevent auto-zoom
-    - [ ] Test zoom behavior on form inputs
-  - [ ] Improve responsive layouts for tablet/iPad
-    - [ ] Optimize sidebar for tablet sizes
-    - [ ] Improve table layouts for smaller screens
-    - [ ] Add mobile-friendly navigation patterns
-    - [ ] Test all pages on iPad and iPhone
-  - [ ] Add touch-friendly UI improvements
-    - [ ] Increase tap target sizes for mobile
-    - [ ] Add swipe gestures where appropriate
-    - [ ] Optimize forms for mobile keyboard
-
-- [ ] **Inventory Improvements**
-  - [ ] Change inventory deduction logic to only trigger on Invoices (not Orders/Estimates)
-    - [ ] Audit current inventory deduction code
-    - [ ] Update to only deduct when ticket type = "Invoice"
-    - [ ] Ensure Orders and Estimates don't affect inventory
-  - [ ] Add real-time inventory display on tickets
-    - [ ] Show current inventory count for each item on Invoices
-    - [ ] Show current inventory count for each item on Orders
-    - [ ] Show current inventory count for each item on Estimates
-    - [ ] Consider showing "Available: X units" next to item selection
-    - [ ] Add visual warning when inventory is low or zero
 
 ### Medium Priority
 - [ ]
@@ -67,6 +41,8 @@
 - [x] Fix Dashboard Settings save button (user.uid bug)
 - [x] Update jsPDF to v4.0.0 (security fix)
 - [x] Deploy development branch to production
+- [x] **Mobile/Tablet Responsiveness Improvements** - Fixed viewport zoom, improved responsive layouts, added touch-friendly UI
+- [x] **Inventory Improvements** - Inventory now only deducts on Invoices (not Orders/Estimates), added real-time stock display on all ticket forms with visual warnings for out-of-stock items
 
 ---
 

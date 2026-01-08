@@ -676,9 +676,13 @@ export function EstimateForm({
                             <CommandGroup>
                               {filteredProductsForLine.map((product) => {
                                 const searchableValue = [product.name, product.category, product.unit].filter(Boolean).join(' ').toLowerCase();
+                                const stock = product.quantityInStock ?? 0;
+                                const stockDisplay = stock <= 0 ? ' (Out of Stock)' : ` (Stock: ${stock})`;
                                 return (<CommandItem value={searchableValue} key={product.id} onSelect={() => handleProductSelect(index, product.id)}>
                                     <Icon name="Check" className={cn("mr-2 h-4 w-4", product.id === controllerField.value ? "opacity-100" : "opacity-0")}/>
-                                    {product.name} ({product.unit}) - Cost: ${product.cost.toFixed(2)}
+                                    <span className={cn(stock <= 0 && "text-destructive")}>
+                                      {product.name} ({product.unit}) - Cost: ${product.cost.toFixed(2)}{stockDisplay}
+                                    </span>
                                   </CommandItem>); })}
                             </CommandGroup></CommandList>
                         </Command></PopoverContent></Popover><FormMessage />
