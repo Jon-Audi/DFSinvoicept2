@@ -169,6 +169,7 @@ export interface Invoice extends BaseDocument {
   readyForPickUpDate?: string;
   pickedUpDate?: string;
   distributor?: string;
+  isFinalized?: boolean; // Lock invoice from editing when finalized
 }
 
 export interface User {

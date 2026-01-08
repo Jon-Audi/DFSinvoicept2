@@ -148,6 +148,7 @@ interface InvoiceFormProps {
   isDataLoading?: boolean;
   onViewCustomer: (customer: Customer) => void;
   onSaveCustomer?: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
+  isReadOnly?: boolean;
 }
 
 
@@ -164,6 +165,7 @@ export function InvoiceForm({
   isDataLoading = false,
   onViewCustomer,
   onSaveCustomer,
+  isReadOnly = false,
 }: InvoiceFormProps) {
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
   const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
@@ -1026,12 +1028,14 @@ export function InvoiceForm({
         )} />
 
 <div className="flex justify-end gap-2 pt-4">
-          {onClose && <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>}
-          {/* Modify the Save/Create button */}
-          <Button type="submit" disabled={form.formState.isSubmitting || isDataLoading}> {/* <--- Modify this line */}
-            {form.formState.isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
-            {invoice || initialData ? 'Save Changes' : 'Create Invoice'}
-          </Button>
+          {onClose && <Button type="button" variant="outline" onClick={onClose}>{isReadOnly ? 'Close' : 'Cancel'}</Button>}
+          {/* Hide Save/Create button if read-only */}
+          {!isReadOnly && (
+            <Button type="submit" disabled={form.formState.isSubmitting || isDataLoading}>
+              {form.formState.isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
+              {invoice || initialData ? 'Save Changes' : 'Create Invoice'}
+            </Button>
+          )}
         </div>
       </form>
       {isBulkAddDialogOpen && (

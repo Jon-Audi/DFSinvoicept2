@@ -187,6 +187,8 @@ export function InvoiceDialog({
   const dialogTitle = invoice ? 'Edit Invoice' : (initialData ? 'Create New Invoice from Conversion' : 'New Invoice');
   const dialogDescription = invoice ? 'Update the details of this invoice.' : (initialData ? 'Review and confirm the details for this new invoice.' : 'Fill in the details for the new invoice.');
 
+  const isFinalized = invoice?.isFinalized === true;
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setOpen}>
@@ -201,6 +203,19 @@ export function InvoiceDialog({
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>{dialogDescription}</DialogDescription>
+            {isFinalized && (
+              <div className="mt-3 rounded-md bg-blue-50 p-3 border border-blue-200">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-sm">This invoice is finalized</p>
+                    <p className="text-xs text-blue-600">This invoice is locked and cannot be edited. Unfinalize it from the actions menu to make changes.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogHeader>
           <InvoiceForm
             invoice={invoice}
@@ -215,6 +230,7 @@ export function InvoiceDialog({
             isDataLoading={isDataLoading}
             onViewCustomer={(customer) => setCustomerToView(customer)}
             onSaveCustomer={onSaveCustomer}
+            isReadOnly={isFinalized}
           />
         </DialogContent>
       </Dialog>

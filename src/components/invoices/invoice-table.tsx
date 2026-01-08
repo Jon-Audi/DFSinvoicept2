@@ -57,6 +57,7 @@ interface InvoiceTableProps {
   onPrint: (invoice: Invoice) => void;
   onPrintPackingSlip: (invoice: Invoice) => void;
   onSendToPacking: (invoice: Invoice) => void;
+  onToggleFinalize: (invoice: Invoice) => void;
   formatDate: (dateString: string | Date | undefined, options?: Intl.DateTimeFormatOptions) => string;
   customers: Customer[];
   products: Product[];
@@ -80,6 +81,7 @@ export function InvoiceTable({
   onPrint,
   onPrintPackingSlip,
   onSendToPacking,
+  onToggleFinalize,
   formatDate,
   customers,
   products,
@@ -188,24 +190,32 @@ export function InvoiceTable({
                 </>
               )}
               <TableCell>
-                <Badge
-                  variant={getStatusVariant(invoice.status)}
-                  className={cn(
-                    invoice.status === 'Paid' && 'bg-green-500 hover:bg-green-600 text-white',
-                    (invoice.status === 'Partially Paid' || invoice.status === 'Ready for pick up' || invoice.status === 'Packed' || invoice.status === 'Partial Packed') &&
-                      'bg-yellow-500 hover:bg-yellow-600 text-black',
-                    invoice.status === 'Picked up' && 'bg-green-500 hover:bg-green-600 text-white',
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={getStatusVariant(invoice.status)}
+                    className={cn(
+                      invoice.status === 'Paid' && 'bg-green-500 hover:bg-green-600 text-white',
+                      (invoice.status === 'Partially Paid' || invoice.status === 'Ready for pick up' || invoice.status === 'Packed' || invoice.status === 'Partial Packed') &&
+                        'bg-yellow-500 hover:bg-yellow-600 text-black',
+                      invoice.status === 'Picked up' && 'bg-green-500 hover:bg-green-600 text-white',
+                    )}
+                  >
+                    {invoice.status}
+                    {invoice.distributor && ` (${invoice.distributor})`}
+                    {invoice.status === 'Ready for pick up' &&
+                      invoice.readyForPickUpDate &&
+                      ` (${formatDate(invoice.readyForPickUpDate, { month: '2-digit', day: '2-digit' })})`}
+                    {invoice.status === 'Picked up' &&
+                      invoice.pickedUpDate &&
+                      ` (${formatDate(invoice.pickedUpDate, { month: '2-digit', day: '2-digit' })})`}
+                  </Badge>
+                  {invoice.isFinalized && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                      <Icon name="Lock" className="h-3 w-3 mr-1" />
+                      Finalized
+                    </Badge>
                   )}
-                >
-                  {invoice.status}
-                  {invoice.distributor && ` (${invoice.distributor})`}
-                  {invoice.status === 'Ready for pick up' &&
-                    invoice.readyForPickUpDate &&
-                    ` (${formatDate(invoice.readyForPickUpDate, { month: '2-digit', day: '2-digit' })})`}
-                  {invoice.status === 'Picked up' &&
-                    invoice.pickedUpDate &&
-                    ` (${formatDate(invoice.pickedUpDate, { month: '2-digit', day: '2-digit' })})`}
-                </Badge>
+                </div>
               </TableCell>
               <TableCell className="text-center">
                 <DropdownMenu>
@@ -263,6 +273,16 @@ export function InvoiceTable({
 
                     <DropdownMenuItem onSelect={() => onPrintPackingSlip(invoice)}>
                       <Icon name="PackageCheck" className="mr-2 h-4 w-4" /> Print Packing Slip
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      onSelect={() => onToggleFinalize(invoice)}
+                      className={invoice.isFinalized ? "text-orange-600" : "text-green-600"}
+                    >
+                      <Icon name={invoice.isFinalized ? "Unlock" : "Lock"} className="mr-2 h-4 w-4" />
+                      {invoice.isFinalized ? "Unfinalize" : "Finalize"} Invoice
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
