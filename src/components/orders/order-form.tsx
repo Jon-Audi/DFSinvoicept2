@@ -370,11 +370,11 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 p-1">
         <FormField control={form.control} name="orderNumber" render={({ field }) => (
           <FormItem><FormLabel>Order Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />
-        
+
         <FormField control={form.control} name="customerId" render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Customer</FormLabel>
