@@ -28,14 +28,14 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-md px-4 md:px-6 transition-all duration-300 shadow-sm">
+    <header className="sticky top-0 z-10 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-background/95 backdrop-blur-md px-3 sm:px-4 md:px-6 transition-all duration-300 shadow-sm">
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <div className="flex-1 flex items-center justify-center md:justify-start">
+      <div className="flex-1 flex items-center justify-center md:justify-start min-w-0">
         <GlobalSearch />
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {user && ( // Only show dropdown if user is logged in
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -18,6 +18,13 @@ export const metadata = {
   description: 'Manage your fencing business with Delaware Fence Pro.',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: {

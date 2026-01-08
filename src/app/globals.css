@@ -155,6 +155,45 @@
   main > div {
     animation: fadeIn 0.4s ease-out;
   }
+
+  /* Mobile-specific optimizations */
+  @media screen and (max-width: 768px) {
+    /* Prevent zoom on input focus for iOS */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="search"],
+    input[type="password"],
+    input[type="date"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+
+    /* Improve touch targets */
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+
+    /* Prevent double-tap zoom */
+    * {
+      touch-action: manipulation;
+    }
+  }
+
+  /* Prevent text size adjustment on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
 }
 
 @media print {

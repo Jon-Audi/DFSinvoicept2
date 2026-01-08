@@ -47,10 +47,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen bg-background transition-colors duration-300">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           <AppHeader />
-          <main className="flex-1 p-6 md:p-8 overflow-auto scroll-smooth">
-            <div className="w-full max-w-[1440px] mx-auto space-y-6">
+          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto scroll-smooth">
+            <div className="w-full max-w-[1440px] mx-auto space-y-4 sm:space-y-6">
               {children}
             </div>
           </main>
