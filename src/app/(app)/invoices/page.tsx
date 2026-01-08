@@ -46,6 +46,7 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  setDoc,
   runTransaction,
   query,
   orderBy,
@@ -323,12 +324,17 @@ export default function InvoicesPage() {
       await runTransaction(db, async (transaction) => {
         const { id, ...invoiceData } = invoiceToSave;
         const invoiceRef = id ? doc(db, "invoices", id) : doc(collection(db, "invoices"));
-  
+
         const payload: { [key: string]: any } = {};
         for (const [key, value] of Object.entries(invoiceData)) {
           if (value !== undefined && value !== null && value !== '') {
             payload[key] = value;
           }
+        }
+
+        // Add createdBy field for new invoices
+        if (!id && user?.email) {
+          payload.createdBy = user.email;
         }
   
         let originalInvoice: Invoice | null = null;

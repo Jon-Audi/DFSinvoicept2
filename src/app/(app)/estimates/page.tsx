@@ -191,6 +191,11 @@ export default function EstimatesPage() {
       }
     }
 
+    // Add createdBy field for new estimates
+    if (!id && user?.email) {
+      payload.createdBy = user.email;
+    }
+
     try {
       if (id && estimates.some(e => e.id === id)) {
         // UPDATE existing document

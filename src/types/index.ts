@@ -135,6 +135,7 @@ interface BaseDocument {
   total: number;
   notes?: string;
   internalNotes?: string;
+  createdBy?: string; // Employee email who created the document
 }
 
 export interface Estimate extends BaseDocument {

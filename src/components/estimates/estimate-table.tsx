@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 export type SortableEstimateKeys = 'estimateNumber' | 'customerName' | 'poNumber' | 'date' | 'total' | 'status' | 'validUntil';
 
@@ -95,6 +96,7 @@ export function EstimateTable({
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
+            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
@@ -116,6 +118,9 @@ export function EstimateTable({
               <TableRow key={estimate.id}>
                 <TableCell>{estimate.estimateNumber}</TableCell>
                 <TableCell>{estimate.customerName}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {getEmployeeNameFromEmail(estimate.createdBy)}
+                </TableCell>
                 <TableCell>{estimate.poNumber || 'N/A'}</TableCell>
                 <TableCell>{formatDate(estimate.date)}</TableCell>
                 <TableCell className="text-right">${estimate.total.toFixed(2)}</TableCell>

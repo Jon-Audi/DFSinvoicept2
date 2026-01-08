@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 export type SortableInvoiceKeys =
   | "invoiceNumber"
@@ -135,6 +136,7 @@ export function InvoiceTable({
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
+            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
@@ -168,6 +170,9 @@ export function InvoiceTable({
             <TableRow key={invoice.id}>
               <TableCell>{invoice.invoiceNumber}</TableCell>
               <TableCell>{invoice.customerName}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {getEmployeeNameFromEmail(invoice.createdBy)}
+              </TableCell>
               <TableCell>{invoice.poNumber || 'N/A'}</TableCell>
               <TableCell>{formatDate(invoice.date)}</TableCell>
               <TableCell>{formatDate(invoice.dueDate)}</TableCell>

@@ -27,17 +27,17 @@
   - [ ] Update invoice save/edit handlers to check finalized status
   - [ ] Add confirmation dialog when finalizing/unfinalizing
 
-- [ ] **Employee Name Display**
-  - [ ] Add employee/user mapping system (email -> first name)
+- [x] **Employee Name Display**
+  - [x] Add employee/user mapping system (email -> first name)
     - jon@delawarefencesolutions.com → "Jon"
     - karl@delawarefencesolutions.com → "Karl"
     - kevin@delawarefencesolutions.com → "Kevin"
-  - [ ] Display employee names on Estimates (creator/assigned)
-  - [ ] Display employee names on Orders (creator/assigned)
-  - [ ] Display employee names on Invoices (creator/assigned)
+  - [x] Display employee names on Estimates (creator/assigned)
+  - [x] Display employee names on Orders (creator/assigned)
+  - [x] Display employee names on Invoices (creator/assigned)
   - [ ] Display employee names in Reports/Analytics
   - [ ] Add employee name to printable documents
-  - [ ] Consider adding "Created By" and "Last Modified By" fields
+  - [x] Added "Created By" field to all document types
 
 ### Medium Priority
 - [ ]

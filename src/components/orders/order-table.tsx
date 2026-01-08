@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 export type SortableOrderKeys =
   'orderNumber' | 'customerName' | 'poNumber' | 'date' |
@@ -120,6 +121,7 @@ export function OrderTable({
             <TableHead onClick={() => requestSort('customerName')} className="cursor-pointer hover:bg-muted/50">
               Customer {renderSortArrow('customerName')}
             </TableHead>
+            <TableHead>Created By</TableHead>
             <TableHead onClick={() => requestSort('poNumber')} className="cursor-pointer hover:bg-muted/50">
               P.O. # {renderSortArrow('poNumber')}
             </TableHead>
@@ -153,6 +155,9 @@ export function OrderTable({
             <TableRow key={order.id}>
               <TableCell>{order.orderNumber}</TableCell>
               <TableCell>{order.customerName}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {getEmployeeNameFromEmail(order.createdBy)}
+              </TableCell>
               <TableCell>{order.poNumber || 'N/A'}</TableCell>
               <TableCell>{formatDate(order.date)}</TableCell>
               {canViewPricing && (

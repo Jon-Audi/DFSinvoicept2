@@ -230,8 +230,12 @@ export default function OrdersPage() {
             const orderRef = doc(db, 'orders', id);
             await setDoc(orderRef, orderDataFromDialog, { merge: true });
         } else {
-            // ADD new order
-            await addDoc(collection(db, 'orders'), orderDataFromDialog);
+            // ADD new order with createdBy field
+            const orderData = {
+                ...orderDataFromDialog,
+                createdBy: user?.email || undefined
+            };
+            await addDoc(collection(db, 'orders'), orderData);
         }
 
         toast({
