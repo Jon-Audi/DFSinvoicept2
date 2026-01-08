@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { clearSavedFormData } from '@/hooks/use-form-auto-save';
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InvoiceDialogProps {
   invoice?: Invoice;
@@ -194,8 +193,8 @@ export function InvoiceDialog({
     <>
       <Sheet open={isOpen} onOpenChange={setOpen}>
         {triggerButton && <SheetTrigger asChild>{triggerButton}</SheetTrigger>}
-        <SheetContent size="2xl" className="p-0 flex flex-col">
-          <SheetHeader className="px-6 pt-6 pb-4 border-b">
+        <SheetContent size="2xl" className="p-0 flex flex-col h-full overflow-hidden">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <SheetTitle>{dialogTitle}</SheetTitle>
             <SheetDescription>{dialogDescription}</SheetDescription>
             {isFinalized && (
@@ -212,7 +211,7 @@ export function InvoiceDialog({
               </div>
             )}
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6">
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             <InvoiceForm
               invoice={invoice}
               initialData={initialData}
@@ -228,7 +227,7 @@ export function InvoiceDialog({
               onSaveCustomer={onSaveCustomer}
               isReadOnly={isFinalized}
             />
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
 
