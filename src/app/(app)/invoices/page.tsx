@@ -292,16 +292,6 @@ export default function InvoicesPage() {
     const newFinalizedState = !invoice.isFinalized;
     const action = newFinalizedState ? "Finalize" : "Unfinalize";
 
-    // Show confirmation dialog
-    const confirmed = window.confirm(
-      `Are you sure you want to ${action.toLowerCase()} invoice #${invoice.invoiceNumber}?\n\n` +
-      (newFinalizedState
-        ? "Once finalized, this invoice cannot be edited without unfinalizing it first."
-        : "Unfinalizing will allow this invoice to be edited again.")
-    );
-
-    if (!confirmed) return;
-
     try {
       const invoiceRef = doc(db, 'invoices', invoice.id);
       await setDoc(invoiceRef, { isFinalized: newFinalizedState }, { merge: true });

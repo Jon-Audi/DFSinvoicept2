@@ -96,6 +96,7 @@ export function InvoiceTable({
   companySettings,
 }: InvoiceTableProps) {
   const [invoiceToDelete, setInvoiceToDelete] = React.useState<Invoice | null>(null);
+  const [invoiceToFinalize, setInvoiceToFinalize] = React.useState<Invoice | null>(null);
   const { user } = useAuth();
   // A simple permission check, assuming user object has a 'role' or 'permissions' array
   const canViewPricing = user && user.permissions?.includes('view_pricing');
@@ -208,7 +209,7 @@ export function InvoiceTable({
                     <InvoiceDialog
                       invoice={invoice}
                       triggerButton={
-                        // keep the dialog’s item from auto-select closing
+                        // keep the dialog's item from auto-select closing
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                           <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
@@ -216,6 +217,7 @@ export function InvoiceTable({
                       onSave={onSave}
                       onSaveProduct={onSaveProduct}
                       onSaveCustomer={onSaveCustomer}
+                      onToggleFinalize={onToggleFinalize}
                       customers={customers}
                       products={products}
                       vendors={vendors}
@@ -253,7 +255,7 @@ export function InvoiceTable({
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem
-                      onSelect={() => onToggleFinalize(invoice)}
+                      onSelect={() => setInvoiceToFinalize(invoice)}
                       className={invoice.isFinalized ? "text-orange-600" : "text-green-600"}
                     >
                       <Icon name={invoice.isFinalized ? "Unlock" : "Lock"} className="mr-2 h-4 w-4" />
@@ -295,6 +297,40 @@ export function InvoiceTable({
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {invoiceToFinalize && (
+        <AlertDialog open={!!invoiceToFinalize} onOpenChange={(isOpen) => !isOpen && setInvoiceToFinalize(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {invoiceToFinalize.isFinalized ? "Unfinalize Invoice?" : "Finalize Invoice?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {invoiceToFinalize.isFinalized
+                  ? `Are you sure you want to unfinalize invoice #${invoiceToFinalize.invoiceNumber}? This will allow the invoice to be edited again.`
+                  : `Are you sure you want to finalize invoice #${invoiceToFinalize.invoiceNumber}? Once finalized, this invoice cannot be edited without unfinalizing it first.`
+                }
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setInvoiceToFinalize(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onToggleFinalize(invoiceToFinalize);
+                  setInvoiceToFinalize(null);
+                }}
+                className={invoiceToFinalize.isFinalized
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : "bg-green-600 hover:bg-green-700"
+                }
+              >
+                <Icon name={invoiceToFinalize.isFinalized ? "Unlock" : "Lock"} className="mr-2 h-4 w-4" />
+                {invoiceToFinalize.isFinalized ? "Unfinalize" : "Finalize"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

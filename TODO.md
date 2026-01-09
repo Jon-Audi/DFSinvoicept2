@@ -18,14 +18,14 @@
   - [ ] Add notification system for upcoming deliveries
   - [ ] Consider adding barcode scanning for receiving
 
-- [ ] **Invoice Finalization Feature**
-  - [ ] Add "Finalize" button/toggle to invoice interface
-  - [ ] Add `isFinalized` boolean field to Invoice type
-  - [ ] Lock finalized invoices from editing (line items, customer, amounts, etc.)
-  - [ ] Add "Unfinalize" option for authorized users to unlock invoices
-  - [ ] Display visual indicator when invoice is finalized (badge, banner, etc.)
-  - [ ] Update invoice save/edit handlers to check finalized status
-  - [ ] Add confirmation dialog when finalizing/unfinalizing
+- [x] **Invoice Finalization Feature**
+  - [x] Add "Finalize" button/toggle to invoice interface
+  - [x] Add `isFinalized` boolean field to Invoice type
+  - [x] Lock finalized invoices from editing (line items, customer, amounts, etc.)
+  - [x] Add "Unfinalize" option for authorized users to unlock invoices
+  - [x] Display visual indicator when invoice is finalized (badge, banner, etc.)
+  - [x] Update invoice save/edit handlers to check finalized status
+  - [x] Add confirmation dialog when finalizing/unfinalizing
 
 - [x] **Employee Name Display**
   - [x] Add employee/user mapping system (email -> first name)

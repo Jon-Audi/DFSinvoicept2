@@ -12,6 +12,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/icons";
 import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { clearSavedFormData } from '@/hooks/use-form-auto-save';
 
@@ -21,6 +33,7 @@ interface InvoiceDialogProps {
   onSave: (invoice: Invoice) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
   onSaveCustomer: (customer: Customer) => Promise<string | void>;
+  onToggleFinalize?: (invoice: Invoice) => void;
   customers: Customer[];
   products: Product[];
   vendors: Vendor[];
@@ -38,6 +51,7 @@ export function InvoiceDialog({
   onSave,
   onSaveProduct,
   onSaveCustomer,
+  onToggleFinalize,
   customers,
   products,
   vendors,
@@ -50,6 +64,7 @@ export function InvoiceDialog({
 }: InvoiceDialogProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [customerToView, setCustomerToView] = React.useState<Customer | null>(null);
+  const [showFinalizeDialog, setShowFinalizeDialog] = React.useState(false);
 
   const isControlled = controlledIsOpen !== undefined && controlledOnOpenChange !== undefined;
   const isOpen = isControlled ? controlledIsOpen : internalOpen;
@@ -184,6 +199,13 @@ export function InvoiceDialog({
     });
   };
 
+  const handleFinalizeConfirm = () => {
+    if (invoice && onToggleFinalize) {
+      onToggleFinalize(invoice);
+    }
+    setShowFinalizeDialog(false);
+  };
+
   const dialogTitle = invoice ? 'Edit Invoice' : (initialData ? 'Create New Invoice from Conversion' : 'New Invoice');
   const dialogDescription = invoice ? 'Update the details of this invoice.' : (initialData ? 'Review and confirm the details for this new invoice.' : 'Fill in the details for the new invoice.');
 
@@ -195,17 +217,35 @@ export function InvoiceDialog({
         {triggerButton && <SheetTrigger asChild>{triggerButton}</SheetTrigger>}
         <SheetContent size="2xl" className="p-0 flex flex-col !h-[100vh] overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-            <SheetTitle>{dialogTitle}</SheetTitle>
-            <SheetDescription>{dialogDescription}</SheetDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <SheetTitle>{dialogTitle}</SheetTitle>
+                <SheetDescription>{dialogDescription}</SheetDescription>
+              </div>
+              {/* Finalize/Unfinalize button - only show for existing invoices */}
+              {invoice && onToggleFinalize && (
+                <Button
+                  type="button"
+                  variant={isFinalized ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => setShowFinalizeDialog(true)}
+                  className={isFinalized
+                    ? "text-orange-600 border-orange-300 hover:bg-orange-50"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                  }
+                >
+                  <Icon name={isFinalized ? "Unlock" : "Lock"} className="mr-2 h-4 w-4" />
+                  {isFinalized ? "Unfinalize" : "Finalize"}
+                </Button>
+              )}
+            </div>
             {isFinalized && (
               <div className="mt-3 rounded-md bg-blue-50 p-3 border border-blue-200">
                 <div className="flex items-center gap-2 text-blue-800">
-                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
+                  <Icon name="Lock" className="h-5 w-5" />
                   <div>
                     <p className="font-semibold text-sm">This invoice is finalized</p>
-                    <p className="text-xs text-blue-600">This invoice is locked and cannot be edited. Unfinalize it from the actions menu to make changes.</p>
+                    <p className="text-xs text-blue-600">This invoice is locked and cannot be edited. Click &quot;Unfinalize&quot; above to make changes.</p>
                   </div>
                 </div>
               </div>
@@ -231,8 +271,38 @@ export function InvoiceDialog({
         </SheetContent>
       </Sheet>
 
+      {/* Finalize/Unfinalize Confirmation Dialog */}
+      <AlertDialog open={showFinalizeDialog} onOpenChange={setShowFinalizeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isFinalized ? "Unfinalize Invoice?" : "Finalize Invoice?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isFinalized
+                ? `Are you sure you want to unfinalize invoice #${invoice?.invoiceNumber}? This will allow the invoice to be edited again.`
+                : `Are you sure you want to finalize invoice #${invoice?.invoiceNumber}? Once finalized, this invoice cannot be edited without unfinalizing it first.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleFinalizeConfirm}
+              className={isFinalized
+                ? "bg-orange-600 hover:bg-orange-700"
+                : "bg-green-600 hover:bg-green-700"
+              }
+            >
+              <Icon name={isFinalized ? "Unlock" : "Lock"} className="mr-2 h-4 w-4" />
+              {isFinalized ? "Unfinalize" : "Finalize"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {customerToView && (
-        <CustomerDialog 
+        <CustomerDialog
             isOpen={!!customerToView}
             onOpenChange={() => setCustomerToView(null)}
             customer={customerToView}

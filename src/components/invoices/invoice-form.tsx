@@ -606,6 +606,7 @@ export function InvoiceForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 p-1">
+        <fieldset disabled={isReadOnly} className="space-y-4">
         {!invoice && !initialData && (
           <div className="flex justify-end">
             <Button type="button" variant="outline" size="sm" onClick={handleClearForm}>
@@ -1026,8 +1027,9 @@ export function InvoiceForm({
         <FormField control={form.control} name="notes" render={({ field }) => (
           <FormItem><FormLabel>Invoice Notes (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Thank you for your business!" {...field} rows={3} /></FormControl><FormMessage /></FormItem>
         )} />
+        </fieldset>
 
-<div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-2 pt-4">
           {onClose && <Button type="button" variant="outline" onClick={onClose}>{isReadOnly ? 'Close' : 'Cancel'}</Button>}
           {/* Hide Save/Create button if read-only */}
           {!isReadOnly && (
