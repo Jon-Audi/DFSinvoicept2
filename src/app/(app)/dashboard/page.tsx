@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useAuth } from '@/contexts/auth-context';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ const DEFAULT_PREFERENCES: DashboardPreferences = {
 };
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { db } = useFirebase();
   const { toast } = useToast();
   const [preferences, setPreferences] = useState<DashboardPreferences>(DEFAULT_PREFERENCES);
@@ -48,18 +48,17 @@ export default function DashboardPage() {
   const [unpaidInvoices, setUnpaidInvoices] = useState<Invoice[]>([]);
   const [isLoadingUnpaidInvoices, setIsLoadingUnpaidInvoices] = useState(true);
 
-  // Load user preferences with real-time updates
+  // Load user preferences (one-time fetch, not real-time)
   useEffect(() => {
     if (!db || !user?.uid) {
       setIsLoadingPreferences(false);
       return;
     }
 
-    const docRef = doc(db, 'dashboardPreferences', user.uid);
-
-    // Use onSnapshot for real-time updates
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    const fetchPreferences = async () => {
       try {
+        const docRef = doc(db, 'dashboardPreferences', user.uid);
+        const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setPreferences({ ...DEFAULT_PREFERENCES, ...docSnap.data() } as DashboardPreferences);
         } else {
@@ -71,125 +70,127 @@ export default function DashboardPage() {
       } finally {
         setIsLoadingPreferences(false);
       }
-    }, (error) => {
-      console.error('Error subscribing to dashboard preferences:', error);
-      setPreferences(DEFAULT_PREFERENCES);
-      setIsLoadingPreferences(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchPreferences();
   }, [db, user]);
 
-  useEffect(() => {
+  // Fetch dashboard data (one-time fetch for better performance)
+  const fetchDashboardData = useCallback(async () => {
     if (!db || !preferences) return;
+
+    // Fetch all data in parallel for faster loading
+    const fetchPromises = [];
+
+    // Order count
     setIsLoadingOrderCount(true);
-    const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      setOrderCount(snapshot.size);
-      setIsLoadingOrderCount(false);
-    }, (error) => {
-      toast({
-        title: "Error",
-        description: "Could not fetch order count.",
-        variant: "destructive",
-      });
-      setIsLoadingOrderCount(false);
-    });
+    fetchPromises.push(
+      getDocs(collection(db, 'orders'))
+        .then(snapshot => {
+          setOrderCount(snapshot.size);
+          setIsLoadingOrderCount(false);
+        })
+        .catch(error => {
+          console.error('Error fetching order count:', error);
+          setIsLoadingOrderCount(false);
+        })
+    );
 
+    // Customer count
     setIsLoadingCustomerCount(true);
-    const unsubscribeCustomers = onSnapshot(collection(db, 'customers'), (snapshot) => {
-      setCustomerCount(snapshot.size);
-      setIsLoadingCustomerCount(false);
-    }, (error) => {
-      toast({
-        title: "Error",
-        description: "Could not fetch customer count.",
-        variant: "destructive",
-      });
-      setIsLoadingCustomerCount(false);
-    });
+    fetchPromises.push(
+      getDocs(collection(db, 'customers'))
+        .then(snapshot => {
+          setCustomerCount(snapshot.size);
+          setIsLoadingCustomerCount(false);
+        })
+        .catch(error => {
+          console.error('Error fetching customer count:', error);
+          setIsLoadingCustomerCount(false);
+        })
+    );
 
+    // Active estimates count
     setIsLoadingActiveEstimateCount(true);
     const activeEstimatesQuery = query(collection(db, 'estimates'), where('status', 'in', ['Draft', 'Sent']));
-    const unsubscribeActiveEstimates = onSnapshot(activeEstimatesQuery, (snapshot) => {
-      setActiveEstimateCount(snapshot.size);
-      setIsLoadingActiveEstimateCount(false);
-    }, (error) => {
-      toast({
-        title: "Error",
-        description: "Could not fetch active estimate count.",
-        variant: "destructive",
-      });
-      setIsLoadingActiveEstimateCount(false);
-    });
+    fetchPromises.push(
+      getDocs(activeEstimatesQuery)
+        .then(snapshot => {
+          setActiveEstimateCount(snapshot.size);
+          setIsLoadingActiveEstimateCount(false);
+        })
+        .catch(error => {
+          console.error('Error fetching active estimate count:', error);
+          setIsLoadingActiveEstimateCount(false);
+        })
+    );
 
-    // Subscribe to products for low stock alerts
+    // Low stock products
     setIsLoadingLowStock(true);
-    const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const allProducts: Product[] = [];
-      snapshot.forEach(docSnap => {
-        const product = { ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id };
-        allProducts.push(product);
-      });
+    fetchPromises.push(
+      getDocs(collection(db, 'products'))
+        .then(snapshot => {
+          const allProducts: Product[] = [];
+          snapshot.forEach(docSnap => {
+            const product = { ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id };
+            allProducts.push(product);
+          });
 
-      // Filter for low stock items (where quantityInStock exists and is below threshold)
-      const lowStock = allProducts.filter(p =>
-        p.quantityInStock !== undefined &&
-        p.quantityInStock !== null &&
-        p.quantityInStock <= preferences.lowStockThreshold
-      ).sort((a, b) => (a.quantityInStock || 0) - (b.quantityInStock || 0));
+          const lowStock = allProducts.filter(p =>
+            p.quantityInStock !== undefined &&
+            p.quantityInStock !== null &&
+            p.quantityInStock <= preferences.lowStockThreshold
+          ).sort((a, b) => (a.quantityInStock || 0) - (b.quantityInStock || 0));
 
-      setLowStockProducts(lowStock);
-      setIsLoadingLowStock(false);
-    }, (error) => {
-      toast({
-        title: "Error",
-        description: "Could not fetch product data.",
-        variant: "destructive",
-      });
-      setIsLoadingLowStock(false);
-    });
+          setLowStockProducts(lowStock);
+          setIsLoadingLowStock(false);
+        })
+        .catch(error => {
+          console.error('Error fetching product data:', error);
+          setIsLoadingLowStock(false);
+        })
+    );
 
-    // Subscribe to unpaid/partially paid invoices
+    // Unpaid invoices
     setIsLoadingUnpaidInvoices(true);
     const unpaidInvoicesQuery = query(
       collection(db, 'invoices'),
       where('status', 'in', ['Sent', 'Ordered', 'Partial Packed', 'Packed', 'Ready for pick up', 'Picked up', 'Partially Paid'])
     );
-    const unsubscribeUnpaidInvoices = onSnapshot(unpaidInvoicesQuery, (snapshot) => {
-      const invoices: Invoice[] = [];
-      snapshot.forEach(docSnap => {
-        const invoice = { ...docSnap.data() as Omit<Invoice, 'id'>, id: docSnap.id };
-        if (invoice.balanceDue > 0) {
-          invoices.push(invoice);
-        }
-      });
+    fetchPromises.push(
+      getDocs(unpaidInvoicesQuery)
+        .then(snapshot => {
+          const invoices: Invoice[] = [];
+          snapshot.forEach(docSnap => {
+            const invoice = { ...docSnap.data() as Omit<Invoice, 'id'>, id: docSnap.id };
+            if (invoice.balanceDue > 0) {
+              invoices.push(invoice);
+            }
+          });
 
-      // Sort by due date (oldest first) or created date if no due date
-      invoices.sort((a, b) => {
-        const dateA = a.dueDate || a.createdAt || '';
-        const dateB = b.dueDate || b.createdAt || '';
-        return dateA.localeCompare(dateB);
-      });
+          invoices.sort((a, b) => {
+            const dateA = a.dueDate || a.createdAt || '';
+            const dateB = b.dueDate || b.createdAt || '';
+            return dateA.localeCompare(dateB);
+          });
 
-      setUnpaidInvoices(invoices.slice(0, 10)); // Show top 10 oldest
-      setIsLoadingUnpaidInvoices(false);
-    }, (error) => {
-      toast({
-        title: "Error",
-        description: "Could not fetch unpaid invoices.",
-        variant: "destructive",
-      });
-      setIsLoadingUnpaidInvoices(false);
-    });
+          setUnpaidInvoices(invoices.slice(0, 10));
+          setIsLoadingUnpaidInvoices(false);
+        })
+        .catch(error => {
+          console.error('Error fetching unpaid invoices:', error);
+          setIsLoadingUnpaidInvoices(false);
+        })
+    );
 
-    return () => {
-      unsubscribeOrders();
-      unsubscribeCustomers();
-      unsubscribeActiveEstimates();
-      unsubscribeProducts();
-      unsubscribeUnpaidInvoices();
-    };
-  }, [db, toast, preferences.lowStockThreshold]);
+    await Promise.all(fetchPromises);
+  }, [db, preferences]);
+
+  useEffect(() => {
+    if (!isLoadingPreferences) {
+      fetchDashboardData();
+    }
+  }, [isLoadingPreferences, fetchDashboardData]);
 
   return (
     <>
@@ -299,7 +300,7 @@ export default function DashboardPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : lowStockProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">All products are well stocked! ✓</p>
+              <p className="text-sm text-muted-foreground py-4">All products are well stocked!</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {lowStockProducts.slice(0, 10).map(product => (
@@ -352,7 +353,7 @@ export default function DashboardPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : unpaidInvoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">All invoices are paid! ✓</p>
+              <p className="text-sm text-muted-foreground py-4">All invoices are paid!</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {unpaidInvoices.map(invoice => {
