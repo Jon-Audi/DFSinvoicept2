@@ -28,6 +28,7 @@ import type { Estimate, Product, Customer, CompanySettings, EmailContact } from 
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
 import { useFirebase } from '@/components/firebase-provider';
+import { useAuth } from '@/components/auth-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
