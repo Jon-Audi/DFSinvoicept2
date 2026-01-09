@@ -22,7 +22,6 @@ export const analyticsKeys = {
 /**
  * Hook to fetch analytics summary with caching
  * @param days - Number of days to include (optional, defaults to all time)
- * @param options - React Query options
  */
 export function useAnalyticsSummary(days?: number) {
   const { db } = useFirebase();
@@ -34,15 +33,16 @@ export function useAnalyticsSummary(days?: number) {
       return await getAnalyticsSummary(db, days);
     },
     enabled: !!db,
-    staleTime: 1000 * 60 * 2, // 2 minutes - analytics data changes frequently
-    gcTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5, // 5 minutes - analytics don't need real-time updates
+    gcTime: 1000 * 60 * 15, // 15 minutes cache
+    refetchOnWindowFocus: false, // Don't refetch on tab switch
+    refetchOnMount: false, // Use cached data on remount
   });
 }
 
 /**
  * Hook to fetch revenue trends with caching
  * @param days - Number of days to include in trends
- * @param options - React Query options
  */
 export function useRevenueTrends(days: number = 30) {
   const { db } = useFirebase();
@@ -54,8 +54,10 @@ export function useRevenueTrends(days: number = 30) {
       return await getRevenueTrends(db, days);
     },
     enabled: !!db,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
@@ -63,7 +65,6 @@ export function useRevenueTrends(days: number = 30) {
  * Hook to fetch top products with caching
  * @param limit - Number of top products to fetch
  * @param days - Number of days to include (optional, defaults to all time)
- * @param options - React Query options
  */
 export function useTopProducts(limit: number = 10, days?: number) {
   const { db } = useFirebase();
@@ -75,8 +76,10 @@ export function useTopProducts(limit: number = 10, days?: number) {
       return await getTopProducts(db, limit, days);
     },
     enabled: !!db,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
