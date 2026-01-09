@@ -180,6 +180,7 @@ export function InvoiceDialog({
     if (formDataFromForm.notes) invoicePayload.notes = formDataFromForm.notes;
     if (invoice?.internalNotes) invoicePayload.internalNotes = invoice.internalNotes;
     if (invoice?.orderId) invoicePayload.orderId = invoice.orderId;
+    if (formDataFromForm.expectedDeliveryDate) invoicePayload.expectedDeliveryDate = formDataFromForm.expectedDeliveryDate.toISOString();
     if (formDataFromForm.readyForPickUpDate) invoicePayload.readyForPickUpDate = formDataFromForm.readyForPickUpDate.toISOString();
     if (formDataFromForm.pickedUpDate) invoicePayload.pickedUpDate = formDataFromForm.pickedUpDate.toISOString();
 

@@ -110,6 +110,7 @@ const invoiceFormSchema = z.object({
   paymentTerms: z.string().optional(),
   notes: z.string().optional(),
   payments: z.array(formPaymentSchema).optional(),
+  expectedDeliveryDate: z.date().optional(),
   readyForPickUpDate: z.date().optional(),
   pickedUpDate: z.date().optional(),
 
@@ -211,6 +212,7 @@ export function InvoiceForm({
         paymentTerms: invoice.paymentTerms || 'Due on receipt',
         notes: invoice.notes || '',
         payments: invoice.payments?.map(p => ({...p, date: parseISO(p.date)})) || [],
+        expectedDeliveryDate: invoice.expectedDeliveryDate ? new Date(invoice.expectedDeliveryDate) : undefined,
         readyForPickUpDate: invoice.readyForPickUpDate ? new Date(invoice.readyForPickUpDate) : undefined,
         pickedUpDate: invoice.pickedUpDate ? new Date(invoice.pickedUpDate) : undefined,
       };
@@ -699,6 +701,7 @@ export function InvoiceForm({
         )} />
         
         {watchedStatus === 'Ordered' && (
+          <>
            <FormField
             control={form.control}
             name="distributor"
@@ -723,6 +726,19 @@ export function InvoiceForm({
               </FormItem>
             )}
           />
+          <FormField control={form.control} name="expectedDeliveryDate" render={({ field }) => (
+            <FormItem className="flex flex-col"><FormLabel>Expected Delivery Date</FormLabel>
+                <Popover><PopoverTrigger asChild><FormControl>
+                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        <Icon name="Calendar" className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                </FormControl></PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                </Popover><FormMessage />
+            </FormItem>
+          )} />
+          </>
         )}
 
 

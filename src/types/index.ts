@@ -94,6 +94,7 @@ export interface LineItem {
   addToProductList?: boolean; // UI flag for form
   newProductCategory?: string; // UI field for form
   packed?: boolean; // For tracking packing status
+  receivedQuantity?: number; // For tracking partial receipts in Shop
 }
 
 
@@ -145,7 +146,7 @@ export interface Estimate extends BaseDocument {
 }
 
 // Shop/Receiving status for tracking vendor orders
-export type ShopStatus = 'Pending' | 'Ordered' | 'Shipped' | 'Received' | 'Ready for Pickup' | 'Picked Up';
+export type ShopStatus = 'Pending' | 'Ordered' | 'Shipped' | 'Partial Received' | 'Received' | 'Ready for Pickup' | 'Picked Up';
 
 export interface Order extends BaseDocument {
   orderNumber: string;
@@ -164,6 +165,7 @@ export interface Order extends BaseDocument {
   receivedDate?: string;
   receivedBy?: string;
   packingSlipPhotos?: string[]; // URLs to uploaded photos
+  shopNotes?: string; // Internal notes visible only to back of house/office
 }
 
 export interface Invoice extends BaseDocument {
@@ -185,6 +187,7 @@ export interface Invoice extends BaseDocument {
   receivedDate?: string;
   receivedBy?: string;
   packingSlipPhotos?: string[]; // URLs to uploaded photos
+  shopNotes?: string; // Internal notes visible only to back of house/office
 }
 
 export interface User {

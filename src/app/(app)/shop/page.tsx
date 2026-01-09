@@ -8,6 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -65,17 +69,19 @@ type ShopItem = {
   date: string;
   pickedUpDate?: string;
   readyForPickUpDate?: string;
+  shopNotes?: string;
   // Reference to original document
   originalDoc: Order | Invoice;
 };
 
-const SHOP_STATUSES: ShopStatus[] = ['Pending', 'Ordered', 'Shipped', 'Received', 'Ready for Pickup', 'Picked Up'];
+const SHOP_STATUSES: ShopStatus[] = ['Pending', 'Ordered', 'Shipped', 'Partial Received', 'Received', 'Ready for Pickup', 'Picked Up'];
 
 const getStatusColor = (status?: ShopStatus): string => {
   switch (status) {
     case 'Pending': return 'bg-gray-100 text-gray-800 border-gray-300';
     case 'Ordered': return 'bg-blue-100 text-blue-800 border-blue-300';
     case 'Shipped': return 'bg-purple-100 text-purple-800 border-purple-300';
+    case 'Partial Received': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     case 'Received': return 'bg-green-100 text-green-800 border-green-300';
     case 'Ready for Pickup': return 'bg-orange-100 text-orange-800 border-orange-300';
     case 'Picked Up': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
@@ -109,6 +115,10 @@ export default function ShopPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<ShopStatus | null>(null);
+  const [editingReceivedQty, setEditingReceivedQty] = useState<Record<string, number>>({});
+  const [editingNotes, setEditingNotes] = useState('');
+  const [editingEta, setEditingEta] = useState<Date | undefined>(undefined);
+  const [isEditingEta, setIsEditingEta] = useState(false);
 
   // Fetch orders with vendor
   useEffect(() => {
@@ -174,6 +184,7 @@ export default function ShopPage() {
           date: order.date,
           pickedUpDate: order.pickedUpDate,
           readyForPickUpDate: order.readyForPickUpDate,
+          shopNotes: order.shopNotes,
           originalDoc: order,
         });
       }
@@ -200,6 +211,7 @@ export default function ShopPage() {
           date: invoice.date,
           pickedUpDate: invoice.pickedUpDate,
           readyForPickUpDate: invoice.readyForPickUpDate,
+          shopNotes: invoice.shopNotes,
           originalDoc: invoice,
         });
       }
@@ -333,16 +345,137 @@ export default function ShopPage() {
     const pending = shopItems.filter(i => i.shopStatus === 'Pending' || !i.shopStatus).length;
     const ordered = shopItems.filter(i => i.shopStatus === 'Ordered').length;
     const shipped = shopItems.filter(i => i.shopStatus === 'Shipped').length;
+    const partialReceived = shopItems.filter(i => i.shopStatus === 'Partial Received').length;
     const received = shopItems.filter(i => i.shopStatus === 'Received').length;
     const readyForPickup = shopItems.filter(i => i.shopStatus === 'Ready for Pickup').length;
     const needsReminder = shopItems.filter(needsPickupReminder).length;
 
-    return { pending, ordered, shipped, received, readyForPickup, needsReminder };
+    return { pending, ordered, shipped, partialReceived, received, readyForPickup, needsReminder };
   }, [shopItems]);
 
   const openItemDetail = (item: ShopItem) => {
     setSelectedItem(item);
     setIsDetailOpen(true);
+    // Initialize editing state with existing values
+    const initialQty: Record<string, number> = {};
+    item.lineItems.forEach(li => {
+      initialQty[li.id] = li.receivedQuantity ?? 0;
+    });
+    setEditingReceivedQty(initialQty);
+    setEditingNotes(item.shopNotes || '');
+    setEditingEta(item.expectedDeliveryDate ? parseISO(item.expectedDeliveryDate) : undefined);
+    setIsEditingEta(false);
+  };
+
+  // Save received quantities for line items
+  const handleSaveReceivedQuantities = async () => {
+    if (!db || !selectedItem) return;
+
+    setIsUpdating(true);
+    try {
+      const collectionName = selectedItem.type === 'order' ? 'orders' : 'invoices';
+      const docRef = doc(db, collectionName, selectedItem.id);
+
+      // Update line items with received quantities
+      const updatedLineItems = selectedItem.lineItems.map(li => ({
+        ...li,
+        receivedQuantity: editingReceivedQty[li.id] ?? li.receivedQuantity ?? 0,
+      }));
+
+      // Check if all items are fully received, partially received, or none received
+      const totalOrdered = selectedItem.lineItems.reduce((sum, li) => sum + li.quantity, 0);
+      const totalReceived = Object.values(editingReceivedQty).reduce((sum, qty) => sum + qty, 0);
+
+      let newStatus: ShopStatus = selectedItem.shopStatus || 'Pending';
+      if (totalReceived === 0) {
+        // Keep current status or Shipped
+      } else if (totalReceived > 0 && totalReceived < totalOrdered) {
+        newStatus = 'Partial Received';
+      } else if (totalReceived >= totalOrdered) {
+        newStatus = 'Received';
+      }
+
+      const updateData: Partial<Order | Invoice> = {
+        lineItems: updatedLineItems,
+        shopStatus: newStatus,
+      };
+
+      // Add received date/by if marking as received for first time
+      if ((newStatus === 'Partial Received' || newStatus === 'Received') && !selectedItem.receivedDate) {
+        updateData.receivedDate = new Date().toISOString();
+        updateData.receivedBy = user?.email || 'Unknown';
+      }
+
+      await setDoc(docRef, updateData, { merge: true });
+
+      toast({
+        title: "Quantities Updated",
+        description: `Received quantities saved. Status: ${newStatus}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to save quantities: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Save shop notes
+  const handleSaveNotes = async () => {
+    if (!db || !selectedItem) return;
+
+    setIsUpdating(true);
+    try {
+      const collectionName = selectedItem.type === 'order' ? 'orders' : 'invoices';
+      const docRef = doc(db, collectionName, selectedItem.id);
+
+      await setDoc(docRef, { shopNotes: editingNotes }, { merge: true });
+
+      toast({
+        title: "Notes Saved",
+        description: "Internal notes have been updated.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to save notes: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Save expected delivery date (ETA)
+  const handleSaveEta = async () => {
+    if (!db || !selectedItem) return;
+
+    setIsUpdating(true);
+    try {
+      const collectionName = selectedItem.type === 'order' ? 'orders' : 'invoices';
+      const docRef = doc(db, collectionName, selectedItem.id);
+
+      await setDoc(docRef, {
+        expectedDeliveryDate: editingEta ? editingEta.toISOString() : null
+      }, { merge: true });
+
+      toast({
+        title: "ETA Updated",
+        description: editingEta ? `Expected delivery date set to ${format(editingEta, 'PPP')}` : "Expected delivery date cleared.",
+      });
+      setIsEditingEta(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to save ETA: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   if (isLoading) {
@@ -363,7 +496,7 @@ export default function ShopPage() {
       </PageHeader>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
+      <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7 mb-6">
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('Pending')}>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">{stats.pending}</div>
@@ -380,6 +513,12 @@ export default function ShopPage() {
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-purple-600">{stats.shipped}</div>
             <p className="text-xs text-muted-foreground">Shipped</p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('Partial Received')}>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-yellow-600">{stats.partialReceived}</div>
+            <p className="text-xs text-muted-foreground">Partial Received</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('Received')}>
@@ -587,8 +726,35 @@ export default function ShopPage() {
                       <p className="font-medium">{formatDate(selectedItem.date)}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Expected Delivery</label>
-                      <p className="font-medium">{formatDate(selectedItem.expectedDeliveryDate)}</p>
+                      <label className="text-sm font-medium text-muted-foreground">Expected Delivery (ETA)</label>
+                      {isEditingEta ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className={cn("text-left font-normal", !editingEta && "text-muted-foreground")}>
+                                {editingEta ? format(editingEta, "PPP") : "Pick a date"}
+                                <Icon name="Calendar" className="ml-2 h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={editingEta} onSelect={setEditingEta} />
+                            </PopoverContent>
+                          </Popover>
+                          <Button size="sm" onClick={handleSaveEta} disabled={isUpdating}>
+                            <Icon name="Check" className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setIsEditingEta(false)}>
+                            <Icon name="X" className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{formatDate(selectedItem.expectedDeliveryDate)}</p>
+                          <Button size="sm" variant="ghost" onClick={() => setIsEditingEta(true)}>
+                            <Icon name="Edit" className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     {selectedItem.receivedDate && (
                       <div>
@@ -606,16 +772,65 @@ export default function ShopPage() {
 
                   <Separator />
 
-                  {/* Line Items */}
+                  {/* Line Items with Received Quantities */}
                   <div>
-                    <h3 className="font-semibold mb-3">Materials Ordered</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Materials Ordered</h3>
+                      <Button size="sm" onClick={handleSaveReceivedQuantities} disabled={isUpdating}>
+                        {isUpdating ? <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" /> : <Icon name="Save" className="mr-2 h-4 w-4" />}
+                        Save Quantities
+                      </Button>
+                    </div>
                     <div className="space-y-2">
-                      {selectedItem.lineItems.map(item => (
-                        <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <span className="font-medium">{item.productName}</span>
-                          <Badge variant="secondary" className="text-lg px-3">{item.quantity}</Badge>
-                        </div>
-                      ))}
+                      {selectedItem.lineItems.map(item => {
+                        const orderedQty = item.quantity;
+                        const receivedQty = editingReceivedQty[item.id] ?? 0;
+                        const backorderedQty = Math.max(0, orderedQty - receivedQty);
+                        const isFullyReceived = receivedQty >= orderedQty;
+                        const isPartiallyReceived = receivedQty > 0 && receivedQty < orderedQty;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={cn(
+                              "p-3 border rounded-lg",
+                              isFullyReceived && "bg-green-50 border-green-200",
+                              isPartiallyReceived && "bg-yellow-50 border-yellow-200"
+                            )}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-medium">{item.productName}</span>
+                              <Badge variant="secondary" className="text-sm">Ordered: {orderedQty}</Badge>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm text-muted-foreground">Received:</Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={orderedQty}
+                                  value={receivedQty}
+                                  onChange={(e) => setEditingReceivedQty(prev => ({
+                                    ...prev,
+                                    [item.id]: Math.max(0, parseInt(e.target.value) || 0)
+                                  }))}
+                                  className="w-20 h-8"
+                                />
+                              </div>
+                              {backorderedQty > 0 && (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  Backordered: {backorderedQty}
+                                </Badge>
+                              )}
+                              {isFullyReceived && (
+                                <Badge className="bg-green-100 text-green-800">
+                                  <Icon name="Check" className="mr-1 h-3 w-3" /> Complete
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -665,6 +880,34 @@ export default function ShopPage() {
                         </Button>
                       </div>
                     )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Internal Notes (Back of House / Office only) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Internal Notes</h3>
+                      <Badge variant="outline" className="text-xs">Back of House Only</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      These notes are only visible to office and yard staff, not shown to customers.
+                    </p>
+                    <Textarea
+                      value={editingNotes}
+                      onChange={(e) => setEditingNotes(e.target.value)}
+                      placeholder="Add internal notes about this order..."
+                      rows={4}
+                      className="mb-2"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveNotes}
+                      disabled={isUpdating || editingNotes === (selectedItem.shopNotes || '')}
+                    >
+                      {isUpdating ? <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" /> : <Icon name="Save" className="mr-2 h-4 w-4" />}
+                      Save Notes
+                    </Button>
                   </div>
                 </div>
               </div>

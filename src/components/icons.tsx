@@ -70,6 +70,7 @@ import {
   Clock,
   Phone,
   RefreshCw,
+  Save,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -147,6 +148,7 @@ const iconComponents = {
   Clock,
   Phone,
   RefreshCw,
+  Save,
 };
 
 type IconProps = {
