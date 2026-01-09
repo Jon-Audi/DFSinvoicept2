@@ -28,6 +28,7 @@ import type { Estimate, Product, Customer, CompanySettings, EmailContact } from 
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
 import { useFirebase } from '@/components/firebase-provider';
+import { useAuth } from '@/contexts/auth-context';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -41,6 +42,7 @@ export default function EstimatesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const { db } = useFirebase();
+  const { user } = useAuth();
 
   const [isLoadingEstimates, setIsLoadingEstimates] = useState(true);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
