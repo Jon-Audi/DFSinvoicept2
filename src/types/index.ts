@@ -498,3 +498,47 @@ export interface PriceHistoryEntry {
   changedBy?: string; // User email or ID
   reason?: string; // Optional note about why price changed
 }
+
+// ============================================
+// Receiving / Back of House Types
+// ============================================
+
+export type ReceivingStatus = 'Expected' | 'In Transit' | 'Partially Received' | 'Received' | 'Discrepancy' | 'Voided';
+export type ReceivingType = 'Vendor Order' | 'Customer Return' | 'Transfer' | 'Adjustment';
+
+export interface ReceivingLineItem {
+  id: string;
+  productId: string;
+  productName: string;
+  expectedQuantity: number;
+  receivedQuantity: number;
+  unitPrice: number;
+  total: number;
+  unit?: string;
+  receivedDate?: string; // When this item was received
+  notes?: string; // Discrepancy notes
+}
+
+export interface ReceivingOrder {
+  id: string;
+  receivingNumber: string;
+  vendorId: string;
+  vendorName: string; // Denormalized for display
+  date: string; // ISO date string (order date)
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  poNumber?: string; // Purchase Order reference
+  status: ReceivingStatus;
+  type: ReceivingType;
+  lineItems: ReceivingLineItem[];
+  subtotal: number;
+  taxRate?: number;
+  taxAmount?: number;
+  total: number;
+  notes?: string;
+  internalNotes?: string;
+  packingSlipUrls?: string[]; // Firebase Storage URLs for uploaded documents
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string; // User email
+}
