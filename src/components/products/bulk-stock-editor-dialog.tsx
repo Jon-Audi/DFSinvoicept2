@@ -24,14 +24,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Icon } from '@/components/icons';
 
@@ -104,14 +104,14 @@ export function BulkStockEditorDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Bulk Edit Stock for: {categoryName}</DialogTitle>
-          <DialogDescription>
-            Update the quantity in stock for products in this category.
-          </DialogDescription>
-        </DialogHeader>
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Bulk Edit Stock for: {categoryName}</AlertDialogTitle>
+          <AlertDialogDescription>
+            Update the quantity in stock for products in this category. Click outside won&apos;t close this dialog to prevent accidental data loss.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <ScrollArea className="h-[60vh] mt-4">
@@ -124,7 +124,7 @@ export function BulkStockEditorDialog({
                 </TableHeader>
                 <TableBody>
                   {fields.map((field, index) => (
-                    <TableRow key={field.id}>
+                    <TableRow key={field.id} className="h-14">
                       <TableCell className="font-medium">{watchedProducts[index]?.name}</TableCell>
                       <TableCell>
                         <FormField
@@ -135,7 +135,7 @@ export function BulkStockEditorDialog({
                               <FormControl>
                                 <Input
                                   type="number"
-                                  className="text-right"
+                                  className="text-right h-12 text-lg touch-manipulation"
                                   {...stockField}
                                 />
                               </FormControl>
@@ -149,16 +149,16 @@ export function BulkStockEditorDialog({
                 </TableBody>
               </Table>
             </ScrollArea>
-            <DialogFooter className="mt-4">
-              <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+            <AlertDialogFooter className="mt-4">
+              <AlertDialogCancel type="button" onClick={() => onOpenChange(false)}>Cancel</AlertDialogCancel>
               <Button type="submit" disabled={isSaving}>
                 {isSaving && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
                 Save All Changes
               </Button>
-            </DialogFooter>
+            </AlertDialogFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

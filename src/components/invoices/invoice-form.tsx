@@ -173,9 +173,10 @@ export function InvoiceForm({
   const [lineItemCategoryFilters, setLineItemCategoryFilters] = useState<(string | undefined)[]>([]);
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
   const [editingPayment, setEditingPayment] = useState<FormPayment | null>(null);
-  
+
   const [localPayments, setLocalPayments] = useState<FormPayment[]>([]);
   const prevCustomerIdRef = React.useRef<string | undefined>();
+  const formInitializedRef = React.useRef(false);
 
   const form = useForm<z.infer<typeof invoiceFormSchema>>({
     resolver: zodResolver(invoiceFormSchema),
@@ -188,7 +189,19 @@ export function InvoiceForm({
 
   const watchedStatus = form.watch('status');
 
+  // Initialize form only once on mount or when editing a different invoice
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
+    // Skip if already initialized for the same invoice/initialData
+    const currentId = invoice?.id || initialData?.id || 'new';
+    if (formInitializedRef.current === true) {
+      // Only re-initialize if we're editing a different invoice
+      const formId = form.getValues('id');
+      if (formId === currentId || (formId === undefined && currentId === 'new')) {
+        return; // Same form, don't reset
+      }
+    }
+
     let defaultValues: z.infer<typeof invoiceFormSchema>;
     let initialLocalPayments: FormPayment[] = [];
 
@@ -252,18 +265,31 @@ export function InvoiceForm({
 
     form.reset(defaultValues);
     setLocalPayments(initialLocalPayments);
-    setEditingPayment(null); 
+    setEditingPayment(null);
+    formInitializedRef.current = true;
+  }, [invoice, initialData, form]);
 
-    const formLineItemsAfterReset = form.getValues('lineItems') || [];
-    const newCategoryFilters = formLineItemsAfterReset.map(item => {
-        if (!item.isNonStock && item.productId && products && products.length > 0) {
+  // Separate effect to set category filters when products become available
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+
+    const formLineItems = form.getValues('lineItems') || [];
+    const newCategoryFilters = formLineItems.map(item => {
+        if (!item.isNonStock && item.productId) {
             const product = products.find(p => p.id === item.productId);
             return product?.category;
         }
         return undefined;
     });
-    setLineItemCategoryFilters(newCategoryFilters);
-  }, [invoice, initialData, form, products]);
+
+    // Only update if filters actually changed to avoid unnecessary rerenders
+    setLineItemCategoryFilters(prev => {
+      if (JSON.stringify(prev) !== JSON.stringify(newCategoryFilters)) {
+        return newCategoryFilters;
+      }
+      return prev;
+    });
+  }, [products, form]);
 
 
   const watchedLineItems = form.watch('lineItems') || [];

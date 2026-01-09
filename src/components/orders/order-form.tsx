@@ -133,13 +133,26 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
   const [lineItemSubcategoryFilters, setLineItemSubcategoryFilters] = useState<(string | undefined)[]>([]);
   const [editingPayment, setEditingPayment] = useState<FormPayment | null>(null);
   const [localPayments, setLocalPayments] = useState<FormPayment[]>([]);
+  const formInitializedRef = React.useRef(false);
 
   const form = useForm<z.infer<typeof orderFormSchema>>({ resolver: zodResolver(orderFormSchema) });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "lineItems" });
-  
+
   const watchedStatus = form.watch('status');
 
+  // Initialize form only once on mount or when editing a different order
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
+    // Skip if already initialized for the same order/initialData
+    const currentId = order?.id || initialData?.id || 'new';
+    if (formInitializedRef.current === true) {
+      // Only re-initialize if we're editing a different order
+      const formId = form.getValues('id');
+      if (formId === currentId || (formId === undefined && currentId === 'new')) {
+        return; // Same form, don't reset
+      }
+    }
+
     let defaultValues: z.infer<typeof orderFormSchema>;
     let initialLocalPayments: FormPayment[] = [];
 
@@ -175,11 +188,35 @@ export function OrderForm({ order, initialData, onSubmit, onClose, customers, pr
     form.reset(defaultValues);
     setLocalPayments(initialLocalPayments);
     setEditingPayment(null);
+    formInitializedRef.current = true;
+  }, [order, initialData, form]);
 
-    const formLineItemsAfterReset = form.getValues('lineItems') || [];
-    setLineItemCategoryFilters(formLineItemsAfterReset.map(item => !item.isNonStock && item.productId ? products.find(p => p.id === item.productId)?.category : undefined));
-    setLineItemSubcategoryFilters(formLineItemsAfterReset.map(item => !item.isNonStock && item.productId ? products.find(p => p.id === item.productId)?.subcategory : undefined));
-  }, [order, initialData, form, products]);
+  // Separate effect to set category filters when products become available
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+
+    const formLineItems = form.getValues('lineItems') || [];
+    const newCategoryFilters = formLineItems.map(item =>
+      !item.isNonStock && item.productId ? products.find(p => p.id === item.productId)?.category : undefined
+    );
+    const newSubcategoryFilters = formLineItems.map(item =>
+      !item.isNonStock && item.productId ? products.find(p => p.id === item.productId)?.subcategory : undefined
+    );
+
+    // Only update if filters actually changed to avoid unnecessary rerenders
+    setLineItemCategoryFilters(prev => {
+      if (JSON.stringify(prev) !== JSON.stringify(newCategoryFilters)) {
+        return newCategoryFilters;
+      }
+      return prev;
+    });
+    setLineItemSubcategoryFilters(prev => {
+      if (JSON.stringify(prev) !== JSON.stringify(newSubcategoryFilters)) {
+        return newSubcategoryFilters;
+      }
+      return prev;
+    });
+  }, [products, form]);
 
   const watchedLineItems = form.watch('lineItems') || [];
   const currentOrderTotal = useMemo(() => watchedLineItems.reduce((acc, item) => acc + (item.unitPrice || 0) * (item.quantity || 0) * (item.isReturn ? -1 : 1), 0), [watchedLineItems]);

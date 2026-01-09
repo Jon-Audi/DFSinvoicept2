@@ -9,7 +9,9 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
-  ChevronUp, // Added ChevronUp
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
   PlusCircle,
   Plus,
   Edit,
@@ -87,7 +89,9 @@ const iconComponents = {
   Calculator,
   ChevronDown,
   ChevronRight,
-  ChevronUp, // Added ChevronUp
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
   PlusCircle,
   Plus,
   Edit,
