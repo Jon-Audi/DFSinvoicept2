@@ -20,6 +20,7 @@ export const NAV_ITEMS = [
   { href: '/estimates', label: 'Estimates', icon: 'FileText' },
   { href: '/orders', label: 'Orders', icon: 'ShoppingCart' },
   { href: '/invoices', label: 'Invoices', icon: 'FileDigit' },
+  { href: '/shop', label: 'Shop', icon: 'Warehouse' },
   { href: '/packing', label: 'Packing', icon: 'PackageCheck' },
   { href: '/production', label: 'Production', icon: 'Construction' },
   { href: '/chainlink', label: 'Chainlink', icon: 'Link' },

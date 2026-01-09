@@ -63,6 +63,13 @@ import {
   List,
   FileDown,
   X,
+  Warehouse,
+  Camera,
+  Image,
+  Eye,
+  Clock,
+  Phone,
+  RefreshCw,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -133,6 +140,13 @@ const iconComponents = {
   List,
   FileDown,
   X,
+  Warehouse,
+  Camera,
+  Image,
+  Eye,
+  Clock,
+  Phone,
+  RefreshCw,
 };
 
 type IconProps = {

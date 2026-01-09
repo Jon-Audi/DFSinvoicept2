@@ -144,6 +144,9 @@ export interface Estimate extends BaseDocument {
   validUntil?: string; // ISO date string
 }
 
+// Shop/Receiving status for tracking vendor orders
+export type ShopStatus = 'Pending' | 'Ordered' | 'Shipped' | 'Received' | 'Ready for Pickup' | 'Picked Up';
+
 export interface Order extends BaseDocument {
   orderNumber: string;
   estimateId?: string;
@@ -156,6 +159,11 @@ export interface Order extends BaseDocument {
   amountPaid: number;
   balanceDue: number;
   distributor?: string;
+  // Shop/Receiving tracking fields
+  shopStatus?: ShopStatus;
+  receivedDate?: string;
+  receivedBy?: string;
+  packingSlipPhotos?: string[]; // URLs to uploaded photos
 }
 
 export interface Invoice extends BaseDocument {
@@ -171,6 +179,12 @@ export interface Invoice extends BaseDocument {
   pickedUpDate?: string;
   distributor?: string;
   isFinalized?: boolean; // Lock invoice from editing when finalized
+  // Shop/Receiving tracking fields
+  expectedDeliveryDate?: string;
+  shopStatus?: ShopStatus;
+  receivedDate?: string;
+  receivedBy?: string;
+  packingSlipPhotos?: string[]; // URLs to uploaded photos
 }
 
 export interface User {
