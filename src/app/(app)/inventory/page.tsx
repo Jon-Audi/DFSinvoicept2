@@ -97,7 +97,12 @@ function StockCell({ product, onUpdate }: { product: Product; onUpdate: (id: str
   };
 
   const qty = product.quantityInStock || 0;
-  const bgColor = qty === 0 ? 'bg-red-100' : qty <= 5 ? 'bg-yellow-100' : 'bg-green-50';
+  // Use darker backgrounds with white text for better contrast
+  const colorClasses = qty === 0
+    ? 'bg-red-600 text-white'
+    : qty <= 5
+    ? 'bg-amber-500 text-white'
+    : 'bg-emerald-600 text-white';
 
   if (isEditing) {
     return (
@@ -125,11 +130,11 @@ function StockCell({ product, onUpdate }: { product: Product; onUpdate: (id: str
         "h-12 min-w-[80px] px-4 rounded-md font-semibold text-lg flex items-center justify-center gap-2",
         "hover:ring-2 hover:ring-primary hover:ring-offset-2 transition-all",
         "touch-manipulation cursor-pointer",
-        bgColor
+        colorClasses
       )}
     >
       {qty}
-      <Icon name="Edit" className="h-4 w-4 text-muted-foreground" />
+      <Icon name="Edit" className="h-4 w-4 opacity-70" />
     </button>
   );
 }
