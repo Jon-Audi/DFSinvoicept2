@@ -148,6 +148,14 @@ export const ProductTable = React.memo(function ProductTable({
     }
   }, [categoryToDelete, onDeleteCategory]);
 
+  // Move useMemo BEFORE any conditional returns to satisfy React hooks rules
+  const defaultOpenValues = useMemo(() =>
+    Array.from(groupedProducts.entries())
+      .filter(([_, products]) => products.length > 0)
+      .map(([category]) => category),
+    [groupedProducts]
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -162,13 +170,6 @@ export const ProductTable = React.memo(function ProductTable({
       </div>
     );
   }
-
-  const defaultOpenValues = useMemo(() => 
-    Array.from(groupedProducts.entries())
-      .filter(([_, products]) => products.length > 0)
-      .map(([category]) => category),
-    [groupedProducts]
-  );
 
   if (groupedProducts.size === 0 && !isLoading) {
     return (
