@@ -228,7 +228,6 @@ export default function ChainlinkSettingsPage() {
         };
       });
     });
-    });
 
     setResidentialMapping(defaultResidential);
     setCommercialMapping(defaultCommercial);

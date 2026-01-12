@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { customerDisplayName } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -44,23 +44,8 @@ interface CustomerTableProps {
   onRowClick: (customerId: string) => void;
 }
 
-export const CustomerTable = React.memo(function CustomerTable({ customers, onSave, onDelete, onManageCredit, isLoading, onRowClick }: CustomerTableProps) {
+export function CustomerTable({ customers, onSave, onDelete, onManageCredit, isLoading, onRowClick }: CustomerTableProps) {
   const [customerToDelete, setCustomerToDelete] = React.useState<Customer | null>(null);
-
-  const handleDeleteCustomer = useCallback(() => {
-    if (customerToDelete) {
-      onDelete(customerToDelete.id);
-      setCustomerToDelete(null);
-    }
-  }, [customerToDelete, onDelete]);
-
-  const handleCancelDelete = useCallback(() => {
-    setCustomerToDelete(null);
-  }, []);
-
-  const handleRowClick = useCallback((customerId: string) => {
-    onRowClick(customerId);
-  }, [onRowClick]);
 
   if (isLoading) {
     return (
@@ -89,14 +74,14 @@ export const CustomerTable = React.memo(function CustomerTable({ customers, onSa
           <TableBody>
             {customers.map((customer) => (
               <TableRow key={customer.id} className="cursor-pointer">
-                <TableCell className="font-medium" onClick={() => handleRowClick(customer.id)}>
+                <TableCell className="font-medium" onClick={() => onRowClick(customer.id)}>
                   {customerDisplayName(customer)}
                 </TableCell>
-                <TableCell onClick={() => handleRowClick(customer.id)}>{customer.emailContacts?.[0]?.email || 'N/A'}</TableCell>
-                <TableCell onClick={() => handleRowClick(customer.id)}>
+                <TableCell onClick={() => onRowClick(customer.id)}>{customer.emailContacts?.[0]?.email || 'N/A'}</TableCell>
+                <TableCell onClick={() => onRowClick(customer.id)}>
                   <Badge variant="secondary">{customer.customerType}</Badge>
                 </TableCell>
-                <TableCell className="text-right" onClick={() => handleRowClick(customer.id)}>
+                <TableCell className="text-right" onClick={() => onRowClick(customer.id)}>
                   {customer.creditBalance && customer.creditBalance > 0 ? (
                     <span className="font-semibold text-green-600 dark:text-green-400">
                       ${customer.creditBalance.toFixed(2)}
@@ -105,7 +90,7 @@ export const CustomerTable = React.memo(function CustomerTable({ customers, onSa
                     <span className="text-muted-foreground">$0.00</span>
                   )}
                 </TableCell>
-                <TableCell onClick={() => handleRowClick(customer.id)}>
+                <TableCell onClick={() => onRowClick(customer.id)}>
                   {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
@@ -155,9 +140,12 @@ export const CustomerTable = React.memo(function CustomerTable({ customers, onSa
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setCustomerToDelete(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleDeleteCustomer}
+                onClick={() => {
+                  if (customerToDelete) onDelete(customerToDelete.id);
+                  setCustomerToDelete(null);
+                }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Delete
