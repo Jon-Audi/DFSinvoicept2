@@ -163,6 +163,13 @@ export const ProductTable = React.memo(function ProductTable({
     );
   }
 
+  const defaultOpenValues = useMemo(() => 
+    Array.from(groupedProducts.entries())
+      .filter(([_, products]) => products.length > 0)
+      .map(([category]) => category),
+    [groupedProducts]
+  );
+
   if (groupedProducts.size === 0 && !isLoading) {
     return (
       <div className="rounded-lg border shadow-sm p-6 text-center">
@@ -173,13 +180,6 @@ export const ProductTable = React.memo(function ProductTable({
       </div>
     );
   }
-
-  const defaultOpenValues = useMemo(() => 
-    Array.from(groupedProducts.entries())
-      .filter(([_, products]) => products.length > 0)
-      .map(([category]) => category),
-    [groupedProducts]
-  );
 
   return (
     <>

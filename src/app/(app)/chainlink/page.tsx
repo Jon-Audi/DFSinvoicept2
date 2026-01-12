@@ -134,9 +134,52 @@ export default function ChainlinkEstimationPage() {
           const data = docSnap.data();
           const typeData = data[fenceType];
           if (typeData && typeData[fenceColor] && typeData[fenceColor][fenceHeight]) {
-            // Use the product mapping as pricing format
             const mapping = typeData[fenceColor][fenceHeight];
-            setPricing(mapping as ChainlinkMaterialPricing);
+            
+            // Fetch product prices from the product IDs in the mapping
+            const productIds = [
+              mapping.linePostProductId,
+              mapping.fabricProductId,
+              mapping.topRailProductId,
+              mapping.tieWireProductId,
+              mapping.loopCapProductId,
+              mapping.postCapProductId,
+              mapping.braceBandProductId,
+              mapping.tensionBarProductId,
+              mapping.tensionBandProductId,
+              mapping.nutAndBoltProductId,
+            ].filter(Boolean);
+
+            // Fetch all products at once
+            const productPrices: Record<string, number> = {};
+            for (const productId of productIds) {
+              if (productId) {
+                const productDoc = await getDoc(doc(db, 'products', productId));
+                if (productDoc.exists()) {
+                  const product = productDoc.data();
+                  productPrices[productId] = product.price || 0;
+                }
+              }
+            }
+
+            // Build pricing object with actual prices
+            const pricingData: ChainlinkMaterialPricing = {
+              id: mapping.id || `${fenceType}-${fenceColor}-${fenceHeight}`,
+              fenceHeight,
+              fenceType,
+              interiorLinePostPrice: mapping.linePostProductId ? (productPrices[mapping.linePostProductId] || 0) : 0,
+              fabricPricePerFoot: mapping.fabricProductId ? (productPrices[mapping.fabricProductId] || 0) : 0,
+              topRailPricePerStick: mapping.topRailProductId ? (productPrices[mapping.topRailProductId] || 0) : 0,
+              tieWirePrice: mapping.tieWireProductId ? (productPrices[mapping.tieWireProductId] || 0) : 0,
+              loopCapPrice: mapping.loopCapProductId ? (productPrices[mapping.loopCapProductId] || 0) : 0,
+              postCapPrice: mapping.postCapProductId ? (productPrices[mapping.postCapProductId] || 0) : 0,
+              braceBandPrice: mapping.braceBandProductId ? (productPrices[mapping.braceBandProductId] || 0) : 0,
+              tensionBarPrice: mapping.tensionBarProductId ? (productPrices[mapping.tensionBarProductId] || 0) : 0,
+              tensionBandPrice: mapping.tensionBandProductId ? (productPrices[mapping.tensionBandProductId] || 0) : 0,
+              nutAndBoltPrice: mapping.nutAndBoltProductId ? (productPrices[mapping.nutAndBoltProductId] || 0) : 0,
+            };
+
+            setPricing(pricingData);
           } else {
             setPricing(null);
             toast({
@@ -587,86 +630,6 @@ export default function ChainlinkEstimationPage() {
                 onChange={(e) => setCorners(parseInt(e.target.value) || 0)}
               />
               <p className="text-xs text-muted-foreground">Corner posts that change direction</p>
-            </div>
-            {/* Gate Options */}
-            <div className="space-y-4 pt-4 border-t">
-              <Label className="text-sm font-medium">Gate Options</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Single Gates</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={singleGates}
-                    onChange={(e) => setSingleGates(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Double Gates</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={doubleGates}
-                    onChange={(e) => setDoubleGates(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Pedestrian Gates</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={pedestrianGates}
-                    onChange={(e) => setPedestrianGates(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Components */}
-            <div className="space-y-4 pt-4 border-t">
-              <Label className="text-sm font-medium">Additional Components</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="privacySlats"
-                    checked={includePrivacySlats}
-                    onChange={(e) => setIncludePrivacySlats(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="privacySlats" className="text-sm font-normal">Privacy Slats</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="barbedWire"
-                    checked={includeBarbedWire}
-                    onChange={(e) => setIncludeBarbedWire(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="barbedWire" className="text-sm font-normal">Barbed Wire</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="bottomRail"
-                    checked={includeBottomRail}
-                    onChange={(e) => setIncludeBottomRail(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="bottomRail" className="text-sm font-normal">Bottom Rail</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="railEnds"
-                    checked={includeRailEnds}
-                    onChange={(e) => setIncludeRailEnds(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="railEnds" className="text-sm font-normal">Rail Ends</Label>
-                </div>
-              </div>
             </div>
             {/* Gate Options */}
             <div className="space-y-4 pt-4 border-t">
