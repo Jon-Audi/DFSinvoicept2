@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
-import { exportEstimateToPDF, exportOrderToPDF, exportInvoiceToPDF } from '@/lib/pdf-export';
+import { useState } from 'react';
 import type { Estimate, Order, Invoice, CompanySettings } from '@/types';
 
 interface PDFExportButtonProps {
@@ -16,9 +16,16 @@ interface PDFExportButtonProps {
 
 export function PDFExportButton({ document, type, companySettings, variant = 'outline', size = 'default' }: PDFExportButtonProps) {
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
+    if (isExporting) return;
+    
+    setIsExporting(true);
     try {
+      // Dynamically import PDF export functions only when needed
+      const { exportEstimateToPDF, exportOrderToPDF, exportInvoiceToPDF } = await import('@/lib/pdf-export');
+      
       if (type === 'estimate') {
         await exportEstimateToPDF(document as Estimate, companySettings);
       } else if (type === 'order') {
@@ -38,13 +45,19 @@ export function PDFExportButton({ document, type, companySettings, variant = 'ou
         description: 'Could not export PDF. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
   return (
-    <Button variant={variant} size={size} onClick={handleExport}>
-      <Icon name="FileDown" className="mr-2 h-4 w-4" />
-      Export PDF
+    <Button variant={variant} size={size} onClick={handleExport} disabled={isExporting}>
+      {isExporting ? (
+        <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <Icon name="FileDown" className="mr-2 h-4 w-4" />
+      )}
+      {isExporting ? 'Exporting...' : 'Export PDF'}
     </Button>
   );
 }

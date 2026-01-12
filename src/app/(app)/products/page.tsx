@@ -23,7 +23,6 @@ import { useReactToPrint } from 'react-to-print';
 import { Skeleton } from '@/components/ui/skeleton';
 import { recordPriceChange } from '@/lib/price-history';
 import { useAuth } from '@/contexts/auth-context';
-import { exportPriceSheetToPDF } from '@/lib/pdf-export';
 
 // Lazy load heavy Excel component
 const ExcelImportExport = dynamic(
@@ -360,6 +359,9 @@ export default function ProductsPage() {
     }
 
     try {
+      // Dynamically import PDF export function
+      const { exportPriceSheetToPDF } = await import('@/lib/pdf-export');
+      
       const productsToPrint = products.filter(p => selectedCategories.includes(p.category));
 
       const grouped = productsToPrint.reduce((acc, product) => {
