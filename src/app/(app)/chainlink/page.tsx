@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkRun, ChainlinkEstimationResult, ChainlinkMaterialPricing, ChainlinkProductMapping, Product, LineItem, Customer } from '@/types';
+import type { ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkFenceColor, ChainlinkRun, ChainlinkEstimationResult, ChainlinkMaterialPricing, ChainlinkProductMapping, Product, LineItem, Customer } from '@/types';
 import { calculateChainlinkMaterials, calculateChainlinkCost } from '@/lib/chainlink-calculator';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, onSnapshot, addDoc } from 'firebase/firestore';
@@ -43,6 +43,7 @@ import type { OrderFormData } from '@/components/orders/order-form';
 import type { InvoiceFormData } from '@/components/invoices/invoice-form';
 
 const FENCE_HEIGHTS: ChainlinkFenceHeight[] = ['3', '4', '5', '6', '7', '8', '9', '10'];
+const FENCE_COLORS: ChainlinkFenceColor[] = ['galvanized', 'green', 'black'];
 
 export default function ChainlinkEstimationPage() {
   const { db } = useFirebase();
@@ -53,8 +54,20 @@ export default function ChainlinkEstimationPage() {
   const [runs, setRuns] = useState<ChainlinkRun[]>([{ length: 0 }]);
   const [fenceHeight, setFenceHeight] = useState<ChainlinkFenceHeight>('6');
   const [fenceType, setFenceType] = useState<ChainlinkFenceType>('residential');
+  const [fenceColor, setFenceColor] = useState<ChainlinkFenceColor>('galvanized');
   const [ends, setEnds] = useState<number>(2);
   const [corners, setCorners] = useState<number>(0);
+  
+  // Gate options
+  const [singleGates, setSingleGates] = useState<number>(0);
+  const [doubleGates, setDoubleGates] = useState<number>(0);
+  const [pedestrianGates, setPedestrianGates] = useState<number>(0);
+  
+  // Additional components
+  const [includePrivacySlats, setIncludePrivacySlats] = useState<boolean>(false);
+  const [includeBarbedWire, setIncludeBarbedWire] = useState<boolean>(false);
+  const [includeBottomRail, setIncludeBottomRail] = useState<boolean>(false);
+  const [includeRailEnds, setIncludeRailEnds] = useState<boolean>(false);
 
   // Results
   const [result, setResult] = useState<ChainlinkEstimationResult | null>(null);
