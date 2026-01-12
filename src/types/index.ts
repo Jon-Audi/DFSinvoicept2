@@ -419,8 +419,18 @@ export interface ChainlinkEstimationInput {
   runs: ChainlinkRun[];
   fenceHeight: ChainlinkFenceHeight;
   fenceType: ChainlinkFenceType;
+  fenceColor: ChainlinkFenceColor;
   ends: number;
   corners: number;
+  // Gate options
+  singleGates?: number;
+  doubleGates?: number;
+  pedestrianGates?: number;
+  // Additional components
+  includePrivacySlats?: boolean;
+  includeBarbedWire?: boolean;
+  includeBottomRail?: boolean;
+  includeRailEnds?: boolean;
 }
 
 export interface ChainlinkEstimationResult {
@@ -438,6 +448,21 @@ export interface ChainlinkEstimationResult {
   pipeWeight: string;
   userSpecifiedEnds?: number;
   userSpecifiedCorners?: number;
+  // Gate Components
+  singleGates?: number;
+  doubleGates?: number;
+  pedestrianGates?: number;
+  gatePosts?: number;
+  gateHardwareSets?: number;
+  gateLatches?: number;
+  gateHinges?: number;
+  // Additional Components
+  privacySlats?: number;
+  barbedWire?: number;
+  bottomRailSticks?: number;
+  railEnds?: number;
+  // Configuration info for display
+  fenceColor?: ChainlinkFenceColor;
 }
 
 export interface ChainlinkMaterialPricing {
