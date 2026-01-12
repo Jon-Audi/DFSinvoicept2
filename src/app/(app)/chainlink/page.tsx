@@ -120,26 +120,28 @@ export default function ChainlinkEstimationPage() {
     return () => unsubscribe();
   }, [db]);
 
-  // Load pricing when fence type or height changes
+  // Load pricing when fence type, height, or color changes
   useEffect(() => {
     if (!db) return;
 
     const loadPricing = async () => {
       setIsLoadingPricing(true);
       try {
-        const docRef = doc(db, 'settings', 'chainlinkPricing');
+        const docRef = doc(db, 'settings', 'chainlinkProductMapping');
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
           const typeData = data[fenceType];
-          if (typeData && typeData[fenceHeight]) {
-            setPricing(typeData[fenceHeight]);
+          if (typeData && typeData[fenceColor] && typeData[fenceColor][fenceHeight]) {
+            // Use the product mapping as pricing format
+            const mapping = typeData[fenceColor][fenceHeight];
+            setPricing(mapping as ChainlinkMaterialPricing);
           } else {
             setPricing(null);
             toast({
               title: "Pricing Not Configured",
-              description: `No pricing found for ${fenceType} ${fenceHeight}'. Please configure in Settings > Chainlink Pricing.`,
+              description: `No pricing found for ${fenceType} ${fenceColor} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
               variant: "destructive",
             });
           }
@@ -155,7 +157,7 @@ export default function ChainlinkEstimationPage() {
     };
 
     loadPricing();
-  }, [db, fenceType, fenceHeight, toast]);
+  }, [db, fenceType, fenceHeight, fenceColor, toast]);
 
   const addRun = () => {
     setRuns([...runs, { length: 0 }]);
@@ -209,8 +211,16 @@ export default function ChainlinkEstimationPage() {
     setRuns([{ length: 0 }]);
     setFenceHeight('6');
     setFenceType('residential');
+    setFenceColor('galvanized');
     setEnds(2);
     setCorners(0);
+    setSingleGates(0);
+    setDoubleGates(0);
+    setPedestrianGates(0);
+    setIncludePrivacySlats(false);
+    setIncludeBarbedWire(false);
+    setIncludeBottomRail(false);
+    setIncludeRailEnds(false);
     setResult(null);
     setEstimatedCost(0);
   };
@@ -235,12 +245,12 @@ export default function ChainlinkEstimationPage() {
       }
 
       const mappingsData = settingsSnap.data();
-      const mapping: ChainlinkProductMapping | undefined = mappingsData[fenceType]?.[fenceHeight];
+      const mapping: ChainlinkProductMapping | undefined = mappingsData[fenceType]?.[fenceColor]?.[fenceHeight];
 
       if (!mapping) {
         toast({
           title: "Configuration Missing",
-          description: `No product mapping found for ${fenceType} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
+          description: `No product mapping found for ${fenceType} ${fenceColor} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
           variant: "destructive",
         });
         return;
@@ -577,6 +587,166 @@ export default function ChainlinkEstimationPage() {
                 onChange={(e) => setCorners(parseInt(e.target.value) || 0)}
               />
               <p className="text-xs text-muted-foreground">Corner posts that change direction</p>
+            </div>
+            {/* Gate Options */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Gate Options</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Single Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={singleGates}
+                    onChange={(e) => setSingleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Double Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={doubleGates}
+                    onChange={(e) => setDoubleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Pedestrian Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={pedestrianGates}
+                    onChange={(e) => setPedestrianGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Components */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Additional Components</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="privacySlats"
+                    checked={includePrivacySlats}
+                    onChange={(e) => setIncludePrivacySlats(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="privacySlats" className="text-sm font-normal">Privacy Slats</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="barbedWire"
+                    checked={includeBarbedWire}
+                    onChange={(e) => setIncludeBarbedWire(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="barbedWire" className="text-sm font-normal">Barbed Wire</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="bottomRail"
+                    checked={includeBottomRail}
+                    onChange={(e) => setIncludeBottomRail(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="bottomRail" className="text-sm font-normal">Bottom Rail</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="railEnds"
+                    checked={includeRailEnds}
+                    onChange={(e) => setIncludeRailEnds(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="railEnds" className="text-sm font-normal">Rail Ends</Label>
+                </div>
+              </div>
+            </div>
+            {/* Gate Options */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Gate Options</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Single Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={singleGates}
+                    onChange={(e) => setSingleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Double Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={doubleGates}
+                    onChange={(e) => setDoubleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Pedestrian Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={pedestrianGates}
+                    onChange={(e) => setPedestrianGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Components */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Additional Components</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="privacySlats"
+                    checked={includePrivacySlats}
+                    onChange={(e) => setIncludePrivacySlats(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="privacySlats" className="text-sm font-normal">Privacy Slats</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="barbedWire"
+                    checked={includeBarbedWire}
+                    onChange={(e) => setIncludeBarbedWire(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="barbedWire" className="text-sm font-normal">Barbed Wire</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="bottomRail"
+                    checked={includeBottomRail}
+                    onChange={(e) => setIncludeBottomRail(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="bottomRail" className="text-sm font-normal">Bottom Rail</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="railEnds"
+                    checked={includeRailEnds}
+                    onChange={(e) => setIncludeRailEnds(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="railEnds" className="text-sm font-normal">Rail Ends</Label>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}
