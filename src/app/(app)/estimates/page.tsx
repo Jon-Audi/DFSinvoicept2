@@ -29,7 +29,7 @@ import { EstimateDialog } from '@/components/estimates/estimate-dialog';
 import type { EstimateFormData } from '@/components/estimates/estimate-form';
 import { useFirebase } from '@/components/firebase-provider';
 import { useAuth } from '@/contexts/auth-context';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import PrintableEstimate from '@/components/estimates/printable-estimate';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
 import { EstimateTable, type SortableEstimateKeys } from '@/components/estimates/estimate-table';
@@ -81,62 +81,64 @@ export default function EstimatesPage() {
     setIsClient(true);
   }, []);
 
+  // Load data - estimates use real-time listener, others use one-time fetch
   useEffect(() => {
     if (!db) return;
-    setIsLoadingEstimates(true);
 
-    // Load all estimates sorted by date
-    const estimatesQuery = query(
-      collection(db, 'estimates'),
-      orderBy('date', 'desc')
-    );
+    let active = true;
+    const unsubscribes: (() => void)[] = [];
 
-    const unsubscribe = onSnapshot(estimatesQuery, (snapshot) => {
-      const fetchedEstimates: Estimate[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedEstimates.push({ ...docSnap.data() as Omit<Estimate, 'id'>, id: docSnap.id });
+    const loadData = async () => {
+      setIsLoadingEstimates(true);
+      setIsLoadingCustomers(true);
+      setIsLoadingProducts(true);
+
+      // Fetch static data in parallel (customers, products)
+      try {
+        const [customersSnap, productsSnap] = await Promise.all([
+          getDocs(collection(db, 'customers')),
+          getDocs(collection(db, 'products')),
+        ]);
+
+        if (active) {
+          setCustomers(customersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer)));
+          setIsLoadingCustomers(false);
+
+          setProducts(productsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product)));
+          setIsLoadingProducts(false);
+        }
+      } catch (error: any) {
+        console.error('Error fetching static data:', error);
+        toast({ title: "Error", description: `Could not fetch data: ${error.message}`, variant: "destructive" });
+        setIsLoadingCustomers(false);
+        setIsLoadingProducts(false);
+      }
+
+      // Keep estimates as real-time listener since they change frequently
+      const estimatesQuery = query(collection(db, 'estimates'), orderBy('date', 'desc'));
+      const unsubscribe = onSnapshot(estimatesQuery, (snapshot) => {
+        if (active) {
+          const fetchedEstimates: Estimate[] = snapshot.docs.map(doc => ({
+            ...doc.data() as Omit<Estimate, 'id'>,
+            id: doc.id
+          }));
+          setEstimates(fetchedEstimates);
+          setIsLoadingEstimates(false);
+        }
+      }, (error) => {
+        console.error('Error fetching estimates:', error);
+        toast({ title: "Error", description: "Could not fetch estimates.", variant: "destructive" });
+        setIsLoadingEstimates(false);
       });
-      setEstimates(fetchedEstimates);
-      setIsLoadingEstimates(false);
-    }, (error) => {
-      toast({ title: "Error", description: "Could not fetch estimates.", variant: "destructive" });
-      setIsLoadingEstimates(false);
-    });
-    return () => unsubscribe();
-  }, [db, toast]);
+      unsubscribes.push(unsubscribe);
+    };
 
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingCustomers(true);
-    const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
-      const fetchedCustomers: Customer[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedCustomers.push({ ...docSnap.data() as Omit<Customer, 'id'>, id: docSnap.id });
-      });
-      setCustomers(fetchedCustomers);
-      setIsLoadingCustomers(false);
-    }, (error) => {
-      toast({ title: "Error", description: "Could not fetch customers for estimates.", variant: "destructive" });
-      setIsLoadingCustomers(false);
-    });
-    return () => unsubscribe();
-  }, [db, toast]);
+    loadData();
 
-  useEffect(() => {
-    if (!db) return;
-    setIsLoadingProducts(true);
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const fetchedProducts: Product[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedProducts.push({ ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id });
-      });
-      setProducts(fetchedProducts);
-      setIsLoadingProducts(false);
-    }, (error) => {
-      toast({ title: "Error", description: "Could not fetch products for estimates.", variant: "destructive" });
-      setIsLoadingProducts(false);
-    });
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      unsubscribes.forEach(unsub => unsub());
+    };
   }, [db, toast]);
 
   // Fetch company settings for PDF export

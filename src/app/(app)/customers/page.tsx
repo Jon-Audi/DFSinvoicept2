@@ -12,7 +12,7 @@ import { CustomerCreditDialog } from '@/components/customers/customer-credit-dia
 import type { Customer, Estimate, Order, Invoice } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { PrintableCustomerList } from '@/components/customers/printable-customer-list';
 
@@ -88,41 +88,54 @@ export default function CustomersPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  // Load data - customers use real-time listener, others use one-time fetch
   useEffect(() => {
     if (!db) return;
     setIsLoading(true);
+
+    let active = true;
     const unsubscribes: (() => void)[] = [];
 
-    const collections: { [key: string]: (items: any[]) => void } = {
-        customers: (items: Customer[]) => setCustomers(items),
-        estimates: (items: Estimate[]) => setEstimates(items),
-        orders: (items: Order[]) => setOrders(items),
-        invoices: (items: Invoice[]) => setInvoices(items),
+    const loadData = async () => {
+      // Fetch static data in parallel (estimates, orders, invoices)
+      try {
+        const [estimatesSnap, ordersSnap, invoicesSnap] = await Promise.all([
+          getDocs(collection(db, 'estimates')),
+          getDocs(collection(db, 'orders')),
+          getDocs(collection(db, 'invoices')),
+        ]);
+
+        if (active) {
+          setEstimates(estimatesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Estimate)));
+          setOrders(ordersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order)));
+          setInvoices(invoicesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice)));
+        }
+      } catch (error: any) {
+        console.error('Error fetching static data:', error);
+        toast({ title: "Error", description: `Could not fetch data: ${error.message}`, variant: "destructive" });
+      }
+
+      // Keep customers as real-time listener for CRM updates
+      const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
+        if (active) {
+          const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer));
+          setCustomers(items);
+          setIsLoading(false);
+        }
+      }, (error) => {
+        console.error('Error fetching customers:', error);
+        toast({ title: "Error", description: `Could not fetch customers.`, variant: "destructive" });
+        setIsLoading(false);
+      });
+      unsubscribes.push(unsubscribe);
     };
 
-    let loadedCount = 0;
-    const totalCollections = Object.keys(collections).length;
+    loadData();
 
-    Object.entries(collections).forEach(([path, setStateCallback]) => {
-      unsubscribes.push(onSnapshot(collection(db, path), (snapshot) => {
-        const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        setStateCallback(items as any[]);
-        
-        // This is a simple ready check. Could be more robust.
-        if (unsubscribes.length === totalCollections) {
-            loadedCount++;
-            if (loadedCount === totalCollections) {
-                setIsLoading(false);
-            }
-        }
-
-      }, (error) => {
-        toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
-        setIsLoading(false);
-      }));
-    });
-
-    return () => unsubscribes.forEach(unsub => unsub());
+    return () => {
+      active = false;
+      unsubscribes.forEach(unsub => unsub());
+    };
   }, [db, toast]);
 
   const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => {

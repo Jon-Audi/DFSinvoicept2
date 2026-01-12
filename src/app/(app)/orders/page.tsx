@@ -14,7 +14,7 @@ import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact,
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, getDocs, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
 import { LineItemsViewerDialog } from '@/components/shared/line-items-viewer-dialog';
@@ -161,6 +161,7 @@ export default function OrdersPage() {
   }, [conversionOrderData, isLoading]);
 
 
+  // Load data - orders use real-time listener, others use one-time fetch
   useEffect(() => {
     if (!db) return;
 
@@ -170,46 +171,58 @@ export default function OrdersPage() {
     const loadData = async () => {
         setIsLoading(true);
 
-        const collectionsToWatch = {
-            orders: (data: any[]) => setOrders(data.map(d => ({
-                ...d,
-                total: d.total || 0,
-                amountPaid: d.amountPaid || 0,
-                balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
-                payments: d.payments || [],
-                distributor: d.distributor || undefined,
-            }))),
-            customers: setCustomers,
-            products: (data: Product[]) => {
-                setProducts(data);
-                const categories = Array.from(new Set(data.map(p => p.category))).sort();
-                setStableProductCategories(categories);
-                const subcategories = Array.from(new Set(data.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-                setStableProductSubcategories(subcategories);
-            },
-            vendors: setVendors,
-        };
+        // Fetch static data in parallel (customers, products, vendors)
+        try {
+          const [customersSnap, productsSnap, vendorsSnap] = await Promise.all([
+            getDocs(collection(db, 'customers')),
+            getDocs(collection(db, 'products')),
+            getDocs(collection(db, 'vendors')),
+          ]);
 
-        for (const [path, setter] of Object.entries(collectionsToWatch)) {
-            // Load all documents sorted by date
-            const q = path === 'orders'
-                ? query(collection(db, path), orderBy('date', 'desc'))
-                : collection(db, path);
+          if (active) {
+            setCustomers(customersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer)));
 
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                if (active) {
-                    const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                    setter(docsData as any);
-                }
-            }, (error) => {
-                toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
-            });
-            unsubscribes.push(unsubscribe);
+            const productsData = productsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+            setProducts(productsData);
+            const categories = Array.from(new Set(productsData.map(p => p.category))).sort();
+            setStableProductCategories(categories);
+            const subcategories = Array.from(new Set(productsData.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+            setStableProductSubcategories(subcategories);
+
+            setVendors(vendorsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Vendor)));
+          }
+        } catch (error: any) {
+          console.error('Error fetching static data:', error);
+          toast({ title: "Error", description: `Could not fetch data: ${error.message}`, variant: "destructive" });
         }
-        
+
+        // Keep orders as real-time listener since they change frequently
+        const ordersQuery = query(collection(db, 'orders'), orderBy('date', 'desc'));
+        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+            if (active) {
+                const docsData = snapshot.docs.map(doc => {
+                  const d = doc.data();
+                  return {
+                    ...d,
+                    id: doc.id,
+                    total: d.total || 0,
+                    amountPaid: d.amountPaid || 0,
+                    balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
+                    payments: d.payments || [],
+                    distributor: d.distributor || undefined,
+                  } as Order;
+                });
+                setOrders(docsData);
+            }
+        }, (error) => {
+            console.error('Error fetching orders:', error);
+            toast({ title: "Error", description: `Could not fetch orders: ${error.message}`, variant: "destructive" });
+        });
+        unsubscribes.push(unsubscribe);
+
         setIsLoading(false);
     };
-    
+
     loadData();
 
     return () => {
