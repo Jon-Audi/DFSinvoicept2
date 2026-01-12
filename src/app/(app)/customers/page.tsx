@@ -15,6 +15,7 @@ import { useFirebase } from '@/components/firebase-provider';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { PrintableCustomerList } from '@/components/customers/printable-customer-list';
+import { useCustomers, useEstimates, useOrders, useInvoices, useCustomerMutations } from '@/hooks/use-data-query';
 
 type CustomerWithLastInteraction = Customer & {
   lastEstimateDate?: string;
@@ -75,11 +76,18 @@ const sortKey = (c: Partial<Customer>) => {
 
 export default function CustomersPage() {
   const { db } = useFirebase();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [estimates, setEstimates] = useState<Estimate[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Use React Query hooks for data fetching with caching
+  const { data: customers = [], isLoading: isLoadingCustomers } = useCustomers();
+  const { data: estimates = [], isLoading: isLoadingEstimates } = useEstimates();
+  const { data: orders = [], isLoading: isLoadingOrders } = useOrders();
+  const { data: invoices = [], isLoading: isLoadingInvoices } = useInvoices();
+  const { addCustomer, updateCustomer, deleteCustomer } = useCustomerMutations();
+
+  const isLoading = isLoadingCustomers || isLoadingEstimates || isLoadingOrders || isLoadingInvoices;
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof CustomerWithLastInteraction; direction: 'asc' | 'desc' }>({ key: 'companyName', direction: 'asc' });
   const [creditDialogCustomer, setCreditDialogCustomer] = useState<Customer | null>(null);
@@ -88,58 +96,7 @@ export default function CustomersPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Load data - customers use real-time listener, others use one-time fetch
-  useEffect(() => {
-    if (!db) return;
-    setIsLoading(true);
-
-    let active = true;
-    const unsubscribes: (() => void)[] = [];
-
-    const loadData = async () => {
-      // Fetch static data in parallel (estimates, orders, invoices)
-      try {
-        const [estimatesSnap, ordersSnap, invoicesSnap] = await Promise.all([
-          getDocs(collection(db, 'estimates')),
-          getDocs(collection(db, 'orders')),
-          getDocs(collection(db, 'invoices')),
-        ]);
-
-        if (active) {
-          setEstimates(estimatesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Estimate)));
-          setOrders(ordersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order)));
-          setInvoices(invoicesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice)));
-        }
-      } catch (error: any) {
-        console.error('Error fetching static data:', error);
-        toast({ title: "Error", description: `Could not fetch data: ${error.message}`, variant: "destructive" });
-      }
-
-      // Keep customers as real-time listener for CRM updates
-      const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
-        if (active) {
-          const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer));
-          setCustomers(items);
-          setIsLoading(false);
-        }
-      }, (error) => {
-        console.error('Error fetching customers:', error);
-        toast({ title: "Error", description: `Could not fetch customers.`, variant: "destructive" });
-        setIsLoading(false);
-      });
-      unsubscribes.push(unsubscribe);
-    };
-
-    loadData();
-
-    return () => {
-      active = false;
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [db, toast]);
-
   const handleSaveCustomer = async (customerToSave: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'searchIndex'> & { id?: string }) => {
-    if (!db) return;
     const { id, ...customerData } = customerToSave;
     const now = new Date();
     
@@ -149,47 +106,81 @@ export default function CustomersPage() {
 
     try {
       if (id) {
-        const customerRef = doc(db, 'customers', id);
-        await setDoc(customerRef, { ...cleanCustomerData, searchIndex, updatedAt: now.toISOString() }, { merge: true });
-        toast({ title: "Customer Updated", description: `Customer ${cleanCustomerData.companyName || `${cleanCustomerData.firstName} ${cleanCustomerData.lastName}`} updated.` });
+        // Update existing customer
+        await updateCustomer.mutateAsync({
+          id,
+          ...cleanCustomerData,
+          updatedAt: now,
+          searchIndex,
+        } as Customer);
+        toast({ title: "Success", description: "Customer updated successfully!" });
       } else {
-        const docRef = await addDoc(collection(db, 'customers'), { ...cleanCustomerData, searchIndex, createdAt: now.toISOString(), updatedAt: now.toISOString() });
-        toast({ title: "Customer Added", description: `Customer ${cleanCustomerData.companyName || `${cleanCustomerData.firstName} ${cleanCustomerData.lastName}`} added.` });
+        // Add new customer
+        await addCustomer.mutateAsync({
+          ...cleanCustomerData,
+          createdAt: now,
+          updatedAt: now,
+          searchIndex,
+        } as Omit<Customer, 'id'>);
+        toast({ title: "Success", description: "Customer added successfully!" });
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Could not save customer.", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Error saving customer:', error);
+      toast({ title: "Error", description: `Could not save customer: ${error.message}`, variant: "destructive" });
     }
   };
 
+  const handleDeleteCustomer = async (customerId: string) => {
+    try {
+      await deleteCustomer.mutateAsync(customerId);
+      toast({ title: "Success", description: "Customer deleted successfully!" });
+    } catch (error: any) {
+      console.error('Error deleting customer:', error);
+      toast({ title: "Error", description: `Could not delete customer: ${error.message}`, variant: "destructive" });
+    }
+  };
+        await setDoc(customerRef, { ...cleanCustomerData, searchIndex, updatedAt: now.toISOString() }, { merge: true });
+        toast({ title: "Customer Updated", description: `Customer ${cleanCustomerData.companyName || `${cleanCustomerData.firstName} ${cleanCustomerData.lastName}`} updated.` });
+      } else {
+      }
+    } catch (error: any) {
+      console.error('Error saving customer:', error);
+      toast({ title: "Error", description: `Could not save customer: ${error.message}`, variant: "destructive" });
+    }
+  };
 
   const handleDeleteCustomer = async (customerId: string) => {
-    if (!db) return;
     try {
-      await deleteDoc(doc(db, 'customers', customerId));
-      toast({ title: "Customer Deleted", description: "The customer has been removed." });
-    } catch (error) {
-      toast({ title: "Error", description: "Could not delete customer.", variant: "destructive" });
+      await deleteCustomer.mutateAsync(customerId);
+      toast({ title: "Success", description: "Customer deleted successfully!" });
+    } catch (error: any) {
+      console.error('Error deleting customer:', error);
+      toast({ title: "Error", description: `Could not delete customer: ${error.message}`, variant: "destructive" });
     }
   };
 
   const handleUpdateCredit = async (customerId: string, newCreditBalance: number, notes: string) => {
-    if (!db) return;
     try {
-      const customerRef = doc(db, 'customers', customerId);
-      await setDoc(customerRef, {
-        creditBalance: newCreditBalance,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
       const customer = customers.find(c => c.id === customerId);
-      const customerName = customer?.companyName || `${customer?.firstName} ${customer?.lastName}`;
+      if (!customer) {
+        throw new Error('Customer not found');
+      }
+
+      await updateCustomer.mutateAsync({
+        ...customer,
+        creditBalance: newCreditBalance,
+        updatedAt: new Date(),
+      });
+
+      const customerName = customer.companyName || `${customer.firstName} ${customer.lastName}`;
 
       toast({
         title: "Credit Updated",
         description: `${customerName}'s credit balance is now $${newCreditBalance.toFixed(2)}${notes ? `. ${notes}` : ''}`
       });
-    } catch (error) {
-      toast({ title: "Error", description: "Could not update credit balance.", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Error updating credit:', error);
+      toast({ title: "Error", description: `Could not update credit balance: ${error.message}`, variant: "destructive" });
     }
   };
 

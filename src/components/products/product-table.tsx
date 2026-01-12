@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -102,33 +102,33 @@ export const ProductTable = React.memo(function ProductTable({
   const [isBulkSubcategoryEditorOpen, setIsBulkSubcategoryEditorOpen] = React.useState(false);
 
 
-  const formatCurrency = (amount: number | undefined) => {
+  const formatCurrency = useCallback((amount: number | undefined) => {
     if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
+  }, []);
 
-  const handleOpenMarkupDialog = (category: string) => {
+  const handleOpenMarkupDialog = useCallback((category: string) => {
     setSelectedCategoryForMarkup(category);
     setNewMarkupValue(""); 
     setIsMarkupDialogOpen(true);
-  };
+  }, []);
   
-  const handleOpenBulkPriceEditor = (category: string) => {
+  const handleOpenBulkPriceEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkPriceEditorOpen(true);
-  };
+  }, []);
   
-  const handleOpenBulkStockEditor = (category: string) => {
+  const handleOpenBulkStockEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkStockEditorOpen(true);
-  };
+  }, []);
 
-  const handleOpenBulkSubcategoryEditor = (category: string) => {
+  const handleOpenBulkSubcategoryEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkSubcategoryEditorOpen(true);
-  };
+  }, []);
 
-  const handleApplyMarkup = () => {
+  const handleApplyMarkup = useCallback(() => {
     if (selectedCategoryForMarkup && newMarkupValue !== "") {
       const markupNum = parseFloat(newMarkupValue);
       if (!isNaN(markupNum) && markupNum >= 0) {
@@ -139,14 +139,14 @@ export const ProductTable = React.memo(function ProductTable({
         alert("Please enter a valid non-negative markup percentage.");
       }
     }
-  };
+  }, [selectedCategoryForMarkup, newMarkupValue, onApplyCategoryMarkup]);
 
-  const confirmDeleteCategory = () => {
+  const confirmDeleteCategory = useCallback(() => {
     if (categoryToDelete) {
       onDeleteCategory(categoryToDelete);
       setCategoryToDeleteState(null);
     }
-  };
+  }, [categoryToDelete, onDeleteCategory]);
 
   if (isLoading) {
     return (
@@ -174,9 +174,12 @@ export const ProductTable = React.memo(function ProductTable({
     );
   }
 
-  const defaultOpenValues = Array.from(groupedProducts.entries())
-    .filter(([_, products]) => products.length > 0)
-    .map(([category]) => category);
+  const defaultOpenValues = useMemo(() => 
+    Array.from(groupedProducts.entries())
+      .filter(([_, products]) => products.length > 0)
+      .map(([category]) => category),
+    [groupedProducts]
+  );
 
   return (
     <>

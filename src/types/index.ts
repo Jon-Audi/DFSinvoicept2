@@ -408,6 +408,8 @@ export interface TopSellingProductsReportItem {
 // Chainlink Estimation Types
 export type ChainlinkFenceType = 'residential' | 'commercial';
 export type ChainlinkFenceHeight = '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
+export type ChainlinkFenceColor = 'galvanized' | 'green' | 'black';
+export type ChainlinkGateSize = 'single' | 'double' | 'pedestrian';
 
 export interface ChainlinkRun {
   length: number;
@@ -458,6 +460,7 @@ export interface ChainlinkProductMapping {
   id: string;
   fenceHeight: ChainlinkFenceHeight;
   fenceType: ChainlinkFenceType;
+  color?: ChainlinkFenceColor;
   // Product IDs from the products collection
   terminalPostProductId?: string; // For ends
   cornerPostProductId?: string;
@@ -472,6 +475,17 @@ export interface ChainlinkProductMapping {
   tensionBarProductId?: string;
   tensionBandProductId?: string;
   nutAndBoltProductId?: string;
+  // Gate Components
+  singleGateFrameProductId?: string;
+  doubleGateFrameProductId?: string;
+  pedestrianGateFrameProductId?: string;
+  gateHardwareSetProductId?: string;
+  gateLatchProductId?: string;
+  gateHingeProductId?: string;
+  // Additional Components
+  privacySlatsProductId?: string;
+  barbedWireProductId?: string;
+  bottomRailProductId?: string;
 }
 
 export interface ChainlinkEstimateLineItem {

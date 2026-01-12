@@ -49,11 +49,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { ChainlinkProductMapping, ChainlinkFenceHeight, ChainlinkFenceType, Product } from '@/types';
+import type { ChainlinkProductMapping, ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkFenceColor, Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CHAINLINK_SETTINGS_DOC_ID = "chainlinkProductMapping";
 const FENCE_HEIGHTS: ChainlinkFenceHeight[] = ['3', '4', '5', '6', '7', '8', '9', '10'];
+const FENCE_COLORS: ChainlinkFenceColor[] = ['galvanized', 'green', 'black'];
 
 // Product selector component
 interface ProductSelectorProps {
@@ -131,8 +132,8 @@ function ProductSelector({ products, currentValue, onSelect }: ProductSelectorPr
 
 export default function ChainlinkSettingsPage() {
   const { db } = useFirebase();
-  const [residentialMapping, setResidentialMapping] = useState<Record<string, ChainlinkProductMapping>>({});
-  const [commercialMapping, setCommercialMapping] = useState<Record<string, ChainlinkProductMapping>>({});
+  const [residentialMapping, setResidentialMapping] = useState<Record<string, Record<string, ChainlinkProductMapping>>>({});
+  const [commercialMapping, setCommercialMapping] = useState<Record<string, Record<string, ChainlinkProductMapping>>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -162,8 +163,30 @@ export default function ChainlinkSettingsPage() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           console.log('Loaded existing mappings:', data);
-          setResidentialMapping(data.residential || {});
-          setCommercialMapping(data.commercial || {});
+          // Convert old format to new color-based format if needed
+          const residentialData = data.residential || {};
+          const commercialData = data.commercial || {};
+          
+          // Convert to color-based structure if not already
+          const convertToColorBased = (mappings: any) => {
+            const converted: Record<string, Record<string, ChainlinkProductMapping>> = {};
+            FENCE_COLORS.forEach(color => {
+              converted[color] = {};
+              FENCE_HEIGHTS.forEach(height => {
+                const key = `${height}-${color}`;
+                converted[color][height] = mappings[key] || mappings[height] || {
+                  id: `${mappings.fenceType || 'residential'}-${height}-${color}`,
+                  fenceHeight: height,
+                  fenceType: mappings.fenceType || 'residential',
+                  color: color,
+                };
+              });
+            });
+            return converted;
+          };
+          
+          setResidentialMapping(convertToColorBased({ ...residentialData, fenceType: 'residential' }));
+          setCommercialMapping(convertToColorBased({ ...commercialData, fenceType: 'commercial' }));
         } else {
           console.log('No existing mappings, initializing defaults');
           // Initialize with default empty mappings
@@ -182,21 +205,29 @@ export default function ChainlinkSettingsPage() {
   }, [db, toast]);
 
   const initializeDefaultMappings = () => {
-    const defaultResidential: Record<string, ChainlinkProductMapping> = {};
-    const defaultCommercial: Record<string, ChainlinkProductMapping> = {};
+    const defaultResidential: Record<string, Record<string, ChainlinkProductMapping>> = {};
+    const defaultCommercial: Record<string, Record<string, ChainlinkProductMapping>> = {};
 
-    FENCE_HEIGHTS.forEach(height => {
-      defaultResidential[height] = {
-        id: `residential-${height}`,
-        fenceHeight: height,
-        fenceType: 'residential',
-      };
+    FENCE_COLORS.forEach(color => {
+      defaultResidential[color] = {};
+      defaultCommercial[color] = {};
+      
+      FENCE_HEIGHTS.forEach(height => {
+        defaultResidential[color][height] = {
+          id: `residential-${height}-${color}`,
+          fenceHeight: height,
+          fenceType: 'residential',
+          color: color,
+        };
 
-      defaultCommercial[height] = {
-        id: `commercial-${height}`,
-        fenceHeight: height,
-        fenceType: 'commercial',
-      };
+        defaultCommercial[color][height] = {
+          id: `commercial-${height}-${color}`,
+          fenceHeight: height,
+          fenceType: 'commercial',
+          color: color,
+        };
+      });
+    });
     });
 
     setResidentialMapping(defaultResidential);
@@ -222,39 +253,53 @@ export default function ChainlinkSettingsPage() {
     }
   };
 
+  const [selectedHeight, setSelectedHeight] = useState<ChainlinkFenceHeight>('6');
+  const [selectedColor, setSelectedColor] = useState<ChainlinkFenceColor>('galvanized');
+
   const updateMapping = (
     type: ChainlinkFenceType,
     height: ChainlinkFenceHeight,
-    field: keyof Omit<ChainlinkProductMapping, 'id' | 'fenceHeight' | 'fenceType'>,
+    color: ChainlinkFenceColor,
+    field: keyof Omit<ChainlinkProductMapping, 'id' | 'fenceHeight' | 'fenceType' | 'color'>,
     value: string
   ) => {
     if (type === 'residential') {
       setResidentialMapping(prev => {
-        const existing = prev[height] || {
-          id: `residential-${height}`,
+        const colorMappings = prev[color] || {};
+        const existing = colorMappings[height] || {
+          id: `residential-${height}-${color}`,
           fenceHeight: height,
           fenceType: 'residential' as ChainlinkFenceType,
+          color: color,
         };
         return {
           ...prev,
-          [height]: {
-            ...existing,
-            [field]: value || undefined,
+          [color]: {
+            ...colorMappings,
+            [height]: {
+              ...existing,
+              [field]: value || undefined,
+            },
           },
         };
       });
     } else {
       setCommercialMapping(prev => {
-        const existing = prev[height] || {
-          id: `commercial-${height}`,
+        const colorMappings = prev[color] || {};
+        const existing = colorMappings[height] || {
+          id: `commercial-${height}-${color}`,
           fenceHeight: height,
           fenceType: 'commercial' as ChainlinkFenceType,
+          color: color,
         };
         return {
           ...prev,
-          [height]: {
-            ...existing,
-            [field]: value || undefined,
+          [color]: {
+            ...colorMappings,
+            [height]: {
+              ...existing,
+              [field]: value || undefined,
+            },
           },
         };
       });
@@ -264,113 +309,175 @@ export default function ChainlinkSettingsPage() {
   const renderProductSelect = (
     type: ChainlinkFenceType,
     height: ChainlinkFenceHeight,
-    field: keyof Omit<ChainlinkProductMapping, 'id' | 'fenceHeight' | 'fenceType'>
+    color: ChainlinkFenceColor,
+    field: keyof Omit<ChainlinkProductMapping, 'id' | 'fenceHeight' | 'fenceType' | 'color'>
   ) => {
     const mapping = type === 'residential' ? residentialMapping : commercialMapping;
-    const currentValue = mapping[height]?.[field] || '';
+    const colorMapping = mapping[color] || {};
+    const currentValue = colorMapping[height]?.[field] || '';
 
     return (
       <ProductSelector
         products={products}
         currentValue={currentValue}
-        onSelect={(value) => updateMapping(type, height, field, value)}
+        onSelect={(value) => updateMapping(type, height, color, field, value)}
       />
     );
   };
 
-  const [selectedHeight, setSelectedHeight] = useState<ChainlinkFenceHeight>('6');
-
   const renderMappingTable = (type: ChainlinkFenceType) => {
     return (
       <div className="space-y-6">
-        {/* Height Selector */}
-        <div className="flex items-center gap-4">
-          <Label className="font-semibold">Select Height:</Label>
-          <Select value={selectedHeight} onValueChange={(value) => setSelectedHeight(value as ChainlinkFenceHeight)}>
-            <SelectTrigger className="w-40" aria-label="Select Height">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FENCE_HEIGHTS.map(height => (
-                <SelectItem key={height} value={height}>{height} feet</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Height and Color Selectors */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Label className="font-semibold">Height:</Label>
+            <Select value={selectedHeight} onValueChange={(value) => setSelectedHeight(value as ChainlinkFenceHeight)}>
+              <SelectTrigger className="w-32" aria-label="Select Height">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FENCE_HEIGHTS.map(height => (
+                  <SelectItem key={height} value={height}>{height} ft</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Label className="font-semibold">Color:</Label>
+            <Select value={selectedColor} onValueChange={(value) => setSelectedColor(value as ChainlinkFenceColor)}>
+              <SelectTrigger className="w-36" aria-label="Select Color">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="galvanized">Galvanized</SelectItem>
+                <SelectItem value="green">Green</SelectItem>
+                <SelectItem value="black">Black</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="space-y-8">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Posts for {selectedHeight}' Fence</h3>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Terminal Post (Ends)</Label>
-                {renderProductSelect(type, selectedHeight, 'terminalPostProductId')}
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Posts for {selectedHeight}' {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1)} Fence</h3>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Terminal Post</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'terminalPostProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Corner Post</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'cornerPostProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Gate Post</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'gatePostProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Line Post</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'linePostProductId')}
+                </div>
               </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Corner Post</Label>
-                {renderProductSelect(type, selectedHeight, 'cornerPostProductId')}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Fabric & Rails</h3>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Fabric</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'fabricProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Top Rail</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'topRailProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Bottom Rail</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'bottomRailProductId')}
+                </div>
               </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Gate Post</Label>
-                {renderProductSelect(type, selectedHeight, 'gatePostProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Line Post (Interior)</Label>
-                {renderProductSelect(type, selectedHeight, 'linePostProductId')}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Hardware & Accessories</h3>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Tie Wire</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'tieWireProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Loop Cap</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'loopCapProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Post Cap</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'postCapProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Privacy Slats</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'privacySlatsProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Barbed Wire</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'barbedWireProductId')}
+                </div>
               </div>
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Fabric & Rails for {selectedHeight}' Fence</h3>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Fabric (per ft)</Label>
-                {renderProductSelect(type, selectedHeight, 'fabricProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Top Rail</Label>
-                {renderProductSelect(type, selectedHeight, 'topRailProductId')}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Gate Components</h3>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Single Gate</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'singleGateFrameProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Double Gate</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'doubleGateFrameProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Pedestrian Gate</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'pedestrianGateFrameProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Gate Hardware</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'gateHardwareSetProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Gate Latch</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'gateLatchProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Gate Hinge</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'gateHingeProductId')}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Hardware & Fittings for {selectedHeight}' Fence</h3>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Tie Wire</Label>
-                {renderProductSelect(type, selectedHeight, 'tieWireProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Loop Cap</Label>
-                {renderProductSelect(type, selectedHeight, 'loopCapProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Post Cap</Label>
-                {renderProductSelect(type, selectedHeight, 'postCapProductId')}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Terminal Hardware for {selectedHeight}' Fence</h3>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Brace Band</Label>
-                {renderProductSelect(type, selectedHeight, 'braceBandProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Tension Bar</Label>
-                {renderProductSelect(type, selectedHeight, 'tensionBarProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Tension Band</Label>
-                {renderProductSelect(type, selectedHeight, 'tensionBandProductId')}
-              </div>
-              <div className="grid grid-cols-[200px,1fr] items-center gap-4">
-                <Label>Nut & Bolt</Label>
-                {renderProductSelect(type, selectedHeight, 'nutAndBoltProductId')}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Terminal Hardware</h3>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Brace Band</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'braceBandProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Tension Bar</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'tensionBarProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Tension Band</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'tensionBandProductId')}
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Nut & Bolt</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'nutAndBoltProductId')}
+                </div>
               </div>
             </div>
           </div>

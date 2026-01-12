@@ -33,6 +33,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
@@ -542,11 +543,59 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <PageHeader title="Orders" description="Loading orders database...">
-        <div className="flex items-center justify-center h-32">
-          <Icon name="Loader2" className="h-8 w-8 animate-spin" />
+      <>
+        <PageHeader title="Orders" description="Loading orders database...">
+          <div className="flex space-x-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-28" />
+          </div>
+        </PageHeader>
+        <div className="space-y-6">
+          {/* Search and filter skeleton */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-80" />
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-40" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Table skeleton */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="rounded-lg border shadow-sm">
+                <div className="border-b">
+                  <div className="flex items-center space-x-4 p-4">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </div>
+                <div className="divide-y">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 p-4">
+                      <div className="flex flex-col space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-8 w-8 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </PageHeader>
+      </>
     );
   }
 
