@@ -13,6 +13,7 @@ import type { ReceivingOrder, ReceivingLineItem, ReceivingStatus, ReceivingType,
 import { useFirebase } from '@/components/firebase-provider';
 import { useAuth } from '@/contexts/auth-context';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, runTransaction, query, orderBy } from 'firebase/firestore';
+import { PackingSlipUpload } from '@/components/receiving/packing-slip-upload';
 import {
   Table,
   TableBody,
@@ -140,6 +141,7 @@ export default function ReceivingPage() {
     type: 'Vendor Order' as ReceivingType,
     notes: '',
     internalNotes: '',
+    packingSlipUrls: [] as string[],
     lineItems: [] as ReceivingLineItem[],
   });
 
@@ -196,6 +198,7 @@ export default function ReceivingPage() {
       type: 'Vendor Order',
       notes: '',
       internalNotes: '',
+      packingSlipUrls: [],
       lineItems: [createEmptyLineItem()],
     });
     setEditingOrder(null);
@@ -232,6 +235,7 @@ export default function ReceivingPage() {
       type: order.type,
       notes: order.notes || '',
       internalNotes: order.internalNotes || '',
+      packingSlipUrls: order.packingSlipUrls || [],
       lineItems: order.lineItems.length > 0 ? order.lineItems : [createEmptyLineItem()],
     });
     setIsFormOpen(true);
@@ -267,6 +271,7 @@ export default function ReceivingPage() {
         total: subtotal, // Could add tax calculation here
         notes: formData.notes || undefined,
         internalNotes: formData.internalNotes || undefined,
+        packingSlipUrls: formData.packingSlipUrls.length > 0 ? formData.packingSlipUrls : undefined,
         updatedAt: new Date().toISOString(),
         createdAt: editingOrder?.createdAt || new Date().toISOString(),
         createdBy: editingOrder?.createdBy || user?.email,
@@ -843,6 +848,15 @@ export default function ReceivingPage() {
                 />
               </div>
             </div>
+
+            <Separator />
+
+            {/* Packing Slip Upload */}
+            <PackingSlipUpload
+              packingSlipUrls={formData.packingSlipUrls || []}
+              onPackingSlipChange={(urls) => setFormData({ ...formData, packingSlipUrls: urls })}
+              disabled={isSaving}
+            />
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
