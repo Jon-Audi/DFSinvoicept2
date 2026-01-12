@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { Invoice, Customer, Product, Vendor, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {

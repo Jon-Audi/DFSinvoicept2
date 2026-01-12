@@ -396,8 +396,10 @@ export default function ChainlinkSettingsPage() {
                 <div className="grid grid-cols-[150px,1fr] items-center gap-4">
                   <Label>Bottom Rail</Label>
                   {renderProductSelect(type, selectedHeight, selectedColor, 'bottomRailProductId')}
-                </div>
-              </div>
+                </div>                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                  <Label>Rail Ends</Label>
+                  {renderProductSelect(type, selectedHeight, selectedColor, 'railEndsProductId')}
+                </div>              </div>
             </div>
 
             <div>

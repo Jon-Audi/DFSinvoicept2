@@ -485,7 +485,7 @@ export interface ChainlinkProductMapping {
   // Additional Components
   privacySlatsProductId?: string;
   barbedWireProductId?: string;
-  bottomRailProductId?: string;
+  bottomRailProductId?: string;\n  railEndsProductId?: string;
 }
 
 export interface ChainlinkEstimateLineItem {
