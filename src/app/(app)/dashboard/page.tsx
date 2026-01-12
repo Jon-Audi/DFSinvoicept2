@@ -169,8 +169,8 @@ export default function DashboardPage() {
           });
 
           invoices.sort((a, b) => {
-            const dateA = a.dueDate || a.createdAt || '';
-            const dateB = b.dueDate || b.createdAt || '';
+            const dateA = a.dueDate || a.date || '';
+            const dateB = b.dueDate || b.date || '';
             return dateA.localeCompare(dateB);
           });
 

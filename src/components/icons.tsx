@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  ChevronLeft,
   ChevronsDown,
   ChevronsUp,
   PlusCircle,
@@ -35,6 +36,7 @@ import {
   CheckCircle2,
   UsersRound,
   UserCog,
+  UserX,
   Paintbrush,
   Loader2,
   ChevronsUpDown,
@@ -73,6 +75,8 @@ import {
   Phone,
   RefreshCw,
   Save,
+  ArrowLeft,
+  CreditCard,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -90,6 +94,7 @@ const iconComponents = {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  ChevronLeft,
   ChevronsDown,
   ChevronsUp,
   PlusCircle,
@@ -115,6 +120,7 @@ const iconComponents = {
   CheckCircle2,
   UsersRound,
   UserCog,
+  UserX,
   Paintbrush,
   Loader2,
   ChevronsUpDown,
@@ -153,6 +159,8 @@ const iconComponents = {
   Phone,
   RefreshCw,
   Save,
+  ArrowLeft,
+  CreditCard,
 };
 
 type IconProps = {

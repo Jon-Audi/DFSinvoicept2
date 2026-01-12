@@ -14,6 +14,7 @@ import type { Order, Customer, Product, Estimate, CompanySettings, EmailContact,
 import { OrderDialog } from '@/components/orders/order-dialog';
 import type { OrderFormData } from '@/components/orders/order-form';
 import { useFirebase } from '@/components/firebase-provider';
+import { useAuth } from '@/contexts/auth-context';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, getDoc, getDocs, DocumentReference, query, orderBy, limit } from 'firebase/firestore';
 import { PrintableOrder } from '@/components/orders/printable-order';
 import { PrintableOrderPackingSlip } from '@/components/orders/printable-order-packing-slip';
@@ -39,6 +40,7 @@ const COMPANY_SETTINGS_DOC_ID = "main";
 
 export default function OrdersPage() {
   const { db } = useFirebase();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
