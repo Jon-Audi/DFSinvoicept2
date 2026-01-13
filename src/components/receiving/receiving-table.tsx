@@ -356,8 +356,8 @@ export function ReceivingTable({
                             key={item.id}
                             className={cn(
                               "p-4 border rounded-lg",
-                              isFullyReceived && "bg-green-50 border-green-200",
-                              isPartiallyReceived && "bg-yellow-50 border-yellow-200"
+                              isFullyReceived && "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
+                              isPartiallyReceived && "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800"
                             )}
                           >
                             <div className="flex justify-between items-center mb-2">
@@ -384,12 +384,12 @@ export function ReceivingTable({
                                 <span className="font-medium">${(item.unitPrice || 0).toFixed(2)}</span>
                               </div>
                               {remainingQty > 0 && (
-                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                <Badge variant="outline" className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
                                   Remaining: {remainingQty}
                                 </Badge>
                               )}
                               {isFullyReceived && (
-                                <Badge className="bg-green-100 text-green-800">
+                                <Badge className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
                                   <Icon name="Check" className="mr-1 h-3 w-3" /> Complete
                                 </Badge>
                               )}
