@@ -97,12 +97,20 @@ export function BulkNameEditorDialog({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+    <AlertDialog open={isOpen} onOpenChange={(open) => {
+      // Prevent closing while saving or when open is false (user trying to close)
+      if (!open && !isSaving) {
+        return; // Prevent closing
+      }
+      if (open) {
+        onOpenChange(true);
+      }
+    }}>
+      <AlertDialogContent className="sm:max-w-2xl">
         <AlertDialogHeader>
           <AlertDialogTitle>Bulk Edit Product Names for: {categoryName}</AlertDialogTitle>
           <AlertDialogDescription>
-            Update product names in this category. Click outside won&apos;t close this dialog to prevent accidental data loss.
+            Update product names in this category. Changes are not saved until you click the Save button.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Form {...form}>
@@ -141,8 +149,10 @@ export function BulkNameEditorDialog({
               </Table>
             </ScrollArea>
             <div className="mt-6 flex justify-end gap-2">
-              <AlertDialogCancel disabled={isSaving}>
-                Cancel
+              <AlertDialogCancel asChild>
+                <Button variant="outline" disabled={isSaving} onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
               </AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Button onClick={() => form.handleSubmit(handleSubmit)()} disabled={isSaving}>
