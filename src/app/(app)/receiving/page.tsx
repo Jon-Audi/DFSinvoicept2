@@ -377,6 +377,114 @@ export default function ReceivingPage() {
     }
   };
 
+  // Update status only (no inventory update)
+  const handleUpdateStatus = async (order: ReceivingOrder, newStatus: ReceivingStatus) => {
+    if (!db) return;
+
+    try {
+      const orderRef = doc(db, 'receivingOrders', order.id);
+      const updateData: Record<string, any> = {
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Add actual delivery date when marked as received
+      if (newStatus === 'Received' && !order.actualDeliveryDate) {
+        updateData.actualDeliveryDate = new Date().toISOString();
+      }
+
+      await setDoc(orderRef, updateData, { merge: true });
+
+      toast({
+        title: "Status Updated",
+        description: `Receiving order ${order.receivingNumber} is now "${newStatus}"`,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not update status: ${error.message}`, variant: "destructive" });
+    }
+  };
+
+  // Update received quantities for line items
+  const handleUpdateReceivedQuantities = async (order: ReceivingOrder, updatedLineItems: ReceivingLineItem[]) => {
+    if (!db) return;
+
+    try {
+      // Calculate totals and determine new status
+      const totalExpected = updatedLineItems.reduce((sum, li) => sum + (li.expectedQuantity || 0), 0);
+      const totalReceived = updatedLineItems.reduce((sum, li) => sum + (li.receivedQuantity || 0), 0);
+
+      let newStatus: ReceivingStatus = order.status;
+      if (totalReceived === 0) {
+        // Keep current status
+      } else if (totalReceived > 0 && totalReceived < totalExpected) {
+        newStatus = 'Partially Received';
+      } else if (totalReceived >= totalExpected) {
+        newStatus = 'Received';
+      }
+
+      // Check for discrepancies (received more than expected)
+      const hasDiscrepancy = updatedLineItems.some(li => (li.receivedQuantity || 0) > (li.expectedQuantity || 0));
+      if (hasDiscrepancy) {
+        newStatus = 'Discrepancy';
+      }
+
+      const orderRef = doc(db, 'receivingOrders', order.id);
+      await setDoc(orderRef, {
+        lineItems: updatedLineItems,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      toast({
+        title: "Quantities Saved",
+        description: `Received quantities updated. Status: ${newStatus}`,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not save quantities: ${error.message}`, variant: "destructive" });
+    }
+  };
+
+  // Update notes
+  const handleUpdateNotes = async (order: ReceivingOrder, notes: string, internalNotes: string) => {
+    if (!db) return;
+
+    try {
+      const orderRef = doc(db, 'receivingOrders', order.id);
+      await setDoc(orderRef, {
+        notes: notes || null,
+        internalNotes: internalNotes || null,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      toast({
+        title: "Notes Saved",
+        description: "Notes have been updated.",
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not save notes: ${error.message}`, variant: "destructive" });
+    }
+  };
+
+  // Update expected delivery date (ETA)
+  const handleUpdateEta = async (order: ReceivingOrder, eta: Date | undefined) => {
+    if (!db) return;
+
+    try {
+      const orderRef = doc(db, 'receivingOrders', order.id);
+      await setDoc(orderRef, {
+        expectedDeliveryDate: eta ? eta.toISOString() : null,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      toast({
+        title: "ETA Updated",
+        description: eta ? `Expected delivery set to ${format(eta, 'PPP')}` : "Expected delivery date cleared.",
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not save ETA: ${error.message}`, variant: "destructive" });
+    }
+  };
+
   // Update line item
   const updateLineItem = (index: number, field: keyof ReceivingLineItem, value: any) => {
     const newLineItems = [...formData.lineItems];
@@ -585,6 +693,10 @@ export default function ReceivingPage() {
               setOrderToDelete(order);
               setDeleteConfirmOpen(true);
             }}
+            onUpdateStatus={handleUpdateStatus}
+            onUpdateReceivedQuantities={handleUpdateReceivedQuantities}
+            onUpdateNotes={handleUpdateNotes}
+            onUpdateEta={handleUpdateEta}
           />
         </CardContent>
       </Card>
