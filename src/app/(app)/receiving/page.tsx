@@ -300,25 +300,25 @@ export default function ReceivingPage() {
     setIsSaving(true);
     try {
       const subtotal = formData.lineItems.reduce((sum, li) => sum + li.total, 0);
-      const orderData: Omit<ReceivingOrder, 'id'> = {
+      const orderData = {
         receivingNumber: formData.receivingNumber,
         vendorId: formData.vendorId,
         vendorName: formData.vendorName,
         date: formData.date.toISOString(),
-        expectedDeliveryDate: formData.expectedDeliveryDate?.toISOString(),
-        actualDeliveryDate: formData.actualDeliveryDate?.toISOString(),
-        poNumber: formData.poNumber || undefined,
         status: formData.status,
         type: formData.type,
         lineItems: formData.lineItems.filter(li => li.productId),
         subtotal,
         total: subtotal, // Could add tax calculation here
-        notes: formData.notes || undefined,
-        internalNotes: formData.internalNotes || undefined,
-        packingSlipUrls: formData.packingSlipUrls.length > 0 ? formData.packingSlipUrls : undefined,
         updatedAt: new Date().toISOString(),
         createdAt: editingOrder?.createdAt || new Date().toISOString(),
         createdBy: editingOrder?.createdBy || user?.email,
+        ...(formData.expectedDeliveryDate && { expectedDeliveryDate: formData.expectedDeliveryDate.toISOString() }),
+        ...(formData.actualDeliveryDate && { actualDeliveryDate: formData.actualDeliveryDate.toISOString() }),
+        ...(formData.poNumber && { poNumber: formData.poNumber }),
+        ...(formData.notes && { notes: formData.notes }),
+        ...(formData.internalNotes && { internalNotes: formData.internalNotes }),
+        ...(formData.packingSlipUrls.length > 0 && { packingSlipUrls: formData.packingSlipUrls }),
       };
 
       if (editingOrder) {
