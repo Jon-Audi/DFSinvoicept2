@@ -18,7 +18,6 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
     includePrivacySlats = false,
     includeBarbedWire = false,
     includeBottomRail = false,
-    includeRailEnds = false,
   } = input;
 
   // Sum all fence runs to get total linear footage
@@ -86,6 +85,13 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
   // Single gates need 2 hinges, double gates need 4 hinges (2 per leaf), pedestrian gates need 2 hinges
   const gateHinges = (singleGates * 2) + (doubleGates * 4) + (pedestrianGates * 2);
 
+  // Rail ends: connects top rail to brace bands at terminal posts
+  // 1 rail end per end (connects to 1 brace band), 2 rail ends per corner (connects to 2 brace bands)
+  // Plus additional rail ends if bottom rail is included
+  const railEndsForTopRail = terminalPosts > 0 ? (ends * 1) + (corners * 2) : 0;
+  const railEndsForBottomRail = includeBottomRail && terminalPosts > 0 ? (ends * 1) + (corners * 2) : 0;
+  const railEndsCount = railEndsForTopRail + railEndsForBottomRail;
+
   // Additional components calculations
   // Privacy slats: 1 per linear foot
   const privacySlats = includePrivacySlats ? Math.ceil(totalFenceLength) : undefined;
@@ -93,8 +99,6 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
   const barbedWire = includeBarbedWire ? Math.ceil(totalFenceLength) : undefined;
   // Bottom rail: same as top rail (21-foot sticks)
   const bottomRailSticks = includeBottomRail ? Math.ceil(totalFenceLength / 21) : undefined;
-  // Rail ends: 2 per terminal post for top rail, plus 2 per terminal post for bottom rail if included
-  const railEndsCount = includeRailEnds ? (terminalPosts * 2 * (includeBottomRail ? 2 : 1)) : undefined;
 
   // Build result object (only include defined values)
   const result: ChainlinkEstimationResult = {
@@ -106,6 +110,7 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
 
   if (interiorLinePosts > 0) result.interiorLinePosts = interiorLinePosts;
   if (topRailSticks) result.topRailSticks = topRailSticks;
+  if (railEndsCount > 0) result.railEnds = railEndsCount;
   if (tieWires) result.tieWires = tieWires;
   if (loopCaps) result.loopCaps = loopCaps;
   if (postCaps) result.postCaps = postCaps;
@@ -131,7 +136,6 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
   if (privacySlats) result.privacySlats = privacySlats;
   if (barbedWire) result.barbedWire = barbedWire;
   if (bottomRailSticks) result.bottomRailSticks = bottomRailSticks;
-  if (railEndsCount) result.railEnds = railEndsCount;
 
   return result;
 }

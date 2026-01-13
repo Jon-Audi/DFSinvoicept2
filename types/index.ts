@@ -420,7 +420,6 @@ export interface ChainlinkEstimationInput {
   includePrivacySlats?: boolean;
   includeBarbedWire?: boolean;
   includeBottomRail?: boolean;
-  includeRailEnds?: boolean;
 }
 
 export interface ChainlinkEstimationResult {

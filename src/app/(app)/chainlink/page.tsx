@@ -67,7 +67,6 @@ export default function ChainlinkEstimationPage() {
   const [includePrivacySlats, setIncludePrivacySlats] = useState<boolean>(false);
   const [includeBarbedWire, setIncludeBarbedWire] = useState<boolean>(false);
   const [includeBottomRail, setIncludeBottomRail] = useState<boolean>(false);
-  const [includeRailEnds, setIncludeRailEnds] = useState<boolean>(false);
 
   // Results
   const [result, setResult] = useState<ChainlinkEstimationResult | null>(null);
@@ -244,7 +243,6 @@ export default function ChainlinkEstimationPage() {
       includePrivacySlats,
       includeBarbedWire,
       includeBottomRail,
-      includeRailEnds,
     });
 
     setResult(calculationResult);
@@ -271,7 +269,6 @@ export default function ChainlinkEstimationPage() {
     setIncludePrivacySlats(false);
     setIncludeBarbedWire(false);
     setIncludeBottomRail(false);
-    setIncludeRailEnds(false);
     setResult(null);
     setEstimatedCost(0);
   };
@@ -527,7 +524,6 @@ export default function ChainlinkEstimationPage() {
       if (includePrivacySlats) addOns.push('Privacy Slats');
       if (includeBarbedWire) addOns.push('Barbed Wire');
       if (includeBottomRail) addOns.push('Bottom Rail');
-      if (includeRailEnds) addOns.push('Rail Ends');
 
       let notesText = `Chainlink ${fenceType} ${fenceHeight}' ${fenceColor} fence\nTotal linear feet: ${totalLinearFeet}\nRuns: ${runs.length}\nEnds: ${ends}\nCorners: ${corners}`;
       if (gateInfo.length > 0) notesText += `\nGates: ${gateInfo.join(', ')}`;
@@ -711,6 +707,21 @@ export default function ChainlinkEstimationPage() {
               </Select>
             </div>
 
+            {/* Fence Color */}
+            <div className="space-y-2">
+              <Label>Fence Color</Label>
+              <Select value={fenceColor} onValueChange={(value) => setFenceColor(value as ChainlinkFenceColor)}>
+                <SelectTrigger aria-label="Fence Color">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FENCE_COLORS.map(color => (
+                    <SelectItem key={color} value={color} className="capitalize">{color.charAt(0).toUpperCase() + color.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Ends */}
             <div className="space-y-2">
               <Label>Number of Ends</Label>
@@ -802,16 +813,6 @@ export default function ChainlinkEstimationPage() {
                   />
                   <Label htmlFor="bottomRail" className="text-sm font-normal">Bottom Rail</Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="railEnds"
-                    checked={includeRailEnds}
-                    onChange={(e) => setIncludeRailEnds(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="railEnds" className="text-sm font-normal">Rail Ends</Label>
-                </div>
               </div>
             </div>
 
@@ -879,15 +880,14 @@ export default function ChainlinkEstimationPage() {
                     </div>
                   )}
                 </div>
-                {(includePrivacySlats || includeBarbedWire || includeBottomRail || includeRailEnds) && (
+                {(includePrivacySlats || includeBarbedWire || includeBottomRail) && (
                   <div className="mt-3 pt-3 border-t">
                     <span className="text-muted-foreground text-sm">Add-ons: </span>
                     <span className="text-sm font-medium">
                       {[
                         includePrivacySlats && 'Privacy Slats',
                         includeBarbedWire && 'Barbed Wire',
-                        includeBottomRail && 'Bottom Rail',
-                        includeRailEnds && 'Rail Ends'
+                        includeBottomRail && 'Bottom Rail'
                       ].filter(Boolean).join(', ')}
                     </span>
                   </div>
