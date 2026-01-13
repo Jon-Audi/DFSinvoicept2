@@ -265,9 +265,10 @@ export function EstimateForm({
       const savedData = getSavedFormData<any>(AUTO_SAVE_KEY);
       if (savedData && savedData.lineItems && savedData.lineItems.length > 0) {
         // Restore saved data with proper date conversions
+        // IMPORTANT: Always use TODAY's date for new estimates, not the date from when draft was saved
         form.reset({
           ...savedData,
-          date: savedData.date ? new Date(savedData.date) : new Date(),
+          date: new Date(), // Always use today's date for new estimates
           validUntil: savedData.validUntil ? new Date(savedData.validUntil) : undefined,
         });
       }
