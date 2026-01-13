@@ -75,6 +75,7 @@ export function BulkPriceEditorDialog({
     },
   });
   
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
     if (isOpen) {
         form.reset({
@@ -88,7 +89,7 @@ export function BulkPriceEditorDialog({
           })),
         });
     }
-  }, [isOpen, products, form]);
+  }, [isOpen, form]);
 
   const { control, getValues, setValue, watch, trigger } = form;
   const watchedProducts = watch('products');

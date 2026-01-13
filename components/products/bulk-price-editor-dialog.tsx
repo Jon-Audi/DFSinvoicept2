@@ -82,6 +82,7 @@ export function BulkPriceEditorDialog({
     },
   });
   
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
     form.reset({
       products: products.map(p => ({
@@ -93,7 +94,7 @@ export function BulkPriceEditorDialog({
         markupPercentage: p.markupPercentage,
       })),
     })
-  }, [products, form.reset, form]);
+  }, [form]);
 
   const { control, getValues, setValue, watch } = form;
 
