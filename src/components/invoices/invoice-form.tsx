@@ -307,9 +307,10 @@ export function InvoiceForm({
       const savedData = getSavedFormData<any>(AUTO_SAVE_KEY);
       if (savedData && savedData.lineItems && savedData.lineItems.length > 0) {
         // Restore saved data with proper date conversions
+        // IMPORTANT: Always use TODAY's date for new invoices, not the date from when draft was saved
         form.reset({
           ...savedData,
-          date: savedData.date ? new Date(savedData.date) : new Date(),
+          date: new Date(), // Always use today's date for new invoices
           dueDate: savedData.dueDate ? new Date(savedData.dueDate) : undefined,
           readyForPickUpDate: savedData.readyForPickUpDate ? new Date(savedData.readyForPickUpDate) : undefined,
           pickedUpDate: savedData.pickedUpDate ? new Date(savedData.pickedUpDate) : undefined,

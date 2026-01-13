@@ -5,7 +5,20 @@ import type { ChainlinkEstimationInput, ChainlinkEstimationResult } from '@/type
  * Based on industry standard 10-foot post spacing
  */
 export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): ChainlinkEstimationResult {
-  const { runs, fenceHeight, fenceType, ends, corners } = input;
+  const {
+    runs,
+    fenceHeight,
+    fenceType,
+    fenceColor,
+    ends,
+    corners,
+    singleGates = 0,
+    doubleGates = 0,
+    pedestrianGates = 0,
+    includePrivacySlats = false,
+    includeBarbedWire = false,
+    includeBottomRail = false,
+  } = input;
 
   // Sum all fence runs to get total linear footage
   const totalFenceLength = runs.reduce((sum, run) => sum + run.length, 0);
@@ -62,15 +75,42 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
   // Determine pipe weight based on fence type
   const pipeWeight = fenceType === 'residential' ? 'SS20 WT' : 'SS40 WT';
 
+  // Gate calculations
+  const totalGates = singleGates + doubleGates + pedestrianGates;
+  // Each gate needs 2 gate posts (unless sharing with terminal posts)
+  const gatePosts = totalGates * 2;
+  // Each gate needs a hardware set, latch, and hinges
+  const gateHardwareSets = totalGates;
+  const gateLatches = totalGates;
+  // Single gates need 2 hinges, double gates need 4 hinges (2 per leaf), pedestrian gates need 2 hinges
+  const gateHinges = (singleGates * 2) + (doubleGates * 4) + (pedestrianGates * 2);
+
+  // Rail ends: connects top rail to brace bands at terminal posts
+  // 1 rail end per end (connects to 1 brace band), 2 rail ends per corner (connects to 2 brace bands)
+  // Plus additional rail ends if bottom rail is included
+  const railEndsForTopRail = terminalPosts > 0 ? (ends * 1) + (corners * 2) : 0;
+  const railEndsForBottomRail = includeBottomRail && terminalPosts > 0 ? (ends * 1) + (corners * 2) : 0;
+  const railEndsCount = railEndsForTopRail + railEndsForBottomRail;
+
+  // Additional components calculations
+  // Privacy slats: 1 per linear foot
+  const privacySlats = includePrivacySlats ? Math.ceil(totalFenceLength) : undefined;
+  // Barbed wire: sold per linear foot
+  const barbedWire = includeBarbedWire ? Math.ceil(totalFenceLength) : undefined;
+  // Bottom rail: same as top rail (21-foot sticks)
+  const bottomRailSticks = includeBottomRail ? Math.ceil(totalFenceLength / 21) : undefined;
+
   // Build result object (only include defined values)
   const result: ChainlinkEstimationResult = {
     fabricType,
     fabricFootage,
     pipeWeight,
+    fenceColor,
   };
 
   if (interiorLinePosts > 0) result.interiorLinePosts = interiorLinePosts;
   if (topRailSticks) result.topRailSticks = topRailSticks;
+  if (railEndsCount > 0) result.railEnds = railEndsCount;
   if (tieWires) result.tieWires = tieWires;
   if (loopCaps) result.loopCaps = loopCaps;
   if (postCaps) result.postCaps = postCaps;
@@ -82,6 +122,20 @@ export function calculateChainlinkMaterials(input: ChainlinkEstimationInput): Ch
   // Store user-specified values for reference
   if (ends > 0) result.userSpecifiedEnds = ends;
   if (corners > 0) result.userSpecifiedCorners = corners;
+
+  // Gate components
+  if (singleGates > 0) result.singleGates = singleGates;
+  if (doubleGates > 0) result.doubleGates = doubleGates;
+  if (pedestrianGates > 0) result.pedestrianGates = pedestrianGates;
+  if (gatePosts > 0) result.gatePosts = gatePosts;
+  if (gateHardwareSets > 0) result.gateHardwareSets = gateHardwareSets;
+  if (gateLatches > 0) result.gateLatches = gateLatches;
+  if (gateHinges > 0) result.gateHinges = gateHinges;
+
+  // Additional components
+  if (privacySlats) result.privacySlats = privacySlats;
+  if (barbedWire) result.barbedWire = barbedWire;
+  if (bottomRailSticks) result.bottomRailSticks = bottomRailSticks;
 
   return result;
 }

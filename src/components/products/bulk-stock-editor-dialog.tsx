@@ -75,6 +75,7 @@ export function BulkStockEditorDialog({
     },
   });
   
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -85,7 +86,7 @@ export function BulkStockEditorDialog({
         })),
       });
     }
-  }, [isOpen, products, form]);
+  }, [isOpen, form]);
 
   const { control, watch } = form;
 
@@ -104,12 +105,20 @@ export function BulkStockEditorDialog({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+    <AlertDialog open={isOpen} onOpenChange={(open) => {
+      // Prevent closing while saving
+      if (!open && !isSaving) {
+        return; // Prevent closing
+      }
+      if (open) {
+        onOpenChange(true);
+      }
+    }}>
+      <AlertDialogContent className="sm:max-w-2xl">
         <AlertDialogHeader>
           <AlertDialogTitle>Bulk Edit Stock for: {categoryName}</AlertDialogTitle>
           <AlertDialogDescription>
-            Update the quantity in stock for products in this category. Click outside won&apos;t close this dialog to prevent accidental data loss.
+            Update the quantity in stock for products in this category. Changes are not saved until you click the Save button.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Form {...form}>

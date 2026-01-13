@@ -1,0 +1,14 @@
+﻿node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Jondf\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+No files matching the pattern "./src" were found.
+Please check for typing mistakes in the pattern.
+

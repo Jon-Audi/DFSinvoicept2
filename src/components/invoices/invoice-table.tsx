@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { Invoice, Customer, Product, Vendor, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
 import {
@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 export type SortableInvoiceKeys =
@@ -50,6 +51,7 @@ export type SortableInvoiceKeys =
 
 interface InvoiceTableProps {
   invoices: Invoice[];
+  isLoading?: boolean;
   onSave: (invoice: Invoice) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
   onSaveCustomer: (customer: Customer) => Promise<string | void>;
@@ -72,8 +74,9 @@ interface InvoiceTableProps {
   companySettings?: CompanySettings | null;
 }
 
-export function InvoiceTable({
+export const InvoiceTable = React.memo(function InvoiceTable({
   invoices,
+  isLoading = false,
   onSave,
   onSaveProduct,
   onSaveCustomer,
@@ -102,7 +105,7 @@ export function InvoiceTable({
   const canViewPricing = user && user.permissions?.includes('view_pricing');
 
 
-  const getStatusVariant = (
+  const getStatusVariant = useCallback((
     status: Invoice['status']
   ): "default" | "secondary" | "outline" | "destructive" => {
     switch (status) {
@@ -124,7 +127,65 @@ export function InvoiceTable({
       default:
         return 'outline';
     }
-  };
+  }, []);
+
+  const handleDeleteInvoice = useCallback(() => {
+    if (invoiceToDelete) {
+      onDelete(invoiceToDelete.id);
+      setInvoiceToDelete(null);
+    }
+  }, [invoiceToDelete, onDelete]);
+
+  const handleToggleFinalize = useCallback(() => {
+    if (invoiceToFinalize) {
+      onToggleFinalize(invoiceToFinalize);
+      setInvoiceToFinalize(null);
+    }
+  }, [invoiceToFinalize, onToggleFinalize]);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>P.O. #</TableHead>
+              <TableHead>Date</TableHead>
+              {canViewPricing && <TableHead className="text-right">Total</TableHead>}
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[80px] text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <div className="flex flex-col space-y-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </TableCell>
+                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                {canViewPricing && (
+                  <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                )}
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="h-8 w-8 mx-auto rounded" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -290,10 +351,7 @@ export function InvoiceTable({
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setInvoiceToDelete(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
-                  onDelete(invoiceToDelete.id);
-                  setInvoiceToDelete(null);
-                }}
+                onClick={handleDeleteInvoice}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Delete
@@ -320,10 +378,7 @@ export function InvoiceTable({
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setInvoiceToFinalize(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
-                  onToggleFinalize(invoiceToFinalize);
-                  setInvoiceToFinalize(null);
-                }}
+                onClick={handleToggleFinalize}
                 className={invoiceToFinalize.isFinalized
                   ? "bg-orange-600 hover:bg-orange-700"
                   : "bg-green-600 hover:bg-green-700"
@@ -338,4 +393,4 @@ export function InvoiceTable({
       )}
     </>
   );
-}
+});

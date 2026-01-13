@@ -113,6 +113,7 @@ export function BulkSubcategoryEditorDialog({
     fetchSubcategories();
   }, [db, toast]);
 
+  // IMPORTANT: Do NOT include 'products' in dependencies - it causes form resets on Firebase updates
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -123,7 +124,7 @@ export function BulkSubcategoryEditorDialog({
         })),
       });
     }
-  }, [isOpen, products, form]);
+  }, [isOpen, form]);
 
   const { control, watch } = form;
 

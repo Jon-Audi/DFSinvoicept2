@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkRun, ChainlinkEstimationResult, ChainlinkMaterialPricing, ChainlinkProductMapping, Product, LineItem, Customer } from '@/types';
+import type { ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkFenceColor, ChainlinkRun, ChainlinkEstimationResult, ChainlinkMaterialPricing, ChainlinkProductMapping, Product, LineItem, Customer } from '@/types';
 import { calculateChainlinkMaterials, calculateChainlinkCost } from '@/lib/chainlink-calculator';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, onSnapshot, addDoc } from 'firebase/firestore';
@@ -43,6 +43,7 @@ import type { OrderFormData } from '@/components/orders/order-form';
 import type { InvoiceFormData } from '@/components/invoices/invoice-form';
 
 const FENCE_HEIGHTS: ChainlinkFenceHeight[] = ['3', '4', '5', '6', '7', '8', '9', '10'];
+const FENCE_COLORS: ChainlinkFenceColor[] = ['galvanized', 'green', 'black'];
 
 export default function ChainlinkEstimationPage() {
   const { db } = useFirebase();
@@ -53,8 +54,19 @@ export default function ChainlinkEstimationPage() {
   const [runs, setRuns] = useState<ChainlinkRun[]>([{ length: 0 }]);
   const [fenceHeight, setFenceHeight] = useState<ChainlinkFenceHeight>('6');
   const [fenceType, setFenceType] = useState<ChainlinkFenceType>('residential');
+  const [fenceColor, setFenceColor] = useState<ChainlinkFenceColor>('galvanized');
   const [ends, setEnds] = useState<number>(2);
   const [corners, setCorners] = useState<number>(0);
+  
+  // Gate options
+  const [singleGates, setSingleGates] = useState<number>(0);
+  const [doubleGates, setDoubleGates] = useState<number>(0);
+  const [pedestrianGates, setPedestrianGates] = useState<number>(0);
+  
+  // Additional components
+  const [includePrivacySlats, setIncludePrivacySlats] = useState<boolean>(false);
+  const [includeBarbedWire, setIncludeBarbedWire] = useState<boolean>(false);
+  const [includeBottomRail, setIncludeBottomRail] = useState<boolean>(false);
 
   // Results
   const [result, setResult] = useState<ChainlinkEstimationResult | null>(null);
@@ -107,26 +119,71 @@ export default function ChainlinkEstimationPage() {
     return () => unsubscribe();
   }, [db]);
 
-  // Load pricing when fence type or height changes
+  // Load pricing when fence type, height, or color changes
   useEffect(() => {
     if (!db) return;
 
     const loadPricing = async () => {
       setIsLoadingPricing(true);
       try {
-        const docRef = doc(db, 'settings', 'chainlinkPricing');
+        const docRef = doc(db, 'settings', 'chainlinkProductMapping');
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
           const typeData = data[fenceType];
-          if (typeData && typeData[fenceHeight]) {
-            setPricing(typeData[fenceHeight]);
+          if (typeData && typeData[fenceColor] && typeData[fenceColor][fenceHeight]) {
+            const mapping = typeData[fenceColor][fenceHeight];
+            
+            // Fetch product prices from the product IDs in the mapping
+            const productIds = [
+              mapping.linePostProductId,
+              mapping.fabricProductId,
+              mapping.topRailProductId,
+              mapping.tieWireProductId,
+              mapping.loopCapProductId,
+              mapping.postCapProductId,
+              mapping.braceBandProductId,
+              mapping.tensionBarProductId,
+              mapping.tensionBandProductId,
+              mapping.nutAndBoltProductId,
+            ].filter(Boolean);
+
+            // Fetch all products at once
+            const productPrices: Record<string, number> = {};
+            for (const productId of productIds) {
+              if (productId) {
+                const productDoc = await getDoc(doc(db, 'products', productId));
+                if (productDoc.exists()) {
+                  const product = productDoc.data();
+                  productPrices[productId] = product.price || 0;
+                }
+              }
+            }
+
+            // Build pricing object with actual prices
+            const pricingData: ChainlinkMaterialPricing = {
+              id: mapping.id || `${fenceType}-${fenceColor}-${fenceHeight}`,
+              fenceHeight,
+              fenceType,
+              interiorLinePostPrice: mapping.linePostProductId ? (productPrices[mapping.linePostProductId] || 0) : 0,
+              fabricPricePerFoot: mapping.fabricProductId ? (productPrices[mapping.fabricProductId] || 0) : 0,
+              topRailPricePerStick: mapping.topRailProductId ? (productPrices[mapping.topRailProductId] || 0) : 0,
+              tieWirePrice: mapping.tieWireProductId ? (productPrices[mapping.tieWireProductId] || 0) : 0,
+              loopCapPrice: mapping.loopCapProductId ? (productPrices[mapping.loopCapProductId] || 0) : 0,
+              postCapPrice: mapping.postCapProductId ? (productPrices[mapping.postCapProductId] || 0) : 0,
+              braceBandPrice: mapping.braceBandProductId ? (productPrices[mapping.braceBandProductId] || 0) : 0,
+              tensionBarPrice: mapping.tensionBarProductId ? (productPrices[mapping.tensionBarProductId] || 0) : 0,
+              tensionBandPrice: mapping.tensionBandProductId ? (productPrices[mapping.tensionBandProductId] || 0) : 0,
+              nutAndBoltPrice: mapping.nutAndBoltProductId ? (productPrices[mapping.nutAndBoltProductId] || 0) : 0,
+            };
+
+            setPricing(pricingData);
           } else {
             setPricing(null);
             toast({
               title: "Pricing Not Configured",
-              description: `No pricing found for ${fenceType} ${fenceHeight}'. Please configure in Settings > Chainlink Pricing.`,
+              description: `No pricing found for ${fenceType} ${fenceColor} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
               variant: "destructive",
             });
           }
@@ -142,7 +199,7 @@ export default function ChainlinkEstimationPage() {
     };
 
     loadPricing();
-  }, [db, fenceType, fenceHeight, toast]);
+  }, [db, fenceType, fenceHeight, fenceColor, toast]);
 
   const addRun = () => {
     setRuns([...runs, { length: 0 }]);
@@ -172,13 +229,20 @@ export default function ChainlinkEstimationPage() {
       return;
     }
 
-    // Calculate materials
+    // Calculate materials with all options
     const calculationResult = calculateChainlinkMaterials({
       runs,
       fenceHeight,
       fenceType,
+      fenceColor,
       ends,
       corners,
+      singleGates,
+      doubleGates,
+      pedestrianGates,
+      includePrivacySlats,
+      includeBarbedWire,
+      includeBottomRail,
     });
 
     setResult(calculationResult);
@@ -196,8 +260,15 @@ export default function ChainlinkEstimationPage() {
     setRuns([{ length: 0 }]);
     setFenceHeight('6');
     setFenceType('residential');
+    setFenceColor('galvanized');
     setEnds(2);
     setCorners(0);
+    setSingleGates(0);
+    setDoubleGates(0);
+    setPedestrianGates(0);
+    setIncludePrivacySlats(false);
+    setIncludeBarbedWire(false);
+    setIncludeBottomRail(false);
     setResult(null);
     setEstimatedCost(0);
   };
@@ -222,12 +293,12 @@ export default function ChainlinkEstimationPage() {
       }
 
       const mappingsData = settingsSnap.data();
-      const mapping: ChainlinkProductMapping | undefined = mappingsData[fenceType]?.[fenceHeight];
+      const mapping: ChainlinkProductMapping | undefined = mappingsData[fenceType]?.[fenceColor]?.[fenceHeight];
 
       if (!mapping) {
         toast({
           title: "Configuration Missing",
-          description: `No product mapping found for ${fenceType} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
+          description: `No product mapping found for ${fenceType} ${fenceColor} ${fenceHeight}' fence. Please configure in Settings > Chainlink.`,
           variant: "destructive",
         });
         return;
@@ -355,6 +426,85 @@ export default function ChainlinkEstimationPage() {
         }
       }
 
+      // Gate Components
+      if (result.singleGates && result.singleGates > 0 && mapping.singleGateFrameProductId) {
+        const product = productsMap.get(mapping.singleGateFrameProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.singleGates));
+        }
+      }
+
+      if (result.doubleGates && result.doubleGates > 0 && mapping.doubleGateFrameProductId) {
+        const product = productsMap.get(mapping.doubleGateFrameProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.doubleGates));
+        }
+      }
+
+      if (result.pedestrianGates && result.pedestrianGates > 0 && mapping.pedestrianGateFrameProductId) {
+        const product = productsMap.get(mapping.pedestrianGateFrameProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.pedestrianGates));
+        }
+      }
+
+      if (result.gatePosts && result.gatePosts > 0 && mapping.gatePostProductId) {
+        const product = productsMap.get(mapping.gatePostProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.gatePosts));
+        }
+      }
+
+      if (result.gateHardwareSets && result.gateHardwareSets > 0 && mapping.gateHardwareSetProductId) {
+        const product = productsMap.get(mapping.gateHardwareSetProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.gateHardwareSets));
+        }
+      }
+
+      if (result.gateLatches && result.gateLatches > 0 && mapping.gateLatchProductId) {
+        const product = productsMap.get(mapping.gateLatchProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.gateLatches));
+        }
+      }
+
+      if (result.gateHinges && result.gateHinges > 0 && mapping.gateHingeProductId) {
+        const product = productsMap.get(mapping.gateHingeProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.gateHinges));
+        }
+      }
+
+      // Additional Components
+      if (result.privacySlats && mapping.privacySlatsProductId) {
+        const product = productsMap.get(mapping.privacySlatsProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.privacySlats));
+        }
+      }
+
+      if (result.barbedWire && mapping.barbedWireProductId) {
+        const product = productsMap.get(mapping.barbedWireProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.barbedWire));
+        }
+      }
+
+      if (result.bottomRailSticks && mapping.bottomRailProductId) {
+        const product = productsMap.get(mapping.bottomRailProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.bottomRailSticks));
+        }
+      }
+
+      if (result.railEnds && mapping.railEndsProductId) {
+        const product = productsMap.get(mapping.railEndsProductId);
+        if (product) {
+          lineItems.push(createLineItem(product, result.railEnds));
+        }
+      }
+
       if (lineItems.length === 0) {
         toast({
           title: "No Products Mapped",
@@ -364,10 +514,25 @@ export default function ChainlinkEstimationPage() {
         return;
       }
 
+      // Build notes with full configuration details
+      const gateInfo = [];
+      if (singleGates > 0) gateInfo.push(`${singleGates} Single Gate(s)`);
+      if (doubleGates > 0) gateInfo.push(`${doubleGates} Double Gate(s)`);
+      if (pedestrianGates > 0) gateInfo.push(`${pedestrianGates} Pedestrian Gate(s)`);
+
+      const addOns = [];
+      if (includePrivacySlats) addOns.push('Privacy Slats');
+      if (includeBarbedWire) addOns.push('Barbed Wire');
+      if (includeBottomRail) addOns.push('Bottom Rail');
+
+      let notesText = `Chainlink ${fenceType} ${fenceHeight}' ${fenceColor} fence\nTotal linear feet: ${totalLinearFeet}\nRuns: ${runs.length}\nEnds: ${ends}\nCorners: ${corners}`;
+      if (gateInfo.length > 0) notesText += `\nGates: ${gateInfo.join(', ')}`;
+      if (addOns.length > 0) notesText += `\nAdd-ons: ${addOns.join(', ')}`;
+
       // Prepare initial form data with line items
       const formData: Partial<EstimateFormData> & { lineItems: LineItem[] } = {
         lineItems: lineItems,
-        notes: `Chainlink ${fenceType} ${fenceHeight}' fence\nTotal linear feet: ${totalLinearFeet}\nRuns: ${runs.length}\nEnds: ${ends}\nCorners: ${corners}`,
+        notes: notesText,
       };
 
       setInitialFormData(formData);
@@ -542,6 +707,21 @@ export default function ChainlinkEstimationPage() {
               </Select>
             </div>
 
+            {/* Fence Color */}
+            <div className="space-y-2">
+              <Label>Fence Color</Label>
+              <Select value={fenceColor} onValueChange={(value) => setFenceColor(value as ChainlinkFenceColor)}>
+                <SelectTrigger aria-label="Fence Color">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FENCE_COLORS.map(color => (
+                    <SelectItem key={color} value={color} className="capitalize">{color.charAt(0).toUpperCase() + color.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Ends */}
             <div className="space-y-2">
               <Label>Number of Ends</Label>
@@ -565,6 +745,76 @@ export default function ChainlinkEstimationPage() {
               />
               <p className="text-xs text-muted-foreground">Corner posts that change direction</p>
             </div>
+            {/* Gate Options */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Gate Options</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Single Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={singleGates}
+                    onChange={(e) => setSingleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Double Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={doubleGates}
+                    onChange={(e) => setDoubleGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Pedestrian Gates</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={pedestrianGates}
+                    onChange={(e) => setPedestrianGates(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Components */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-sm font-medium">Additional Components</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="privacySlats"
+                    checked={includePrivacySlats}
+                    onChange={(e) => setIncludePrivacySlats(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="privacySlats" className="text-sm font-normal">Privacy Slats</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="barbedWire"
+                    checked={includeBarbedWire}
+                    onChange={(e) => setIncludeBarbedWire(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="barbedWire" className="text-sm font-normal">Barbed Wire</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="bottomRail"
+                    checked={includeBottomRail}
+                    onChange={(e) => setIncludeBottomRail(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="bottomRail" className="text-sm font-normal">Bottom Rail</Label>
+                </div>
+              </div>
+            </div>
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
@@ -581,6 +831,71 @@ export default function ChainlinkEstimationPage() {
 
         {/* Results */}
         <div className="space-y-6">
+          {/* Configuration Summary */}
+          {result && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Configuration Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Height:</span>
+                    <span className="ml-2 font-medium">{fenceHeight} ft</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="ml-2 font-medium capitalize">{fenceType}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Color:</span>
+                    <span className="ml-2 font-medium capitalize">{result.fenceColor}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Weight:</span>
+                    <span className="ml-2 font-medium">{result.pipeWeight}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total Length:</span>
+                    <span className="ml-2 font-medium">{totalLinearFeet} ft</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Ends:</span>
+                    <span className="ml-2 font-medium">{ends}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Corners:</span>
+                    <span className="ml-2 font-medium">{corners}</span>
+                  </div>
+                  {(singleGates > 0 || doubleGates > 0 || pedestrianGates > 0) && (
+                    <div>
+                      <span className="text-muted-foreground">Gates:</span>
+                      <span className="ml-2 font-medium">
+                        {[
+                          singleGates > 0 && `${singleGates} Single`,
+                          doubleGates > 0 && `${doubleGates} Double`,
+                          pedestrianGates > 0 && `${pedestrianGates} Pedestrian`
+                        ].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {(includePrivacySlats || includeBarbedWire || includeBottomRail) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <span className="text-muted-foreground text-sm">Add-ons: </span>
+                    <span className="text-sm font-medium">
+                      {[
+                        includePrivacySlats && 'Privacy Slats',
+                        includeBarbedWire && 'Barbed Wire',
+                        includeBottomRail && 'Bottom Rail'
+                      ].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Material List */}
           <Card>
             <CardHeader>
@@ -600,6 +915,7 @@ export default function ChainlinkEstimationPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {/* Fence Materials Section */}
                     {result.interiorLinePosts !== undefined && (
                       <TableRow>
                         <TableCell>Interior Line Posts</TableCell>
@@ -629,6 +945,20 @@ export default function ChainlinkEstimationPage() {
                             ${(result.topRailSticks * pricing.topRailPricePerStick).toFixed(2)}
                           </TableCell>
                         )}
+                      </TableRow>
+                    )}
+                    {result.bottomRailSticks !== undefined && (
+                      <TableRow>
+                        <TableCell>Bottom Rail Sticks (21')</TableCell>
+                        <TableCell className="text-right">{result.bottomRailSticks}</TableCell>
+                        {pricing && <TableCell className="text-right">-</TableCell>}
+                      </TableRow>
+                    )}
+                    {result.railEnds !== undefined && (
+                      <TableRow>
+                        <TableCell>Rail Ends</TableCell>
+                        <TableCell className="text-right">{result.railEnds}</TableCell>
+                        {pricing && <TableCell className="text-right">-</TableCell>}
                       </TableRow>
                     )}
                     {result.tieWires !== undefined && (
@@ -708,6 +1038,93 @@ export default function ChainlinkEstimationPage() {
                         )}
                       </TableRow>
                     )}
+
+                    {/* Gate Components Section */}
+                    {(result.singleGates || result.doubleGates || result.pedestrianGates) && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={pricing ? 3 : 2} className="font-semibold text-sm">
+                            Gate Components
+                          </TableCell>
+                        </TableRow>
+                        {result.singleGates !== undefined && result.singleGates > 0 && (
+                          <TableRow>
+                            <TableCell>Single Gate Frames</TableCell>
+                            <TableCell className="text-right">{result.singleGates}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.doubleGates !== undefined && result.doubleGates > 0 && (
+                          <TableRow>
+                            <TableCell>Double Gate Frames</TableCell>
+                            <TableCell className="text-right">{result.doubleGates}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.pedestrianGates !== undefined && result.pedestrianGates > 0 && (
+                          <TableRow>
+                            <TableCell>Pedestrian Gate Frames</TableCell>
+                            <TableCell className="text-right">{result.pedestrianGates}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.gatePosts !== undefined && result.gatePosts > 0 && (
+                          <TableRow>
+                            <TableCell>Gate Posts</TableCell>
+                            <TableCell className="text-right">{result.gatePosts}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.gateHardwareSets !== undefined && result.gateHardwareSets > 0 && (
+                          <TableRow>
+                            <TableCell>Gate Hardware Sets</TableCell>
+                            <TableCell className="text-right">{result.gateHardwareSets}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.gateLatches !== undefined && result.gateLatches > 0 && (
+                          <TableRow>
+                            <TableCell>Gate Latches</TableCell>
+                            <TableCell className="text-right">{result.gateLatches}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.gateHinges !== undefined && result.gateHinges > 0 && (
+                          <TableRow>
+                            <TableCell>Gate Hinges</TableCell>
+                            <TableCell className="text-right">{result.gateHinges}</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                      </>
+                    )}
+
+                    {/* Additional Components Section */}
+                    {(result.privacySlats || result.barbedWire) && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={pricing ? 3 : 2} className="font-semibold text-sm">
+                            Additional Components
+                          </TableCell>
+                        </TableRow>
+                        {result.privacySlats !== undefined && (
+                          <TableRow>
+                            <TableCell>Privacy Slats</TableCell>
+                            <TableCell className="text-right">{result.privacySlats} ft</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                        {result.barbedWire !== undefined && (
+                          <TableRow>
+                            <TableCell>Barbed Wire</TableCell>
+                            <TableCell className="text-right">{result.barbedWire} ft</TableCell>
+                            {pricing && <TableCell className="text-right">-</TableCell>}
+                          </TableRow>
+                        )}
+                      </>
+                    )}
+
+                    {/* Summary Row */}
                     <TableRow>
                       <TableCell className="font-medium">Pipe Weight</TableCell>
                       <TableCell className="text-right font-medium" colSpan={pricing ? 2 : 1}>

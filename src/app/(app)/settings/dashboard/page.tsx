@@ -68,11 +68,7 @@ export default function DashboardSettingsPage() {
   }, [db, user, toast]);
 
   const handleSave = async () => {
-    console.log('Save button clicked');
-    console.log('DB:', db, 'User UID:', user?.uid);
-
     if (!db || !user?.uid) {
-      console.log('Missing db or user.uid, cannot save');
       toast({
         title: "Error",
         description: "Not authenticated or database not initialized.",
@@ -84,7 +80,6 @@ export default function DashboardSettingsPage() {
     setIsSaving(true);
     try {
       const docRef = doc(db, 'dashboardPreferences', user.uid);
-      console.log('Saving preferences:', preferences);
       await setDoc(docRef, preferences);
 
       toast({

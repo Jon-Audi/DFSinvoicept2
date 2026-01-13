@@ -17,6 +17,7 @@ import { ProductDialog } from './product-dialog';
 import { BulkPriceEditorDialog } from './bulk-price-editor-dialog';
 import { BulkStockEditorDialog } from './bulk-stock-editor-dialog';
 import { BulkSubcategoryEditorDialog } from './bulk-subcategory-editor-dialog';
+import { BulkNameEditorDialog } from './bulk-name-editor-dialog';
 import { PriceHistoryDialog } from './price-history-dialog';
 import {
   Accordion,
@@ -51,7 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +72,7 @@ interface ProductTableProps {
   onBulkUpdate: (products: Product[]) => Promise<void>;
   onBulkStockUpdate: (products: { id: string; quantityInStock: number }[]) => Promise<void>;
   onBulkSubcategoryUpdate: (products: Pick<Product, 'id' | 'subcategory'>[]) => Promise<void>;
+  onBulkNameUpdate: (products: Pick<Product, 'id' | 'name'>[]) => Promise<void>;
 }
 
 export const ProductTable = React.memo(function ProductTable({ 
@@ -89,6 +91,7 @@ export const ProductTable = React.memo(function ProductTable({
   onBulkUpdate,
   onBulkStockUpdate,
   onBulkSubcategoryUpdate,
+  onBulkNameUpdate,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
   const [categoryToDelete, setCategoryToDeleteState] = React.useState<string | null>(null);
@@ -100,35 +103,41 @@ export const ProductTable = React.memo(function ProductTable({
   const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = React.useState(false);
   const [isBulkStockEditorOpen, setIsBulkStockEditorOpen] = React.useState(false);
   const [isBulkSubcategoryEditorOpen, setIsBulkSubcategoryEditorOpen] = React.useState(false);
+  const [isBulkNameEditorOpen, setIsBulkNameEditorOpen] = React.useState(false);
 
 
-  const formatCurrency = (amount: number | undefined) => {
+  const formatCurrency = useCallback((amount: number | undefined) => {
     if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
+  }, []);
 
-  const handleOpenMarkupDialog = (category: string) => {
+  const handleOpenMarkupDialog = useCallback((category: string) => {
     setSelectedCategoryForMarkup(category);
     setNewMarkupValue(""); 
     setIsMarkupDialogOpen(true);
-  };
+  }, []);
   
-  const handleOpenBulkPriceEditor = (category: string) => {
+  const handleOpenBulkPriceEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkPriceEditorOpen(true);
-  };
+  }, []);
   
-  const handleOpenBulkStockEditor = (category: string) => {
+  const handleOpenBulkStockEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkStockEditorOpen(true);
-  };
+  }, []);
 
-  const handleOpenBulkSubcategoryEditor = (category: string) => {
+  const handleOpenBulkSubcategoryEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkSubcategoryEditorOpen(true);
-  };
+  }, []);
 
-  const handleApplyMarkup = () => {
+  const handleOpenBulkNameEditor = useCallback((category: string) => {
+    setCategoryForBulkEdit(category);
+    setIsBulkNameEditorOpen(true);
+  }, []);
+
+  const handleApplyMarkup = useCallback(() => {
     if (selectedCategoryForMarkup && newMarkupValue !== "") {
       const markupNum = parseFloat(newMarkupValue);
       if (!isNaN(markupNum) && markupNum >= 0) {
@@ -139,14 +148,22 @@ export const ProductTable = React.memo(function ProductTable({
         alert("Please enter a valid non-negative markup percentage.");
       }
     }
-  };
+  }, [selectedCategoryForMarkup, newMarkupValue, onApplyCategoryMarkup]);
 
-  const confirmDeleteCategory = () => {
+  const confirmDeleteCategory = useCallback(() => {
     if (categoryToDelete) {
       onDeleteCategory(categoryToDelete);
       setCategoryToDeleteState(null);
     }
-  };
+  }, [categoryToDelete, onDeleteCategory]);
+
+  // Move useMemo BEFORE any conditional returns to satisfy React hooks rules
+  const defaultOpenValues = useMemo(() =>
+    Array.from(groupedProducts.entries())
+      .filter(([_, products]) => products.length > 0)
+      .map(([category]) => category),
+    [groupedProducts]
+  );
 
   if (isLoading) {
     return (
@@ -173,10 +190,6 @@ export const ProductTable = React.memo(function ProductTable({
       </div>
     );
   }
-
-  const defaultOpenValues = Array.from(groupedProducts.entries())
-    .filter(([_, products]) => products.length > 0)
-    .map(([category]) => category);
 
   return (
     <>
@@ -216,6 +229,10 @@ export const ProductTable = React.memo(function ProductTable({
                        <DropdownMenuItem onSelect={() => handleOpenBulkSubcategoryEditor(category)}>
                         <Icon name="FolderSymlink" className="mr-2 h-4 w-4" />
                         Bulk Edit Subcategories
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleOpenBulkNameEditor(category)}>
+                        <Icon name="Type" className="mr-2 h-4 w-4" />
+                        Bulk Edit Names
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => handleOpenMarkupDialog(category)}>
                         <Icon name="TrendingUp" className="mr-2 h-4 w-4" />
@@ -358,6 +375,16 @@ export const ProductTable = React.memo(function ProductTable({
           onSave={onBulkSubcategoryUpdate}
           allSubcategories={productSubcategories}
           onAddNewSubcategory={onAddNewSubcategory}
+        />
+      )}
+
+      {categoryForBulkEdit && (
+        <BulkNameEditorDialog
+          isOpen={isBulkNameEditorOpen}
+          onOpenChange={setIsBulkNameEditorOpen}
+          categoryName={categoryForBulkEdit}
+          products={groupedProducts.get(categoryForBulkEdit) || []}
+          onSave={onBulkNameUpdate}
         />
       )}
 

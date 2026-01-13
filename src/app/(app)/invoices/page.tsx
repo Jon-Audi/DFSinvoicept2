@@ -46,6 +46,7 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   runTransaction,
   query,
@@ -214,53 +215,65 @@ export default function InvoicesPage() {
     }
   }, [conversionInvoiceData, isLoading]);
 
-  // Live data
+  // Load data - invoices use real-time listener, others use one-time fetch
   useEffect(() => {
     if (!db) return;
-    
+
     let active = true;
     const unsubscribes: (() => void)[] = [];
 
     const loadData = async () => {
         setIsLoading(true);
 
-        const collectionsToWatch = {
-            invoices: (data: any[]) => setInvoices(data.map(d => ({
-                ...d,
-                total: d.total || 0,
-                amountPaid: d.amountPaid || 0,
-                balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
-                payments: d.payments || [],
-                distributor: d.distributor || undefined,
-            }))),
-            customers: setCustomers,
-            products: (data: Product[]) => {
-                setProducts(data);
-                const categories = Array.from(new Set(data.map(p => p.category))).sort();
-                setStableProductCategories(categories);
-                const subcategories = Array.from(new Set(data.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-                setStableProductSubcategories(subcategories);
-            },
-            vendors: setVendors,
-        };
+        // Fetch static data in parallel (customers, products, vendors)
+        try {
+          const [customersSnap, productsSnap, vendorsSnap] = await Promise.all([
+            getDocs(collection(db, 'customers')),
+            getDocs(collection(db, 'products')),
+            getDocs(collection(db, 'vendors')),
+          ]);
 
-        for (const [path, setter] of Object.entries(collectionsToWatch)) {
-            const q = path === 'invoices'
-              ? query(collection(db, path), orderBy('date', 'desc'))
-              : collection(db, path);
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                if (active) {
-                    const docsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                    console.log(`Loaded ${docsData.length} documents from ${path}`);
-                    setter(docsData as any);
-                }
-            }, (error) => {
-                console.error(`Error fetching ${path}:`, error);
-                toast({ title: "Error", description: `Could not fetch ${path}: ${error.message}`, variant: "destructive" });
-            });
-            unsubscribes.push(unsubscribe);
+          if (active) {
+            setCustomers(customersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer)));
+
+            const productsData = productsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+            setProducts(productsData);
+            const categories = Array.from(new Set(productsData.map(p => p.category))).sort();
+            setStableProductCategories(categories);
+            const subcategories = Array.from(new Set(productsData.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+            setStableProductSubcategories(subcategories);
+
+            setVendors(vendorsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Vendor)));
+          }
+        } catch (error: any) {
+          console.error('Error fetching static data:', error);
+          toast({ title: "Error", description: `Could not fetch data: ${error.message}`, variant: "destructive" });
         }
-        
+
+        // Keep invoices as real-time listener since they change frequently
+        const invoicesQuery = query(collection(db, 'invoices'), orderBy('date', 'desc'));
+        const unsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
+            if (active) {
+                const docsData = snapshot.docs.map(doc => {
+                  const d = doc.data();
+                  return {
+                    ...d,
+                    id: doc.id,
+                    total: d.total || 0,
+                    amountPaid: d.amountPaid || 0,
+                    balanceDue: d.balanceDue !== undefined ? d.balanceDue : (d.total || 0) - (d.amountPaid || 0),
+                    payments: d.payments || [],
+                    distributor: d.distributor || undefined,
+                  } as Invoice;
+                });
+                setInvoices(docsData);
+            }
+        }, (error) => {
+            console.error('Error fetching invoices:', error);
+            toast({ title: "Error", description: `Could not fetch invoices: ${error.message}`, variant: "destructive" });
+        });
+        unsubscribes.push(unsubscribe);
+
         setIsLoading(false);
     };
 

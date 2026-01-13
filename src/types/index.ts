@@ -408,6 +408,8 @@ export interface TopSellingProductsReportItem {
 // Chainlink Estimation Types
 export type ChainlinkFenceType = 'residential' | 'commercial';
 export type ChainlinkFenceHeight = '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
+export type ChainlinkFenceColor = 'galvanized' | 'green' | 'black';
+export type ChainlinkGateSize = 'single' | 'double' | 'pedestrian';
 
 export interface ChainlinkRun {
   length: number;
@@ -417,8 +419,17 @@ export interface ChainlinkEstimationInput {
   runs: ChainlinkRun[];
   fenceHeight: ChainlinkFenceHeight;
   fenceType: ChainlinkFenceType;
+  fenceColor: ChainlinkFenceColor;
   ends: number;
   corners: number;
+  // Gate options
+  singleGates?: number;
+  doubleGates?: number;
+  pedestrianGates?: number;
+  // Additional components
+  includePrivacySlats?: boolean;
+  includeBarbedWire?: boolean;
+  includeBottomRail?: boolean;
 }
 
 export interface ChainlinkEstimationResult {
@@ -436,6 +447,21 @@ export interface ChainlinkEstimationResult {
   pipeWeight: string;
   userSpecifiedEnds?: number;
   userSpecifiedCorners?: number;
+  // Gate Components
+  singleGates?: number;
+  doubleGates?: number;
+  pedestrianGates?: number;
+  gatePosts?: number;
+  gateHardwareSets?: number;
+  gateLatches?: number;
+  gateHinges?: number;
+  // Additional Components
+  privacySlats?: number;
+  barbedWire?: number;
+  bottomRailSticks?: number;
+  railEnds?: number;
+  // Configuration info for display
+  fenceColor?: ChainlinkFenceColor;
 }
 
 export interface ChainlinkMaterialPricing {
@@ -458,6 +484,7 @@ export interface ChainlinkProductMapping {
   id: string;
   fenceHeight: ChainlinkFenceHeight;
   fenceType: ChainlinkFenceType;
+  color?: ChainlinkFenceColor;
   // Product IDs from the products collection
   terminalPostProductId?: string; // For ends
   cornerPostProductId?: string;
@@ -472,6 +499,18 @@ export interface ChainlinkProductMapping {
   tensionBarProductId?: string;
   tensionBandProductId?: string;
   nutAndBoltProductId?: string;
+  // Gate Components
+  singleGateFrameProductId?: string;
+  doubleGateFrameProductId?: string;
+  pedestrianGateFrameProductId?: string;
+  gateHardwareSetProductId?: string;
+  gateLatchProductId?: string;
+  gateHingeProductId?: string;
+  // Additional Components
+  privacySlatsProductId?: string;
+  barbedWireProductId?: string;
+  bottomRailProductId?: string;
+  railEndsProductId?: string;
 }
 
 export interface ChainlinkEstimateLineItem {
@@ -497,4 +536,48 @@ export interface PriceHistoryEntry {
   newMarkup: number;
   changedBy?: string; // User email or ID
   reason?: string; // Optional note about why price changed
+}
+
+// ============================================
+// Receiving / Back of House Types
+// ============================================
+
+export type ReceivingStatus = 'Expected' | 'In Transit' | 'Partially Received' | 'Received' | 'Discrepancy' | 'Voided';
+export type ReceivingType = 'Vendor Order' | 'Customer Return' | 'Transfer' | 'Adjustment';
+
+export interface ReceivingLineItem {
+  id: string;
+  productId: string;
+  productName: string;
+  expectedQuantity: number;
+  receivedQuantity: number;
+  unitPrice: number;
+  total: number;
+  unit?: string;
+  receivedDate?: string; // When this item was received
+  notes?: string; // Discrepancy notes
+}
+
+export interface ReceivingOrder {
+  id: string;
+  receivingNumber: string;
+  vendorId: string;
+  vendorName: string; // Denormalized for display
+  date: string; // ISO date string (order date)
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  poNumber?: string; // Purchase Order reference
+  status: ReceivingStatus;
+  type: ReceivingType;
+  lineItems: ReceivingLineItem[];
+  subtotal: number;
+  taxRate?: number;
+  taxAmount?: number;
+  total: number;
+  notes?: string;
+  internalNotes?: string;
+  packingSlipUrls?: string[]; // Firebase Storage URLs for uploaded documents
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string; // User email
 }

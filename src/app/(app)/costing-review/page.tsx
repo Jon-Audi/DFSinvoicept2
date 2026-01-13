@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Order, Invoice, Customer, Product, LineItem, Vendor } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, onSnapshot, doc, runTransaction } from 'firebase/firestore';
+import { collection, onSnapshot, doc, runTransaction, getDocs } from 'firebase/firestore';
 import { OrderDialog } from '@/components/orders/order-dialog';
 import { InvoiceDialog } from '@/components/invoices/invoice-dialog';
 import { ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
@@ -40,39 +40,49 @@ export default function CostingReviewPage() {
     const unsubscribes: (() => void)[] = [];
     setIsLoading(true);
 
-    const collections = {
-      orders: (items: Order[]) => setOrders(items),
-      invoices: (items: Invoice[]) => setInvoices(items),
-      customers: (items: Customer[]) => setCustomers(items),
-      vendors: (items: Vendor[]) => setVendors(items),
-      products: (items: Product[]) => {
-          setProducts(items);
-          const categories = Array.from(new Set(items.map(p => p.category))).sort();
-          setProductCategories(categories);
-          const subcategories = Array.from(new Set(items.map(p => p.subcategory).filter(Boolean) as string[])).sort();
-          setProductSubcategories(subcategories);
-      },
+    // Load reference data once (customers, vendors, products)
+    const loadReferenceData = async () => {
+      try {
+        const [customersSnap, vendorsSnap, productsSnap] = await Promise.all([
+          getDocs(collection(db, 'customers')),
+          getDocs(collection(db, 'vendors')),
+          getDocs(collection(db, 'products')),
+        ]);
+
+        setCustomers(customersSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer)));
+        setVendors(vendorsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Vendor)));
+        
+        const products = productsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+        setProducts(products);
+        const categories = Array.from(new Set(products.map(p => p.category))).sort();
+        setProductCategories(categories);
+        const subcategories = Array.from(new Set(products.map(p => p.subcategory).filter(Boolean) as string[])).sort();
+        setProductSubcategories(subcategories);
+      } catch (error) {
+        toast({ title: "Error", description: "Could not load reference data.", variant: "destructive" });
+      }
     };
 
-    Object.entries(collections).forEach(([path, setStateCallback]) => {
-      unsubscribes.push(onSnapshot(collection(db, path), (snapshot) => {
-        const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        setStateCallback(items as any[]);
+    // Real-time listeners for frequently updated data
+    unsubscribes.push(
+      onSnapshot(collection(db, 'orders'), (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order)));
       }, (error) => {
-        toast({ title: "Error", description: `Could not fetch ${path}.`, variant: "destructive" });
-      }));
-    });
+        toast({ title: "Error", description: "Could not fetch orders.", variant: "destructive" });
+      })
+    );
 
-    // A simple way to determine initial loading state
-    Promise.all([
-        new Promise(res => onSnapshot(collection(db, 'orders'), () => res(true))),
-        new Promise(res => onSnapshot(collection(db, 'invoices'), () => res(true))),
-        new Promise(res => onSnapshot(collection(db, 'customers'), () => res(true))),
-        new Promise(res => onSnapshot(collection(db, 'vendors'), () => res(true))),
-        new Promise(res => onSnapshot(collection(db, 'products'), () => res(true))),
-    ]).then(() => {
+    unsubscribes.push(
+      onSnapshot(collection(db, 'invoices'), (snapshot) => {
+        setInvoices(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice)));
+        setIsLoading(false); // Set loading false after the last real-time data loads
+      }, (error) => {
+        toast({ title: "Error", description: "Could not fetch invoices.", variant: "destructive" });
         setIsLoading(false);
-    });
+      })
+    );
+
+    loadReferenceData();
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [db, toast]);

@@ -64,10 +64,15 @@ CommandInput.displayName = CommandPrimitive.Input.displayName
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
+>(({ className, onWheel, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
     className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    onWheel={(e) => {
+      // Prevent scroll events from bubbling to parent containers (fixes scroll in modals/sheets)
+      e.stopPropagation();
+      onWheel?.(e);
+    }}
     {...props}
   />
 ))

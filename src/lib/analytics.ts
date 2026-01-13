@@ -44,9 +44,6 @@ export async function getRevenueTrends(
     id: doc.id,
   } as Invoice));
 
-  console.log(`Processing ${invoices.length} invoices for revenue trends`);
-  console.log('Start date:', startDate.toISOString());
-
   // Group payments by date
   const revenueByDate = new Map<string, { revenue: number; invoiceIds: Set<string> }>();
   let totalPaymentsProcessed = 0;
@@ -75,9 +72,6 @@ export async function getRevenueTrends(
     }
   });
 
-  console.log(`Processed ${totalPaymentsProcessed} payments`);
-  console.log(`Revenue data points:`, revenueByDate.size);
-
   // Fill in missing dates with zero revenue
   const dataPoints: RevenueDataPoint[] = [];
   for (let i = days - 1; i >= 0; i--) {
@@ -92,8 +86,6 @@ export async function getRevenueTrends(
       invoices: data.invoiceIds.size, // Count unique invoices that had payments on this date
     });
   }
-
-  console.log('Final data points sample:', dataPoints.slice(0, 3));
 
   return dataPoints;
 }
@@ -123,8 +115,6 @@ export async function getTopProducts(
     id: doc.id,
   } as Invoice));
 
-  console.log(`Processing ${invoices.length} invoices for top products`);
-
   // Aggregate product sales
   const productSales = new Map<string, ProductSalesData>();
 
@@ -153,14 +143,10 @@ export async function getTopProducts(
     }
   });
 
-  console.log(`Found ${productSales.size} unique products`);
-
   // Sort by revenue and return top N
   const topProducts = Array.from(productSales.values())
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, limit);
-
-  console.log('Top products:', topProducts);
 
   return topProducts;
 }
