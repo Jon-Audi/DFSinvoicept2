@@ -247,10 +247,10 @@ export default function OrdersPage() {
             await setDoc(orderRef, orderDataFromDialog, { merge: true });
         } else {
             // ADD new order with createdBy field
-            const orderData = {
-                ...orderDataFromDialog,
-                createdBy: user?.email || undefined
-            };
+            const orderData: any = { ...orderDataFromDialog };
+            if (user?.email) {
+              orderData.createdBy = user.email;
+            }
             await addDoc(collection(db, 'orders'), orderData);
         }
 

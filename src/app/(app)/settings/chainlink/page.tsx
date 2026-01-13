@@ -145,24 +145,20 @@ export default function ChainlinkSettingsPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        console.log('Loading products...');
         // Load products
         const productsSnapshot = await getDocs(collection(db, 'products'));
         const allProducts: Product[] = [];
         productsSnapshot.forEach(docSnap => {
           allProducts.push({ ...docSnap.data() as Omit<Product, 'id'>, id: docSnap.id });
         });
-        console.log(`Loaded ${allProducts.length} products`);
         setProducts(allProducts.sort((a, b) => a.name.localeCompare(b.name)));
 
-        console.log('Loading product mappings...');
         // Load product mappings
         const docRef = doc(db, 'settings', CHAINLINK_SETTINGS_DOC_ID);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          console.log('Loaded existing mappings:', data);
           // Convert old format to new color-based format if needed
           const residentialData = data.residential || {};
           const commercialData = data.commercial || {};
@@ -188,7 +184,6 @@ export default function ChainlinkSettingsPage() {
           setResidentialMapping(convertToColorBased({ ...residentialData, fenceType: 'residential' }));
           setCommercialMapping(convertToColorBased({ ...commercialData, fenceType: 'commercial' }));
         } else {
-          console.log('No existing mappings, initializing defaults');
           // Initialize with default empty mappings
           initializeDefaultMappings();
         }
@@ -196,7 +191,6 @@ export default function ChainlinkSettingsPage() {
         console.error('Error loading chainlink settings:', error);
         toast({ title: "Error", description: "Could not fetch chainlink product mappings.", variant: "destructive" });
       } finally {
-        console.log('Finished loading');
         setIsLoading(false);
       }
     };
@@ -277,7 +271,7 @@ export default function ChainlinkSettingsPage() {
             ...colorMappings,
             [height]: {
               ...existing,
-              [field]: value || undefined,
+              ...(value !== undefined && { [field]: value }),
             },
           },
         };
@@ -297,7 +291,7 @@ export default function ChainlinkSettingsPage() {
             ...colorMappings,
             [height]: {
               ...existing,
-              [field]: value || undefined,
+              ...(value !== undefined && { [field]: value }),
             },
           },
         };

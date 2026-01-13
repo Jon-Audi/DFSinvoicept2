@@ -3,6 +3,7 @@
     "IDX.aI.enableCodebaseIndexing": true,
     "editor.experimental.treeSitterTelemetry": true,
     "chat.tools.terminal.autoApprove": {
-        "npx tsc": true
+        "npx tsc": true,
+        "ForEach-Object": true
     }
 }
