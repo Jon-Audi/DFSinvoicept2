@@ -120,19 +120,33 @@ export function ReceivingTable({
                   {/* Dates */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Order Date:</span>
+                      <div className="text-muted-foreground text-xs mb-1">Order Date</div>
                       <div className="font-medium">{formatDate(order.date)}</div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Expected:</span>
+                      <div className="text-muted-foreground text-xs mb-1">Expected Delivery</div>
                       <div className="font-medium">{formatDate(order.expectedDeliveryDate)}</div>
                     </div>
+                  </div>
+
+                  {/* Additional Info */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-muted-foreground text-xs mb-1">Subtotal</div>
+                      <div className="font-medium">${(order.subtotal || 0).toFixed(2)}</div>
+                    </div>
+                    {order.taxAmount !== undefined && order.taxAmount > 0 && (
+                      <div>
+                        <div className="text-muted-foreground text-xs mb-1">Tax</div>
+                        <div className="font-medium">${order.taxAmount.toFixed(2)}</div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Notes */}
                   {order.notes && (
                     <div className="text-sm">
-                      <span className="text-muted-foreground">Notes:</span>
+                      <div className="text-muted-foreground text-xs mb-1">Notes</div>
                       <div className="mt-1 text-sm bg-muted p-2 rounded">
                         {order.notes}
                       </div>
@@ -140,20 +154,35 @@ export function ReceivingTable({
                   )}
 
                   {/* Line Items Summary */}
-                  {order.lineItems && order.lineItems.length > 0 && (
+                  {order.lineItems && order.lineItems.length > 0 ? (
                     <div className="text-sm">
-                      <span className="text-muted-foreground">Items:</span>
-                      <div className="mt-2 space-y-1">
+                      <div className="text-muted-foreground text-xs mb-2">Items ({order.lineItems.length})</div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
                         {order.lineItems.map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-1 border-b last:border-b-0">
-                            <span className="text-sm">{item.description}</span>
-                            <span className="text-sm font-medium">
-                              {item.quantityOrdered} {item.unit || 'pcs'}
-                              {item.quantityReceived !== undefined && ` (${item.quantityReceived} rcv)`}
-                            </span>
+                          <div key={idx} className="flex justify-between py-2 px-2 bg-muted/50 rounded">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{item.description || 'No description'}</div>
+                              {item.notes && (
+                                <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>
+                              )}
+                            </div>
+                            <div className="text-right ml-4 flex-shrink-0">
+                              <div className="text-sm font-medium">
+                                {item.quantityOrdered || 0} {item.unit || 'pcs'}
+                              </div>
+                              {item.quantityReceived !== undefined && item.quantityReceived !== null && (
+                                <div className="text-xs text-green-600">
+                                  {item.quantityReceived} received
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground italic">
+                      No line items
                     </div>
                   )}
 
