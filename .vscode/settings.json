@@ -1,5 +1,8 @@
 {
     "IDX.aI.enableInlineCompletion": true,
     "IDX.aI.enableCodebaseIndexing": true,
-    "editor.experimental.treeSitterTelemetry": true
+    "editor.experimental.treeSitterTelemetry": true,
+    "chat.tools.terminal.autoApprove": {
+        "npx tsc": true
+    }
 }

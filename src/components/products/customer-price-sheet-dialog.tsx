@@ -11,6 +11,8 @@ import type { Customer, Product, CompanySettings } from '@/types';
 import { ALL_CATEGORIES_MARKUP_KEY } from '@/lib/constants';
 import { PrintablePriceSheet } from './printable-price-sheet';
 import { useReactToPrint } from 'react-to-print';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CustomerPriceSheetDialogProps {
   customers: Customer[];
@@ -25,6 +27,7 @@ export function CustomerPriceSheetDialog({
 }: CustomerPriceSheetDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const printRef = React.useRef<HTMLDivElement>(null);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -67,9 +70,16 @@ export function CustomerPriceSheetDialog({
     }));
   }, [products, selectedCustomer]);
 
+  const filteredProductsForPrinting = React.useMemo(() => {
+    if (selectedProductIds.size === 0) {
+      return customerProducts; // If no products selected, show all
+    }
+    return customerProducts.filter(p => selectedProductIds.has(p.id));
+  }, [customerProducts, selectedProductIds]);
+
   const groupedProducts = React.useMemo(() => {
     const grouped = new Map<string, Product[]>();
-    customerProducts.forEach(product => {
+    filteredProductsForPrinting.forEach(product => {
       const category = product.category || 'Uncategorized';
       if (!grouped.has(category)) {
         grouped.set(category, []);
@@ -77,7 +87,7 @@ export function CustomerPriceSheetDialog({
       grouped.get(category)!.push(product);
     });
     return new Map([...grouped.entries()].sort());
-  }, [customerProducts]);
+  }, [filteredProductsForPrinting]);
 
   const customerDisplayName = selectedCustomer
     ? (selectedCustomer.companyName || `${selectedCustomer.firstName} ${selectedCustomer.lastName}`)
@@ -146,6 +156,43 @@ export function CustomerPriceSheetDialog({
                 </PopoverContent>
               </Popover>
             </div>
+            {selectedCustomerId && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Products to Include (Optional)</label>
+                <p className="text-xs text-muted-foreground mb-2">Leave all unchecked to include all products</p>
+                <ScrollArea className="h-[200px] border rounded-md p-4">
+                  <div className="space-y-2">
+                    {customerProducts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No products available</p>
+                    ) : (
+                      customerProducts.map((product) => (
+                        <div key={product.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={product.id}
+                            checked={selectedProductIds.has(product.id)}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedProductIds);
+                              if (checked) {
+                                newSet.add(product.id);
+                              } else {
+                                newSet.delete(product.id);
+                              }
+                              setSelectedProductIds(newSet);
+                            }}
+                          />
+                          <label
+                            htmlFor={product.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {product.name}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel

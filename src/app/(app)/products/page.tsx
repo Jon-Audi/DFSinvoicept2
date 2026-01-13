@@ -314,6 +314,21 @@ export default function ProductsPage() {
     }
   };
 
+  const handleBulkNameUpdate = async (updatedProducts: Pick<Product, 'id' | 'name'>[]) => {
+    if (!db) return;
+    const batch = writeBatch(db);
+    updatedProducts.forEach(p => {
+        const docRef = doc(db, 'products', p.id);
+        batch.update(docRef, { name: p.name });
+    });
+    try {
+        await batch.commit();
+        toast({ title: 'Product Names Updated', description: 'Product names have been saved.'});
+    } catch(e) {
+        toast({ title: 'Error', description: 'Could not save product name changes.', variant: 'destructive'});
+    }
+  };
+
   const handlePrintRequest = async (selectedCategories: string[]) => {
     setIsPrintSheetOpen(false); // Close the category selection dialog
     if (selectedCategories.length === 0) {
@@ -479,6 +494,7 @@ export default function ProductsPage() {
         onBulkUpdate={handleBulkUpdate}
         onBulkStockUpdate={handleBulkStockUpdate}
         onBulkSubcategoryUpdate={handleBulkSubcategoryUpdate}
+        onBulkNameUpdate={handleBulkNameUpdate}
       />
       {/* Hidden print component */}
       <div style={{ display: 'none' }}>

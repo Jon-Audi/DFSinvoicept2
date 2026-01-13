@@ -17,6 +17,7 @@ import { ProductDialog } from './product-dialog';
 import { BulkPriceEditorDialog } from './bulk-price-editor-dialog';
 import { BulkStockEditorDialog } from './bulk-stock-editor-dialog';
 import { BulkSubcategoryEditorDialog } from './bulk-subcategory-editor-dialog';
+import { BulkNameEditorDialog } from './bulk-name-editor-dialog';
 import { PriceHistoryDialog } from './price-history-dialog';
 import {
   Accordion,
@@ -71,6 +72,7 @@ interface ProductTableProps {
   onBulkUpdate: (products: Product[]) => Promise<void>;
   onBulkStockUpdate: (products: { id: string; quantityInStock: number }[]) => Promise<void>;
   onBulkSubcategoryUpdate: (products: Pick<Product, 'id' | 'subcategory'>[]) => Promise<void>;
+  onBulkNameUpdate: (products: Pick<Product, 'id' | 'name'>[]) => Promise<void>;
 }
 
 export const ProductTable = React.memo(function ProductTable({ 
@@ -89,6 +91,7 @@ export const ProductTable = React.memo(function ProductTable({
   onBulkUpdate,
   onBulkStockUpdate,
   onBulkSubcategoryUpdate,
+  onBulkNameUpdate,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
   const [categoryToDelete, setCategoryToDeleteState] = React.useState<string | null>(null);
@@ -100,6 +103,7 @@ export const ProductTable = React.memo(function ProductTable({
   const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = React.useState(false);
   const [isBulkStockEditorOpen, setIsBulkStockEditorOpen] = React.useState(false);
   const [isBulkSubcategoryEditorOpen, setIsBulkSubcategoryEditorOpen] = React.useState(false);
+  const [isBulkNameEditorOpen, setIsBulkNameEditorOpen] = React.useState(false);
 
 
   const formatCurrency = useCallback((amount: number | undefined) => {
@@ -126,6 +130,11 @@ export const ProductTable = React.memo(function ProductTable({
   const handleOpenBulkSubcategoryEditor = useCallback((category: string) => {
     setCategoryForBulkEdit(category);
     setIsBulkSubcategoryEditorOpen(true);
+  }, []);
+
+  const handleOpenBulkNameEditor = useCallback((category: string) => {
+    setCategoryForBulkEdit(category);
+    setIsBulkNameEditorOpen(true);
   }, []);
 
   const handleApplyMarkup = useCallback(() => {
@@ -220,6 +229,10 @@ export const ProductTable = React.memo(function ProductTable({
                        <DropdownMenuItem onSelect={() => handleOpenBulkSubcategoryEditor(category)}>
                         <Icon name="FolderSymlink" className="mr-2 h-4 w-4" />
                         Bulk Edit Subcategories
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleOpenBulkNameEditor(category)}>
+                        <Icon name="Type" className="mr-2 h-4 w-4" />
+                        Bulk Edit Names
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => handleOpenMarkupDialog(category)}>
                         <Icon name="TrendingUp" className="mr-2 h-4 w-4" />
@@ -362,6 +375,16 @@ export const ProductTable = React.memo(function ProductTable({
           onSave={onBulkSubcategoryUpdate}
           allSubcategories={productSubcategories}
           onAddNewSubcategory={onAddNewSubcategory}
+        />
+      )}
+
+      {categoryForBulkEdit && (
+        <BulkNameEditorDialog
+          isOpen={isBulkNameEditorOpen}
+          onOpenChange={setIsBulkNameEditorOpen}
+          categoryName={categoryForBulkEdit}
+          products={groupedProducts.get(categoryForBulkEdit) || []}
+          onSave={onBulkNameUpdate}
         />
       )}
 
