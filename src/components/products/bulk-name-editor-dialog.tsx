@@ -62,6 +62,7 @@ export function BulkNameEditorDialog({
   onSave,
 }: BulkNameEditorDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [initialProducts, setInitialProducts] = useState<Product[]>([]);
 
   const form = useForm<BulkNameFormData>({
     resolver: zodResolver(bulkNameFormSchema),
@@ -77,13 +78,15 @@ export function BulkNameEditorDialog({
 
   const watchedProducts = form.watch('products');
 
+  // Only reset the form when the dialog opens/closes, not when products update
   React.useEffect(() => {
     if (isOpen) {
+      setInitialProducts(products);
       form.reset({
         products: products.map(p => ({ id: p.id, name: p.name })),
       });
     }
-  }, [isOpen, products, form]);
+  }, [isOpen, form]);
 
   const handleSubmit = async (data: BulkNameFormData) => {
     setIsSaving(true);
