@@ -59,6 +59,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
@@ -127,6 +135,42 @@ export default function ReceivingPage() {
   // Delete confirmation
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<ReceivingOrder | null>(null);
+
+  // Product filter state per line item
+  const [lineItemFilters, setLineItemFilters] = useState<Record<string, { category: string; subcategory: string; popoverOpen: boolean }>>({});
+
+  // Get unique categories and subcategories from products
+  const productCategories = useMemo(() => {
+    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+    return cats.sort();
+  }, [products]);
+
+  const getAvailableSubcategories = (category: string): string[] => {
+    if (!category || category === 'all') return [];
+    const subs = [...new Set(products.filter(p => p.category === category).map(p => p.subcategory).filter((s): s is string => Boolean(s)))];
+    return subs.sort();
+  };
+
+  const getFilteredProducts = (lineItemId: string) => {
+    const filter = lineItemFilters[lineItemId] || { category: 'all', subcategory: 'all' };
+    return products.filter(p => {
+      if (filter.category && filter.category !== 'all' && p.category !== filter.category) return false;
+      if (filter.subcategory && filter.subcategory !== 'all' && p.subcategory !== filter.subcategory) return false;
+      return true;
+    });
+  };
+
+  const updateLineItemFilter = (lineItemId: string, field: 'category' | 'subcategory' | 'popoverOpen', value: string | boolean) => {
+    setLineItemFilters(prev => {
+      const current = prev[lineItemId] || { category: 'all', subcategory: 'all', popoverOpen: false };
+      const updated = { ...current, [field]: value };
+      // Reset subcategory when category changes
+      if (field === 'category') {
+        updated.subcategory = 'all';
+      }
+      return { ...prev, [lineItemId]: updated };
+    });
+  };
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -762,20 +806,97 @@ export default function ReceivingPage() {
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <Label>Product</Label>
-                        <Select value={item.productId} onValueChange={(v) => updateLineItem(index, 'productId', v)}>
+                      {/* Category Filter */}
+                      <div>
+                        <Label>Category</Label>
+                        <Select
+                          value={lineItemFilters[item.id]?.category || 'all'}
+                          onValueChange={(v) => updateLineItemFilter(item.id, 'category', v)}
+                        >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
+                            <SelectValue placeholder="All Categories" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.map(p => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name} {p.quantityInStock !== undefined && `(Stock: ${p.quantityInStock})`}
-                              </SelectItem>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {productCategories.map(cat => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      {/* Subcategory Filter */}
+                      <div>
+                        <Label>Subcategory</Label>
+                        <Select
+                          value={lineItemFilters[item.id]?.subcategory || 'all'}
+                          onValueChange={(v) => updateLineItemFilter(item.id, 'subcategory', v)}
+                          disabled={!lineItemFilters[item.id]?.category || lineItemFilters[item.id]?.category === 'all'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Subcategories" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Subcategories</SelectItem>
+                            {getAvailableSubcategories(lineItemFilters[item.id]?.category || '').map(sub => (
+                              <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Product Selector */}
+                      <div className="col-span-2">
+                        <Label>Product</Label>
+                        <Popover
+                          open={lineItemFilters[item.id]?.popoverOpen || false}
+                          onOpenChange={(open) => updateLineItemFilter(item.id, 'popoverOpen', open)}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn("w-full justify-between", !item.productId && "text-muted-foreground")}
+                            >
+                              {item.productId
+                                ? products.find(p => p.id === item.productId)?.name || "Select product"
+                                : "Select product"}
+                              <Icon name="ChevronsUpDown" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search product..." />
+                              <CommandList>
+                                <CommandEmpty>No product found.</CommandEmpty>
+                                <CommandGroup>
+                                  {getFilteredProducts(item.id).map((product) => {
+                                    const stock = product.quantityInStock ?? 0;
+                                    const stockDisplay = stock <= 0 ? ' (Out of Stock)' : ` (Stock: ${stock})`;
+                                    return (
+                                      <CommandItem
+                                        key={product.id}
+                                        value={`${product.name} ${product.category || ''} ${product.subcategory || ''}`}
+                                        onSelect={() => {
+                                          updateLineItem(index, 'productId', product.id);
+                                          updateLineItemFilter(item.id, 'popoverOpen', false);
+                                        }}
+                                      >
+                                        <Icon
+                                          name="Check"
+                                          className={cn("mr-2 h-4 w-4", product.id === item.productId ? "opacity-100" : "opacity-0")}
+                                        />
+                                        <span className={cn(stock <= 0 && "text-destructive")}>
+                                          {product.name} - ${(product.cost || 0).toFixed(2)}{stockDisplay}
+                                        </span>
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <div>
                         <Label>Expected Qty</Label>
