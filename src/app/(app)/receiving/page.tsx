@@ -14,22 +14,7 @@ import { useFirebase } from '@/components/firebase-provider';
 import { useAuth } from '@/contexts/auth-context';
 import { collection, addDoc, setDoc, deleteDoc, onSnapshot, doc, runTransaction, query, orderBy } from 'firebase/firestore';
 import { PackingSlipUpload } from '@/components/receiving/packing-slip-upload';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ReceivingTable } from '@/components/receiving/receiving-table';
 import {
   Select,
   SelectContent,
@@ -591,88 +576,16 @@ export default function ReceivingPage() {
             )}
           </div>
 
-          {/* Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('receivingNumber')}>
-                    RCV # {sortConfig.key === 'receivingNumber' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('vendorName')}>
-                    Vendor {sortConfig.key === 'vendorName' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead>PO #</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
-                    Order Date {sortConfig.key === 'date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('expectedDeliveryDate')}>
-                    Expected {sortConfig.key === 'expectedDeliveryDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('status')}>
-                    Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('total')}>
-                    Total {sortConfig.key === 'total' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAndSortedOrders.map(order => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.receivingNumber}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getTypeColor(order.type)}>{order.type}</Badge>
-                    </TableCell>
-                    <TableCell>{order.vendorName}</TableCell>
-                    <TableCell>{order.poNumber || '-'}</TableCell>
-                    <TableCell>{formatDate(order.date)}</TableCell>
-                    <TableCell>{formatDate(order.expectedDeliveryDate)}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Icon name="MoreHorizontal" className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditOrder(order)}>
-                            <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          {order.status !== 'Received' && order.status !== 'Voided' && (
-                            <DropdownMenuItem onClick={() => handleMarkAsReceived(order)}>
-                              <Icon name="Check" className="mr-2 h-4 w-4" /> Mark as Received
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => { setOrderToDelete(order); setDeleteConfirmOpen(true); }}
-                          >
-                            <Icon name="Trash2" className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredAndSortedOrders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      {receivingOrders.length === 0 ? "No receiving orders yet." : "No orders match your filters."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {/* Touch-Friendly Table */}
+          <ReceivingTable
+            orders={filteredAndSortedOrders}
+            onEdit={handleEditOrder}
+            onMarkAsReceived={handleMarkAsReceived}
+            onDelete={(order) => {
+              setOrderToDelete(order);
+              setDeleteConfirmOpen(true);
+            }}
+          />
         </CardContent>
       </Card>
 
