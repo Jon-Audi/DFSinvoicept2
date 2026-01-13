@@ -202,13 +202,13 @@ export function ReceivingTable({
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-semibold text-lg">#{order.receivingNumber}</span>
+                    <span className="font-semibold text-lg">{order.vendorName}</span>
                     <Badge variant="outline" className={getTypeColor(order.type)}>
                       {order.type}
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
-                    {order.vendorName}
+                    RCV #{order.receivingNumber}
                     {order.poNumber && ` • PO: ${order.poNumber}`}
                   </div>
                 </div>
@@ -217,7 +217,6 @@ export function ReceivingTable({
                   <Badge className={getStatusColor(order.status)}>
                     {order.status}
                   </Badge>
-                  <span className="text-sm font-medium">${order.total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -324,10 +323,6 @@ export function ReceivingTable({
                         <p className="font-medium text-green-600">{formatDate(selectedOrder.actualDeliveryDate)}</p>
                       </div>
                     )}
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Total</label>
-                      <p className="font-semibold text-lg">${selectedOrder.total.toFixed(2)}</p>
-                    </div>
                   </div>
 
                   <Separator />
@@ -378,10 +373,6 @@ export function ReceivingTable({
                                   className="w-20 h-8"
                                   disabled={!onUpdateReceivedQuantities}
                                 />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Label className="text-sm text-muted-foreground">Unit Price:</Label>
-                                <span className="font-medium">${(item.unitPrice || 0).toFixed(2)}</span>
                               </div>
                               {remainingQty > 0 && (
                                 <Badge variant="outline" className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
