@@ -86,6 +86,11 @@ export function CustomerPriceSheetDialog({
       }
       grouped.get(category)!.push(product);
     });
+    
+    // Sort products within each category by name and sort categories alphabetically
+    grouped.forEach((productsInCategory) => {
+      productsInCategory.sort((a, b) => a.name.localeCompare(b.name));
+    });
     return new Map([...grouped.entries()].sort());
   }, [filteredProductsForPrinting]);
 
