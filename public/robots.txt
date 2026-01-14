@@ -1,0 +1,22 @@
+# Block all web crawlers from indexing this private business application
+User-agent: *
+Disallow: /
+
+# Block specific known bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
