@@ -521,9 +521,9 @@ export default function InvoicesPage() {
           });
 
           affectedInvoicesData.push({
-            invoiceNumber: invoice.invoiceNumber,
+            invoiceNumber: invoice.invoiceNumber || '',
             amountApplied: amountToApply,
-            invoiceId: invoice.id!
+            invoiceId: invoice.id || snap.ref.id
           });
           remaining -= amountToApply;
         }
@@ -541,14 +541,15 @@ export default function InvoicesPage() {
       const customerName = customer?.companyName || `${customer?.firstName} ${customer?.lastName}` || "N/A";
 
       // Save bulk payment record to Firestore
+      // Note: Firebase doesn't accept undefined values, so we use empty string or omit optional fields
       const bulkPaymentRecord = {
         id: bulkPaymentId,
         customerId,
-        customerName,
+        customerName: customerName || '',
         paymentDate: paymentDetails.date,
         paymentAmount: paymentDetails.amount,
         paymentMethod: paymentDetails.method,
-        paymentNotes: paymentDetails.notes,
+        paymentNotes: paymentDetails.notes || '',
         invoices: affectedInvoicesData,
         createdAt: new Date().toISOString(),
       };
