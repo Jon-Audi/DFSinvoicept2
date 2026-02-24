@@ -84,6 +84,8 @@ import {
   Lock,
   Unlock,
   KeyRound,
+  UserPlus,
+  Type,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -175,6 +177,8 @@ const iconComponents = {
   Lock,
   Unlock,
   KeyRound,
+  UserPlus,
+  Type,
 };
 
 type IconProps = {

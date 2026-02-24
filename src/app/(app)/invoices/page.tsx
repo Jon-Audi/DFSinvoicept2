@@ -524,7 +524,6 @@ export default function InvoicesPage() {
           affectedInvoicesData.push({
             invoiceNumber: invoice.invoiceNumber || '',
             amountApplied: amountToApply,
-            invoiceId: invoice.id || snap.ref.id
           });
           remaining -= amountToApply;
         }

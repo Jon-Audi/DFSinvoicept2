@@ -159,7 +159,7 @@ export function EstimateTable({
                       <PDFExportButton
                         document={estimate}
                         type="estimate"
-                        companySettings={companySettings}
+                        companySettings={companySettings ?? null}
                         triggerButton={
                           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                             <Icon name="FileText" className="mr-2 h-4 w-4" /> Export PDF

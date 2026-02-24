@@ -295,7 +295,7 @@ export const InvoiceTable = React.memo(function InvoiceTable({
                     <PDFExportButton
                       document={invoice}
                       type="invoice"
-                      companySettings={companySettings}
+                      companySettings={companySettings ?? null}
                       triggerButton={
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                           <Icon name="FileText" className="mr-2 h-4 w-4" /> Export PDF

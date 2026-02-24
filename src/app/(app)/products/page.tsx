@@ -156,7 +156,7 @@ export default function ProductsPage() {
           db,
           oldProduct,
           { ...cleanedData, id } as Product,
-          user?.email,
+          user?.email ?? undefined,
           undefined // Optional: add a reason field to your product form
         );
 
@@ -169,7 +169,7 @@ export default function ProductsPage() {
           db,
           null,
           { ...cleanedData, id: docRef.id } as Product,
-          user?.email,
+          user?.email ?? undefined,
           "Initial product creation"
         );
 

@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, type Analytics, isSupported } from "firebase/analytics";
 import { Icon } from '@/components/icons';
@@ -92,6 +92,17 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
+
+        // Enable offline persistence (serves cached data instantly on load)
+        enableIndexedDbPersistence(db).catch((err) => {
+          if (err.code === 'failed-precondition') {
+            // Multiple tabs open — persistence only works in one tab at a time
+            console.warn('Firestore offline persistence unavailable: multiple tabs open');
+          } else if (err.code === 'unimplemented') {
+            // Browser doesn't support persistence
+            console.warn('Firestore offline persistence not supported in this browser');
+          }
+        });
 
         let analytics: Analytics | null = null;
         if (firebaseConfig.measurementId) {

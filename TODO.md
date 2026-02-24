@@ -54,14 +54,18 @@
 - [ ]
 
 ### Technical Debt & Improvements
-- [ ] Fix remaining TypeScript compilation warnings (25 total)
-  - [ ] Icon name type mismatches
-  - [ ] Optional property handling improvements
-  - [ ] Type safety enhancements
-- [ ] Consider replacing `xlsx` library with `exceljs` (current library has unfixable security vulnerability)
-- [ ] Remove debug console.logs from dashboard settings page (lines 71-72, 75, 87)
+- [ ] Fix 5 remaining TypeScript errors (down from 64)
+  - [ ] chainlink/page.tsx - LineItem/status type mismatch when converting estimate→order/invoice
+  - [ ] invoice-dialog.tsx + order-dialog.tsx - customer save callback contravariance mismatch
 
 ### Completed ✓
+- [x] **TypeScript cleanup** - Fixed 59/64 errors. Root cause: dual types/index.ts files (root + src/). Synced missing fields.
+- [x] Replace `xlsx` with `exceljs` (security fix - removed CVE-laden library)
+- [x] Remove debug console.logs (already handled by next.config compiler.removeConsole in production)
+- [x] Add React Error Boundary - catches unhandled component crashes, shows friendly UI
+- [x] Firestore offline persistence - IndexedDB cache for instant cold loads
+- [x] Performance fixes - Firestore listener loop (use-data-query.ts) + reduced page animation (400ms→150ms)
+- [x] Add Vercel Speed Insights
 - [x] Add Top Selling Products report with date range filtering
 - [x] Add category-based filtering to Top Selling Products
 - [x] Fix GitHub secret exposure in `.claude/settings.local.json`

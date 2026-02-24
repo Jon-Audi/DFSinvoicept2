@@ -172,7 +172,7 @@ export async function exportEstimateToPDF(estimate: Estimate, companySettings: C
     body: tableData,
     theme: 'grid',
     styles: { fontSize: fontSize - 1 },
-    headStyles: { fillColor: accentColor },
+    headStyles: { fillColor: accentColor as any },
   });
 
   // Totals
@@ -262,7 +262,7 @@ export async function exportOrderToPDF(order: Order, companySettings: CompanySet
     body: tableData,
     theme: 'grid',
     styles: { fontSize: fontSize - 1 },
-    headStyles: { fillColor: accentColor },
+    headStyles: { fillColor: accentColor as any },
   });
 
   // Totals
@@ -323,8 +323,8 @@ export async function exportInvoiceToPDF(invoice: Invoice, companySettings: Comp
   }
 
   // Payment Status
-  if (invoice.paymentStatus) {
-    doc.text(`Payment Status: ${invoice.paymentStatus}`, 14, currentY);
+  if (invoice.amountPaid > 0) {
+    doc.text(`Amount Paid: $${invoice.amountPaid.toFixed(2)}`, 14, currentY);
     currentY += 5;
   }
 
@@ -345,7 +345,7 @@ export async function exportInvoiceToPDF(invoice: Invoice, companySettings: Comp
     body: tableData,
     theme: 'grid',
     styles: { fontSize: fontSize - 1 },
-    headStyles: { fillColor: accentColor },
+    headStyles: { fillColor: accentColor as any },
   });
 
   // Totals
@@ -438,7 +438,7 @@ export async function exportPriceSheetToPDF(groupedProducts: Map<string, Product
       body: tableData,
       theme: 'grid',
       styles: { fontSize: fontSize - 1 },
-      headStyles: { fillColor: accentColor },
+      headStyles: { fillColor: accentColor as any },
       margin: { left: 14 },
     });
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Icon } from '@/components/icons';
+import { Icon, type IconName } from '@/components/icons';
 import { useAnalyticsSummary } from '@/hooks/use-analytics';
 import { formatCurrency } from '@/lib/analytics';
 
@@ -11,7 +11,7 @@ interface MetricCardProps {
   title: string;
   value: string;
   subtitle?: string;
-  icon: string;
+  icon: string; // cast to IconName at usage
   isLoading?: boolean;
 }
 
@@ -20,7 +20,7 @@ function MetricCard({ title, value, subtitle, icon, isLoading }: MetricCardProps
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon name={icon} className="h-4 w-4 text-muted-foreground" />
+        <Icon name={icon as IconName} className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         {isLoading ? (

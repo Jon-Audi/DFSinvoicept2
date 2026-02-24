@@ -94,6 +94,7 @@ export interface LineItem {
   addToProductList?: boolean; // UI flag for form
   newProductCategory?: string; // UI field for form
   packed?: boolean; // For tracking packing status
+  receivedQuantity?: number; // For tracking partial receipts in Shop
 }
 
 
@@ -136,6 +137,7 @@ interface BaseDocument {
   total: number;
   notes?: string;
   internalNotes?: string;
+  createdBy?: string; // Employee email who created the document
 }
 
 export interface Estimate extends BaseDocument {
@@ -143,6 +145,9 @@ export interface Estimate extends BaseDocument {
   status: Extract<DocumentStatus, 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Voided'>;
   validUntil?: string; // ISO date string
 }
+
+// Shop/Receiving status for tracking vendor orders
+export type ShopStatus = 'Pending' | 'Ordered' | 'Shipped' | 'Partial Received' | 'Received' | 'Ready for Pickup' | 'Picked Up';
 
 export interface Order extends BaseDocument {
   orderNumber: string;
@@ -156,6 +161,12 @@ export interface Order extends BaseDocument {
   amountPaid: number;
   balanceDue: number;
   distributor?: string;
+  // Shop/Receiving tracking fields
+  shopStatus?: ShopStatus;
+  receivedDate?: string;
+  receivedBy?: string;
+  packingSlipPhotos?: string[];
+  shopNotes?: string;
 }
 
 export interface Invoice extends BaseDocument {
@@ -170,6 +181,14 @@ export interface Invoice extends BaseDocument {
   readyForPickUpDate?: string;
   pickedUpDate?: string;
   distributor?: string;
+  isFinalized?: boolean; // Lock invoice from editing when finalized
+  // Shop/Receiving tracking fields
+  expectedDeliveryDate?: string;
+  shopStatus?: ShopStatus;
+  receivedDate?: string;
+  receivedBy?: string;
+  packingSlipPhotos?: string[];
+  shopNotes?: string;
 }
 
 export interface User {
@@ -182,6 +201,7 @@ export interface User {
   lastLogin?: string; // ISO String
   permissions: PermissionKey[];
   createdAt?: string; // ISO String
+  notificationsEnabled?: boolean; // Whether the user receives in-app notifications (default: true)
 }
 
 export interface Vendor {
@@ -526,6 +546,26 @@ export interface PriceHistoryEntry {
   newMarkup: number;
   changedBy?: string; // User email or ID
   reason?: string; // Optional note about why price changed
+}
+
+export interface TopSellingProductsReportItem {
+  productId: string;
+  productName: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  numberOfInvoices: number;
+}
+
+export interface AppNotification {
+  id: string;
+  toEmail: string;
+  fromEmail: string;
+  message?: string;
+  docType: 'Invoice' | 'Order' | 'Estimate';
+  docId: string;
+  docNumber: string;
+  read: boolean;
+  createdAt: string;
 }
 
 // Receiving Types

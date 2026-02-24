@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
@@ -12,9 +13,10 @@ interface PDFExportButtonProps {
   companySettings: CompanySettings | null;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  triggerButton?: React.ReactNode;
 }
 
-export function PDFExportButton({ document, type, companySettings, variant = 'outline', size = 'default' }: PDFExportButtonProps) {
+export function PDFExportButton({ document, type, companySettings, variant = 'outline', size = 'default', triggerButton }: PDFExportButtonProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
 
@@ -49,6 +51,10 @@ export function PDFExportButton({ document, type, companySettings, variant = 'ou
       setIsExporting(false);
     }
   };
+
+  if (triggerButton) {
+    return React.cloneElement(triggerButton as React.ReactElement, { onClick: handleExport });
+  }
 
   return (
     <Button variant={variant} size={size} onClick={handleExport} disabled={isExporting}>

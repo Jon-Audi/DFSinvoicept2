@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Icon } from '@/components/icons';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -51,7 +52,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto scroll-smooth">
             <div className="w-full max-w-[1440px] mx-auto space-y-4 sm:space-y-6">
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </div>
           </main>
         </div>
