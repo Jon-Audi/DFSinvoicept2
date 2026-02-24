@@ -32,7 +32,7 @@ interface InvoiceDialogProps {
   triggerButton?: React.ReactElement;
   onSave: (invoice: Invoice) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
-  onSaveCustomer: (customer: Customer) => Promise<string | void>;
+  onSaveCustomer: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
   onToggleFinalize?: (invoice: Invoice) => void;
   customers: Customer[];
   products: Product[];
@@ -195,7 +195,7 @@ export function InvoiceDialog({
   };
 
   const handleSaveCustomerWrapper = (c: Omit<Customer, "id"> & { id?: string }) => {
-    void onSaveCustomer(c as Customer).catch((err) => {
+    void onSaveCustomer(c).catch((err) => {
       // Optionally surface a toast notification here if you have a toast context
     });
   };

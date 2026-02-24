@@ -54,12 +54,12 @@
 - [ ]
 
 ### Technical Debt & Improvements
-- [ ] Fix 5 remaining TypeScript errors (down from 64)
-  - [ ] chainlink/page.tsx - LineItem/status type mismatch when converting estimate→order/invoice
-  - [ ] invoice-dialog.tsx + order-dialog.tsx - customer save callback contravariance mismatch
+- [x] Fix all TypeScript errors (64 → 0)
+  - [x] chainlink/page.tsx - LineItem/status type mismatch when converting estimate→order/invoice
+  - [x] invoice-dialog.tsx + order-dialog.tsx - customer save callback contravariance mismatch
 
 ### Completed ✓
-- [x] **TypeScript cleanup** - Fixed 59/64 errors. Root cause: dual types/index.ts files (root + src/). Synced missing fields.
+- [x] **TypeScript cleanup** - Fixed all 64 errors. Root cause: dual types/index.ts files (root + src/). Synced missing fields, fixed contravariance and type mismatch issues.
 - [x] Replace `xlsx` with `exceljs` (security fix - removed CVE-laden library)
 - [x] Remove debug console.logs (already handled by next.config compiler.removeConsole in production)
 - [x] Add React Error Boundary - catches unhandled component crashes, shows friendly UI

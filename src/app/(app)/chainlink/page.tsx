@@ -84,7 +84,7 @@ export default function ChainlinkEstimationPage() {
   const [isEstimateDialogOpen, setIsEstimateDialogOpen] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
-  const [initialFormData, setInitialFormData] = useState<Partial<EstimateFormData> & { lineItems: LineItem[] } | null>(null);
+  const [initialFormData, setInitialFormData] = useState<{ lineItems: EstimateFormData['lineItems']; notes: string } | null>(null);
 
   // Load customers
   useEffect(() => {
@@ -530,8 +530,8 @@ export default function ChainlinkEstimationPage() {
       if (addOns.length > 0) notesText += `\nAdd-ons: ${addOns.join(', ')}`;
 
       // Prepare initial form data with line items
-      const formData: Partial<EstimateFormData> & { lineItems: LineItem[] } = {
-        lineItems: lineItems,
+      const formData: { lineItems: EstimateFormData['lineItems']; notes: string } = {
+        lineItems: lineItems.map(li => ({ ...li, isNonStock: li.isNonStock ?? false, addToProductList: li.addToProductList ?? false, isReturn: li.isReturn ?? false })),
         notes: notesText,
       };
 
@@ -1201,6 +1201,7 @@ export default function ChainlinkEstimationPage() {
             onSaveCustomer={handleSaveCustomer}
             customers={customers}
             products={products}
+            vendors={[]}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
           />
@@ -1213,6 +1214,7 @@ export default function ChainlinkEstimationPage() {
             onSaveCustomer={handleSaveCustomer}
             customers={customers}
             products={products}
+            vendors={[]}
             productCategories={productCategories}
             productSubcategories={productSubcategories}
           />

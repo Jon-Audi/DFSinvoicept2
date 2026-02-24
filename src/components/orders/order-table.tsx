@@ -46,7 +46,7 @@ interface OrderTableProps {
   orders: Order[];
   onSave: (order: Order) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
-  onSaveCustomer: (customer: Customer) => Promise<string | void>;
+  onSaveCustomer: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
   onDelete: (orderId: string) => void;
   onGenerateEmail: (order: Order) => void;
   onPrint: (order: Order) => void;

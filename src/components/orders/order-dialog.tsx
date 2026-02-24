@@ -19,7 +19,7 @@ interface OrderDialogProps {
   triggerButton?: React.ReactElement;
   onSave: (order: Order) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
-  onSaveCustomer: (customer: Customer) => Promise<string | void>;
+  onSaveCustomer: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
   customers: Customer[];
   products: Product[];
   vendors: Vendor[];
@@ -27,7 +27,7 @@ interface OrderDialogProps {
   productSubcategories: string[];
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  initialData?: OrderFormData | null;
+  initialData?: Partial<OrderFormData> | null;
 }
 
 export function OrderDialog({
@@ -153,7 +153,7 @@ export function OrderDialog({
   };
   
   const handleSaveCustomerWrapper = (c: Omit<Customer, "id"> & { id?: string }) => {
-    void onSaveCustomer(c as Customer).catch((err) => {
+    void onSaveCustomer(c).catch((err) => {
     });
   };
 

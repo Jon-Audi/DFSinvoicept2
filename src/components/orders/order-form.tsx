@@ -114,7 +114,7 @@ export type FormPayment = z.infer<typeof formPaymentSchema>;
 
 interface OrderFormProps {
   order?: Order;
-  initialData?: OrderFormData | null;
+  initialData?: Partial<OrderFormData> | null;
   onSubmit: (data: OrderFormData) => void;
   onClose?: () => void;
   customers: Customer[];

@@ -55,7 +55,7 @@ interface InvoiceTableProps {
   isLoading?: boolean;
   onSave: (invoice: Invoice) => void;
   onSaveProduct: (product: Omit<Product, 'id'>) => Promise<string | void>;
-  onSaveCustomer: (customer: Customer) => Promise<string | void>;
+  onSaveCustomer: (customer: Omit<Customer, 'id'> & { id?: string }) => Promise<string | void>;
   onDelete: (invoiceId: string) => void;
   onGenerateEmail: (invoice: Invoice) => void;
   onPrint: (invoice: Invoice) => void;
