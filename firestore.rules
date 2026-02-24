@@ -1,17 +1,28 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // List of authorized email addresses
+    // Add or remove emails as needed
+    function isAuthorizedUser() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'jon@delawarefencesolutions.com',
+          'karl@delawarefencesolutions.com',
+          'kevin@delawarefencesolutions.com',
+          'info@delawarefencesolutions.com'
+        ];
+    }
+
     // Helper function to check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Allow authenticated users to read and write all documents
-    // This maintains your original functionality while requiring authentication
+
+    // All collections - only authorized users can read/write
     match /{document=**} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedUser();
     }
   }
 }

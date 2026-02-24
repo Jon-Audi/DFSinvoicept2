@@ -37,6 +37,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
+import { ShareWithEmployeeDialog } from '@/components/shared/share-with-employee-dialog';
 
 export type SortableInvoiceKeys =
   | "invoiceNumber"
@@ -100,6 +101,7 @@ export const InvoiceTable = React.memo(function InvoiceTable({
 }: InvoiceTableProps) {
   const [invoiceToDelete, setInvoiceToDelete] = React.useState<Invoice | null>(null);
   const [invoiceToFinalize, setInvoiceToFinalize] = React.useState<Invoice | null>(null);
+  const [sharingInvoice, setSharingInvoice] = React.useState<Invoice | null>(null);
   const { user } = useAuth();
   // A simple permission check, assuming user object has a 'role' or 'permissions' array
   const canViewPricing = user && user.permissions?.includes('view_pricing');
@@ -313,6 +315,10 @@ export const InvoiceTable = React.memo(function InvoiceTable({
                       <Icon name="PackageCheck" className="mr-2 h-4 w-4" /> Print Packing Slip
                     </DropdownMenuItem>
 
+                    <DropdownMenuItem onSelect={() => setSharingInvoice(invoice)}>
+                      <Icon name="Share2" className="mr-2 h-4 w-4" /> Share with Employee
+                    </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem
@@ -390,6 +396,16 @@ export const InvoiceTable = React.memo(function InvoiceTable({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {sharingInvoice && (
+        <ShareWithEmployeeDialog
+          open={!!sharingInvoice}
+          onOpenChange={(open) => !open && setSharingInvoice(null)}
+          docType="Invoice"
+          docId={sharingInvoice.id}
+          docNumber={sharingInvoice.invoiceNumber}
+        />
       )}
     </>
   );

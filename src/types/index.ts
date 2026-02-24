@@ -581,3 +581,15 @@ export interface ReceivingOrder {
   updatedAt: string;
   createdBy?: string; // User email
 }
+
+export interface AppNotification {
+  id: string;
+  toEmail: string;
+  fromEmail: string;
+  message?: string;
+  docType: 'Invoice' | 'Order' | 'Estimate';
+  docId: string;
+  docNumber: string;
+  read: boolean;
+  createdAt: string;
+}

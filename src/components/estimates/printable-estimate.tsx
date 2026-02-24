@@ -57,7 +57,7 @@ const PrintableEstimate = React.forwardRef<HTMLDivElement, PrintableEstimateProp
           <p><strong>Estimate #:</strong> {estimateNumber}</p>
           <p><strong>Date:</strong> {date}</p>
           {poNumber && <p><strong>P.O. #:</strong> {poNumber}</p>}
-          {createdBy && <p><strong>Prepared By:</strong> {getEmployeeNameFromEmail(createdBy)}</p>}
+          {createdBy && <p><strong>Sales Rep:</strong> {getEmployeeNameFromEmail(createdBy)}</p>}
           <p><strong>Estimate For:</strong> {customerName}</p>
           {customerPhone && <p><strong>Phone:</strong> {customerPhone}</p>}
           {customerEmail && <p><strong>Email:</strong> {customerEmail}</p>}

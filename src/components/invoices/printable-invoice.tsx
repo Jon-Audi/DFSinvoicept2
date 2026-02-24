@@ -57,7 +57,7 @@ const PrintableInvoice = React.forwardRef<HTMLDivElement, PrintableInvoiceProps>
               <p className="text-md"><span className="font-semibold">Date:</span> {formatDate(invoice.date)}</p>
               {invoice.dueDate && <p className="text-md"><span className="font-semibold">Due Date:</span> {formatDate(invoice.dueDate)}</p>}
               {invoice.poNumber && <p className="text-md"><span className="font-semibold">P.O. #:</span> {invoice.poNumber}</p>}
-              {invoice.createdBy && <p className="text-md"><span className="font-semibold">Prepared By:</span> {getEmployeeNameFromEmail(invoice.createdBy)}</p>}
+              {invoice.createdBy && <p className="text-md"><span className="font-semibold">Sales Rep:</span> {getEmployeeNameFromEmail(invoice.createdBy)}</p>}
             </div>
           </div>
 

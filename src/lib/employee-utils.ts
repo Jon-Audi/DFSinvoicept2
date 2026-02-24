@@ -14,6 +14,11 @@ const EMPLOYEE_NAMES: EmployeeMapping = {
   'kevin@delawarefencesolutions.com': 'Kevin',
 };
 
+// Exported list of all employees for selectors
+export const EMPLOYEES: { email: string; name: string }[] = Object.entries(EMPLOYEE_NAMES).map(
+  ([email, name]) => ({ email, name })
+);
+
 /**
  * Get employee first name from email address
  * @param email - Employee email address

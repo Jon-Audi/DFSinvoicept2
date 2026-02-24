@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
+import { ShareWithEmployeeDialog } from '@/components/shared/share-with-employee-dialog';
 
 export type SortableOrderKeys =
   'orderNumber' | 'customerName' | 'poNumber' | 'date' |
@@ -85,6 +86,7 @@ export function OrderTable({
   renderSortArrow
 }: OrderTableProps) {
   const [orderToDelete, setOrderToDelete] = React.useState<Order | null>(null);
+  const [sharingOrder, setSharingOrder] = React.useState<Order | null>(null);
   const { user } = useAuth();
   const canViewPricing = user && (user.role === 'Admin' || user.role === 'User');
 
@@ -201,6 +203,9 @@ export function OrderTable({
                     <DropdownMenuItem onClick={() => onPrintPackingSlip(order)}>
                       <Icon name="PackageCheck" className="mr-2 h-4 w-4" /> Print Packing Slip
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSharingOrder(order)}>
+                      <Icon name="Share2" className="mr-2 h-4 w-4" /> Share with Employee
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onConvertToInvoice(order)}>
                       <Icon name="FileDigit" className="mr-2 h-4 w-4" /> Convert to Invoice
@@ -237,6 +242,16 @@ export function OrderTable({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {sharingOrder && (
+        <ShareWithEmployeeDialog
+          open={!!sharingOrder}
+          onOpenChange={(open) => !open && setSharingOrder(null)}
+          docType="Order"
+          docId={sharingOrder.id}
+          docNumber={sharingOrder.orderNumber}
+        />
       )}
     </>
   );

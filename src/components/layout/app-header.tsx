@@ -16,7 +16,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import { GlobalSearch } from "@/components/layout/global-search"; 
+import { GlobalSearch } from "@/components/layout/global-search";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 export function AppHeader() {
   const { toast } = useToast();
@@ -36,6 +37,7 @@ export function AppHeader() {
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
+        {user && <NotificationBell />}
         {user && ( // Only show dropdown if user is logged in
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

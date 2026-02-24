@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation';
 import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
+import { ShareWithEmployeeDialog } from '@/components/shared/share-with-employee-dialog';
 
 export type SortableEstimateKeys = 'estimateNumber' | 'customerName' | 'poNumber' | 'date' | 'total' | 'status' | 'validUntil';
 
@@ -84,6 +85,7 @@ export function EstimateTable({
   companySettings,
 }: EstimateTableProps) {
   const [estimateToDelete, setEstimateToDelete] = React.useState<Estimate | null>(null);
+  const [sharingEstimate, setSharingEstimate] = React.useState<Estimate | null>(null);
 
   return (
     <>
@@ -167,6 +169,9 @@ export function EstimateTable({
                       <DropdownMenuItem onClick={() => onPrint(estimate)}>
                          <Icon name="Printer" className="mr-2 h-4 w-4" /> Print Estimate
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSharingEstimate(estimate)}>
+                        <Icon name="Share2" className="mr-2 h-4 w-4" /> Share with Employee
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onConvertToOrder(estimate)}>
                         <Icon name="ShoppingCart" className="mr-2 h-4 w-4" /> Convert to Order
@@ -212,6 +217,16 @@ export function EstimateTable({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {sharingEstimate && (
+        <ShareWithEmployeeDialog
+          open={!!sharingEstimate}
+          onOpenChange={(open) => !open && setSharingEstimate(null)}
+          docType="Estimate"
+          docId={sharingEstimate.id}
+          docNumber={sharingEstimate.estimateNumber}
+        />
       )}
     </>
   );
