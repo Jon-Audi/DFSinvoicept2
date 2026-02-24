@@ -47,7 +47,7 @@
   - [x] Configure Capacitor for iOS builds
   - [x] Add native plugins (camera, filesystem, keyboard, etc.)
   - [x] Set up hybrid approach with Vercel URL
-  - [ ] Add app icons and splash screen assets
+  - [x] Add app icons and splash screen assets
   - [ ] Build and submit to App Store (requires Mac)
 
 ### Low Priority
