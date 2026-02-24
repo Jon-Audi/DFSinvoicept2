@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { useFirebase } from '@/components/firebase-provider';
 import { useAuth } from '@/contexts/auth-context';
 import type { AppNotification } from '@/types';
@@ -22,20 +22,22 @@ export function useNotifications() {
 
     const q = query(
       collection(db, 'notifications'),
-      where('toEmail', '==', user.email),
-      orderBy('createdAt', 'desc')
+      where('toEmail', '==', user.email)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          // Convert Firestore Timestamp to ISO string if needed
-          createdAt: data.createdAt?.toDate?.()?.toISOString() ?? data.createdAt,
-        } as AppNotification;
-      });
+      const items = snapshot.docs
+        .map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ...data,
+            // Convert Firestore Timestamp to ISO string if needed
+            createdAt: data.createdAt?.toDate?.()?.toISOString() ?? data.createdAt,
+          } as AppNotification;
+        })
+        // Sort newest first client-side (avoids needing a composite Firestore index)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setNotifications(items);
       setUnreadCount(items.filter(n => !n.read).length);
     });
