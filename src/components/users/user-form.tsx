@@ -34,17 +34,15 @@ const userFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(USER_ROLES as [UserRole, ...UserRole[]]),
   isActive: z.boolean(),
-  // Permissions are not directly editable in this form version,
-  // but will be derived from the role.
+  notificationsEnabled: z.boolean(),
 });
 
-// This type will be used for form submission, then permissions are added.
-export type UserFormData = Omit<z.infer<typeof userFormSchema>, 'permissions'>;
+export type UserFormData = z.infer<typeof userFormSchema>;
 
 
 interface UserFormProps {
-  user?: User; // Existing user data for editing
-  onSubmit: (data: Omit<User, 'id' | 'lastLogin' | 'permissions'> & { permissions: PermissionKey[] }) => void;
+  user?: User;
+  onSubmit: (data: Omit<User, 'id' | 'lastLogin'>) => void;
   onClose?: () => void;
 }
 
@@ -57,12 +55,14 @@ export function UserForm({ user, onSubmit, onClose }: UserFormProps) {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      notificationsEnabled: user.notificationsEnabled !== false,
     } : {
       firstName: '',
       lastName: '',
       email: '',
-      role: 'User', // Default role
-      isActive: true, // Default status
+      role: 'User',
+      isActive: true,
+      notificationsEnabled: true,
     },
   });
 
@@ -70,6 +70,8 @@ export function UserForm({ user, onSubmit, onClose }: UserFormProps) {
     const permissions = ROLE_PERMISSIONS[data.role] || [];
     onSubmit({ ...data, permissions });
   };
+
+  const notifEnabled = form.watch('notificationsEnabled');
 
   return (
     <Form {...form}>
@@ -138,8 +140,22 @@ export function UserForm({ user, onSubmit, onClose }: UserFormProps) {
           )} />
         </div>
 
-        {/* Future: UI for managing permissions could go here */}
-        {/* For now, permissions are derived from role on submit */}
+        <FormField control={form.control} name="notificationsEnabled" render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="text-sm font-medium flex items-center gap-2">
+                <Icon name={notifEnabled ? "BellRing" : "BellOff"} className="h-4 w-4 text-muted-foreground" />
+                In-App Notifications
+              </FormLabel>
+              <FormDescription className="text-xs">
+                Employee receives notifications when documents are shared with them.
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </FormItem>
+        )} />
 
         <div className="flex justify-end gap-2 pt-4">
           {onClose && <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>}

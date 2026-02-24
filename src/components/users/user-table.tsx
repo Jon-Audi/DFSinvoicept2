@@ -38,9 +38,10 @@ interface UserTableProps {
   users: User[];
   onSave: (user: User) => void;
   onDelete: (userId: string) => void;
+  onSendPasswordReset: (email: string) => void;
 }
 
-export function UserTable({ users, onSave, onDelete }: UserTableProps) {
+export function UserTable({ users, onSave, onDelete, onSendPasswordReset }: UserTableProps) {
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
 
   return (
@@ -89,6 +90,9 @@ export function UserTable({ users, onSave, onDelete }: UserTableProps) {
                         onSave={onSave}
                       />
                       {/* Removed AlertDialogTrigger from here */}
+                      <DropdownMenuItem onSelect={() => onSendPasswordReset(user.email)}>
+                        <Icon name="KeyRound" className="mr-2 h-4 w-4" /> Send Password Reset
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         onSelect={(e) => { e.preventDefault(); setUserToDelete(user); }}

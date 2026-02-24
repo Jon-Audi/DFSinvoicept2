@@ -11,12 +11,23 @@ import type { User } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function UsersSettingsPage() {
   const { db } = useFirebase();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  const handleSendPasswordReset = async (email: string) => {
+    const auth = getAuth();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({ title: 'Password Reset Sent', description: `A reset email was sent to ${email}.` });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     if (!db) return;
@@ -100,7 +111,7 @@ export default function UsersSettingsPage() {
             onSave={handleSaveUser}
           />
       </PageHeader>
-      <UserTable users={users} onSave={handleSaveUser} onDelete={handleDeleteUser} />
+      <UserTable users={users} onSave={handleSaveUser} onDelete={handleDeleteUser} onSendPasswordReset={handleSendPasswordReset} />
     </>
   );
 }

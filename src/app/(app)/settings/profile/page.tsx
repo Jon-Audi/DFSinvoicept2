@@ -12,13 +12,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
   const { user: authUser, loading: authLoading, setUser: setAuthUser } = useAuth();
-  const { auth, storage } = useFirebase();
+  const { auth, storage, db } = useFirebase();
   const { toast } = useToast();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -27,6 +29,25 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
+  const [isSavingNotifPref, setIsSavingNotifPref] = useState(false);
+
+  const notificationsEnabled = authUser?.notificationsEnabled !== false;
+
+  const handleToggleNotifications = async (enabled: boolean) => {
+    if (!db || !authUser?.uid) return;
+    setIsSavingNotifPref(true);
+    try {
+      await setDoc(doc(db, 'users', authUser.uid), { notificationsEnabled: enabled }, { merge: true });
+      if (setAuthUser) {
+        setAuthUser(prev => prev ? { ...prev, notificationsEnabled: enabled } : null);
+      }
+      toast({ title: enabled ? 'Notifications enabled' : 'Notifications disabled' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsSavingNotifPref(false);
+    }
+  };
 
   useEffect(() => {
     if (authUser) {
@@ -259,6 +280,29 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t">
+              <h3 className="text-lg font-medium mb-3">Notifications</h3>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Icon name={notificationsEnabled ? "BellRing" : "BellOff"} className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="notifications-toggle" className="text-sm font-medium cursor-pointer">
+                      In-App Notifications
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Receive notifications when colleagues share invoices, orders, or estimates with you.
+                  </p>
+                </div>
+                <Switch
+                  id="notifications-toggle"
+                  checked={notificationsEnabled}
+                  onCheckedChange={handleToggleNotifications}
+                  disabled={isSavingNotifPref}
+                />
               </div>
             </div>
 

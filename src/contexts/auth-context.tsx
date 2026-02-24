@@ -22,6 +22,7 @@ import { Icon } from '@/components/icons';
 export interface AppUser extends FirebaseUser {
   role?: User['role'];
   permissions?: User['permissions'];
+  notificationsEnabled?: boolean;
 }
 interface AuthContextType {
   user: AppUser | null;
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               ...firebaseUser,
               role: userData.role,
               permissions: userData.permissions,
+              notificationsEnabled: userData.notificationsEnabled !== false, // default true
             };
 
             // HARDCODED FIX: Ensure specific users have admin permissions

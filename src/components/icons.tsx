@@ -77,6 +77,13 @@ import {
   Save,
   ArrowLeft,
   CreditCard,
+  Bell,
+  BellRing,
+  BellOff,
+  Share2,
+  Lock,
+  Unlock,
+  KeyRound,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -161,6 +168,13 @@ const iconComponents = {
   Save,
   ArrowLeft,
   CreditCard,
+  Bell,
+  BellRing,
+  BellOff,
+  Share2,
+  Lock,
+  Unlock,
+  KeyRound,
 };
 
 type IconProps = {

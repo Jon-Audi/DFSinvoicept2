@@ -61,10 +61,13 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-8 w-8">
-          <Icon name="Bell" className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="relative h-9 w-9">
+          <Icon
+            name={unreadCount > 0 ? "BellRing" : "Bell"}
+            className={`h-4 w-4 transition-colors ${unreadCount > 0 ? 'text-primary' : ''}`}
+          />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+            <span className="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] px-0.5 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-background">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

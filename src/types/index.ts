@@ -200,6 +200,7 @@ export interface User {
   lastLogin?: string; // ISO String
   permissions: PermissionKey[];
   createdAt?: string; // ISO String
+  notificationsEnabled?: boolean; // Whether the user receives in-app notifications (default: true)
 }
 
 export interface Vendor {

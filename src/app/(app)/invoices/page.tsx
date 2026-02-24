@@ -332,7 +332,8 @@ export default function InvoicesPage() {
 
         const payload: { [key: string]: any } = {};
         for (const [key, value] of Object.entries(invoiceData)) {
-          if (value !== undefined && value !== null && value !== '') {
+          // Allow empty strings and null so clearing a field actually persists to Firestore
+          if (value !== undefined) {
             payload[key] = value;
           }
         }

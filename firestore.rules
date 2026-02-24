@@ -20,7 +20,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // All collections - only authorized users can read/write
+    // Notifications - scoped to recipient/sender only
+    match /notifications/{notifId} {
+      // Only the recipient can read their own notifications
+      allow read: if isAuthorizedUser() && request.auth.token.email == resource.data.toEmail;
+      // Only create if fromEmail matches the authenticated user (prevents impersonation)
+      allow create: if isAuthorizedUser() && request.auth.token.email == request.resource.data.fromEmail;
+      // Only the recipient can mark notifications as read
+      allow update: if isAuthorizedUser() && request.auth.token.email == resource.data.toEmail;
+      allow delete: if isAuthorizedUser() && request.auth.token.email == resource.data.toEmail;
+    }
+
+    // All other collections - only authorized users can read/write
     match /{document=**} {
       allow read, write: if isAuthorizedUser();
     }

@@ -14,7 +14,11 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!db || !user?.email) return;
+    if (!db || !user?.email || user.notificationsEnabled === false) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
 
     const q = query(
       collection(db, 'notifications'),
@@ -23,26 +27,42 @@ export function useNotifications() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification));
+      const items = snapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          // Convert Firestore Timestamp to ISO string if needed
+          createdAt: data.createdAt?.toDate?.()?.toISOString() ?? data.createdAt,
+        } as AppNotification;
+      });
       setNotifications(items);
       setUnreadCount(items.filter(n => !n.read).length);
     });
 
     return () => unsubscribe();
-  }, [db, user?.email]);
+  }, [db, user?.email, user?.notificationsEnabled]);
 
   const markAsRead = async (notificationId: string) => {
     if (!db) return;
-    await updateDoc(doc(db, 'notifications', notificationId), { read: true });
+    try {
+      await updateDoc(doc(db, 'notifications', notificationId), { read: true });
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e);
+    }
   };
 
   const markAllAsRead = async () => {
     if (!db || notifications.length === 0) return;
-    const batch = writeBatch(db);
-    notifications.filter(n => !n.read).forEach(n => {
-      batch.update(doc(db, 'notifications', n.id), { read: true });
-    });
-    await batch.commit();
+    try {
+      const batch = writeBatch(db);
+      notifications.filter(n => !n.read).forEach(n => {
+        batch.update(doc(db, 'notifications', n.id), { read: true });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to mark all notifications as read:', e);
+    }
   };
 
   return { notifications, unreadCount, markAsRead, markAllAsRead };
