@@ -2,20 +2,16 @@
 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFirebase } from '@/components/firebase-provider';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  where,
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  onSnapshot,
   addDoc,
   setDoc,
   deleteDoc,
   updateDoc,
-  Unsubscribe
 } from 'firebase/firestore';
 import type { 
   Customer, 
@@ -68,21 +64,12 @@ export function useCustomers() {
   // Set up real-time listener for live updates
   useEffect(() => {
     if (!db) return;
-
-    let unsubscribe: Unsubscribe;
-
-    // Only set up real-time listener if we have cached data
-    if (query.data) {
-      unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
-        const customers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer));
-        queryClient.setQueryData(dataKeys.customers(), customers);
-      });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, query.data, queryClient]);
+    const unsubscribe = onSnapshot(collection(db, 'customers'), (snapshot) => {
+      const customers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Customer));
+      queryClient.setQueryData(dataKeys.customers(), customers);
+    });
+    return unsubscribe;
+  }, [db, queryClient]);
 
   return query;
 }
@@ -109,20 +96,12 @@ export function useProducts() {
   // Set up real-time listener for live updates
   useEffect(() => {
     if (!db) return;
-
-    let unsubscribe: Unsubscribe;
-
-    if (query.data) {
-      unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-        const products = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
-        queryClient.setQueryData(dataKeys.products(), products);
-      });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, query.data, queryClient]);
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const products = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+      queryClient.setQueryData(dataKeys.products(), products);
+    });
+    return unsubscribe;
+  }, [db, queryClient]);
 
   return query;
 }
@@ -148,20 +127,12 @@ export function useOrders() {
 
   useEffect(() => {
     if (!db) return;
-
-    let unsubscribe: Unsubscribe;
-
-    if (query.data) {
-      unsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-        const orders = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order));
-        queryClient.setQueryData(dataKeys.orders(), orders);
-      });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, query.data, queryClient]);
+    const unsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order));
+      queryClient.setQueryData(dataKeys.orders(), orders);
+    });
+    return unsubscribe;
+  }, [db, queryClient]);
 
   return query;
 }
@@ -187,20 +158,12 @@ export function useInvoices() {
 
   useEffect(() => {
     if (!db) return;
-
-    let unsubscribe: Unsubscribe;
-
-    if (query.data) {
-      unsubscribe = onSnapshot(collection(db, 'invoices'), (snapshot) => {
-        const invoices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice));
-        queryClient.setQueryData(dataKeys.invoices(), invoices);
-      });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, query.data, queryClient]);
+    const unsubscribe = onSnapshot(collection(db, 'invoices'), (snapshot) => {
+      const invoices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice));
+      queryClient.setQueryData(dataKeys.invoices(), invoices);
+    });
+    return unsubscribe;
+  }, [db, queryClient]);
 
   return query;
 }
@@ -226,20 +189,12 @@ export function useEstimates() {
 
   useEffect(() => {
     if (!db) return;
-
-    let unsubscribe: Unsubscribe;
-
-    if (query.data) {
-      unsubscribe = onSnapshot(collection(db, 'estimates'), (snapshot) => {
-        const estimates = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Estimate));
-        queryClient.setQueryData(dataKeys.estimates(), estimates);
-      });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, query.data, queryClient]);
+    const unsubscribe = onSnapshot(collection(db, 'estimates'), (snapshot) => {
+      const estimates = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Estimate));
+      queryClient.setQueryData(dataKeys.estimates(), estimates);
+    });
+    return unsubscribe;
+  }, [db, queryClient]);
 
   return query;
 }
