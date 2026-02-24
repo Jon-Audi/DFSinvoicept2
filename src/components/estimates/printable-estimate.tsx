@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import type { Customer } from '@/types';
 import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 // Define the props for PrintableEstimate
@@ -10,6 +11,7 @@ interface PrintableEstimateProps {
   estimateNumber?: string;
   date?: string;
   poNumber?: string;
+  customer?: Customer | null;
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
@@ -26,7 +28,7 @@ interface PrintableEstimateProps {
 }
 
 const PrintableEstimate = React.forwardRef<HTMLDivElement, PrintableEstimateProps>(
-  ({ logoUrl, estimateNumber, date, poNumber, customerName, customerPhone, customerEmail, items = [], subtotal = 0, total = 0, disclaimer, createdBy }, ref) => {
+  ({ logoUrl, estimateNumber, date, poNumber, customer, customerName, customerPhone, customerEmail, items = [], subtotal = 0, total = 0, disclaimer, createdBy }, ref) => {
   return (
     <div ref={ref} className="print-only-container">
       <div className="print-only p-8">
@@ -58,9 +60,17 @@ const PrintableEstimate = React.forwardRef<HTMLDivElement, PrintableEstimateProp
           <p><strong>Date:</strong> {date}</p>
           {poNumber && <p><strong>P.O. #:</strong> {poNumber}</p>}
           {createdBy && <p><strong>Sales Rep:</strong> {getEmployeeNameFromEmail(createdBy)}</p>}
-          <p><strong>Estimate For:</strong> {customerName}</p>
-          {customerPhone && <p><strong>Phone:</strong> {customerPhone}</p>}
-          {customerEmail && <p><strong>Email:</strong> {customerEmail}</p>}
+          <div className="mt-2">
+            <p><strong>Estimate For:</strong></p>
+            {customer?.companyName && <p>{customer.companyName}</p>}
+            <p>{customer ? `${customer.firstName} ${customer.lastName}`.trim() : customerName}</p>
+            {customer?.address?.street && <p>{customer.address.street}</p>}
+            {(customer?.address?.city || customer?.address?.state || customer?.address?.zip) && (
+              <p>{[customer?.address?.city, customer?.address?.state, customer?.address?.zip].filter(Boolean).join(', ')}</p>
+            )}
+            {(customer?.phone || customerPhone) && <p><strong>Phone:</strong> {customer?.phone || customerPhone}</p>}
+            {customerEmail && <p><strong>Email:</strong> {customerEmail}</p>}
+          </div>
         </div>
 
         <table className="table-auto border-collapse w-full text-sm mb-4">

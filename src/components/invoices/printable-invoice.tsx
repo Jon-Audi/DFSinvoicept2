@@ -64,7 +64,16 @@ const PrintableInvoice = React.forwardRef<HTMLDivElement, PrintableInvoiceProps>
           {/* Customer Information */}
           <div className="mb-8 p-4 border border-gray-300 rounded-md bg-gray-50">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Bill To:</h3>
-            <p className="font-medium text-gray-800">{invoice.customerName || 'N/A Customer'}</p>
+            {customer?.companyName && <p className="font-medium text-gray-800">{customer.companyName}</p>}
+            <p className={customer?.companyName ? "text-sm text-gray-600" : "font-medium text-gray-800"}>
+              {customer ? `${customer.firstName} ${customer.lastName}`.trim() : (invoice.customerName || 'N/A')}
+            </p>
+            {customer?.address?.street && <p className="text-sm text-gray-600">{customer.address.street}</p>}
+            {(customer?.address?.city || customer?.address?.state || customer?.address?.zip) && (
+              <p className="text-sm text-gray-600">
+                {[customer?.address?.city, customer?.address?.state, customer?.address?.zip].filter(Boolean).join(', ')}
+              </p>
+            )}
             {customer?.phone && <p className="text-sm text-gray-600">Phone: {customer.phone}</p>}
             {customerEmail && <p className="text-sm text-gray-600">Email: {customerEmail}</p>}
           </div>

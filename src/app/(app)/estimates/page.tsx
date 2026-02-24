@@ -486,6 +486,7 @@ export default function EstimatesPage() {
       estimateNumber: estimate.estimateNumber,
       date: formatDateForDisplay(estimate.date),
       poNumber: estimate.poNumber || '',
+      customer: customer ?? null,
       customerName: estimate.customerName || 'N/A',
       customerPhone: customer?.phone,
       customerEmail: customerEmail,
