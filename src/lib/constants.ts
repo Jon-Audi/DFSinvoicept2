@@ -29,13 +29,6 @@ export const NAV_ITEMS = [
   { href: '/costing-review', label: 'Costing Review', icon: 'Calculator' },
 ];
 
-export const MATERIAL_CALCULATOR_LINK = {
-  href: 'https://jonaudi.com',
-  label: 'Material Calculator',
-  icon: 'Calculator',
-  external: true,
-};
-
 export const AVAILABLE_PERMISSIONS: PermissionKey[] = [
   'manage_users',
   'view_users',

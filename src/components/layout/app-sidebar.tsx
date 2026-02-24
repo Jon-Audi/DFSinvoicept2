@@ -15,7 +15,7 @@ import {
   SidebarRail, // Added SidebarRail import
 } from "@/components/ui/sidebar";
 import { Icon, type IconName } from "@/components/icons";
-import { NAV_ITEMS, MATERIAL_CALCULATOR_LINK } from "@/lib/constants";
+import { NAV_ITEMS } from "@/lib/constants";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -49,21 +49,6 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          <SidebarMenuItem role="none">
-            <SidebarSeparator />
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                tooltip={MATERIAL_CALCULATOR_LINK.label}
-              >
-                <a href={MATERIAL_CALCULATOR_LINK.href} target="_blank" rel="noopener noreferrer">
-                  <Icon name={MATERIAL_CALCULATOR_LINK.icon as IconName} />
-                  <span>{MATERIAL_CALCULATOR_LINK.label}</span>
-                  <Icon name="ExternalLink" className="ml-auto h-3 w-3 opacity-70 group-data-[collapsible=icon]:hidden" />
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2">
