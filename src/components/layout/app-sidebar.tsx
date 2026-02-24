@@ -23,10 +23,12 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarRail /> {/* Added SidebarRail component */}
-      <SidebarHeader className="p-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Icon name="PanelsTopLeft" className="h-8 w-8 text-primary" />
-          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden font-headline">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors">
+            <Icon name="PanelsTopLeft" className="h-5 w-5 text-primary" />
+          </div>
+          <span className="font-bold text-base group-data-[collapsible=icon]:hidden font-headline tracking-tight">
             DFS Invoicing
           </span>
         </Link>

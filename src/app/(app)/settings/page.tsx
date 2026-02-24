@@ -1,184 +1,115 @@
 
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/icons';
-import { Label } from '@/components/ui/label';
+import { Icon, type IconName } from '@/components/icons';
+import { cn } from '@/lib/utils';
+
+interface SettingsCardProps {
+  icon: IconName;
+  title: string;
+  description: string;
+  href: string;
+  iconColor?: string;
+}
+
+function SettingsCard({ icon, title, description, href, iconColor = 'text-primary' }: SettingsCardProps) {
+  return (
+    <Link href={href} className="group">
+      <div className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-accent/30 hover:border-primary/40 transition-all duration-200 h-full shadow-sm hover:shadow-md">
+        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted group-hover:bg-primary/15 transition-colors", iconColor)}>
+          <Icon name={icon} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">{title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+        </div>
+        <Icon name="ChevronRight" className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary/70 shrink-0 mt-0.5 transition-all group-hover:translate-x-0.5" />
+      </div>
+    </Link>
+  );
+}
+
+interface SettingsSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+function SettingsSection({ title, children }: SettingsSectionProps) {
+  return (
+    <div>
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 px-0.5">{title}</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Settings" description="Manage your application settings." />
+      <PageHeader title="Settings" description="Manage your application preferences and configuration." />
 
       <div className="space-y-8">
-        {/* Account & Users */}
-        <div>
-          <Label className="text-base font-semibold mb-4 block">Account & Users</Label>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="UserCog" className="h-4 w-4" />
-                  User Profile
-                </CardTitle>
-                <CardDescription className="text-xs">Your personal profile information</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/profile">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    View Profile
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+        <SettingsSection title="Account & Users">
+          <SettingsCard
+            icon="UserCog"
+            title="User Profile"
+            description="Update your name, photo, password, and notification preferences"
+            href="/settings/profile"
+          />
+          <SettingsCard
+            icon="UsersRound"
+            title="User Management"
+            description="Manage employee accounts, roles, permissions, and password resets"
+            href="/settings/users"
+          />
+        </SettingsSection>
 
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="UsersRound" className="h-4 w-4" />
-                  User Management
-                </CardTitle>
-                <CardDescription className="text-xs">Manage accounts, roles, and permissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/users">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Manage Users
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <SettingsSection title="Company">
+          <SettingsCard
+            icon="Settings"
+            title="Company Information"
+            description="Business details shown on invoices, orders, and estimates"
+            href="/settings/company"
+          />
+          <SettingsCard
+            icon="Truck"
+            title="Vendors"
+            description="Manage supplier and distributor contacts"
+            href="/settings/vendors"
+          />
+        </SettingsSection>
 
-        {/* Company Settings */}
-        <div>
-          <Label className="text-base font-semibold mb-4 block">Company Settings</Label>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="Settings" className="h-4 w-4" />
-                  Company Information
-                </CardTitle>
-                <CardDescription className="text-xs">Company details for documents</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/company">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Company Settings
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+        <SettingsSection title="Products & Inventory">
+          <SettingsCard
+            icon="FolderTree"
+            title="Subcategories"
+            description="Organize your product catalog with subcategory labels"
+            href="/settings/subcategories"
+          />
+          <SettingsCard
+            icon="Link"
+            title="Chainlink Pricing"
+            description="Configure material pricing formulas for fence estimates"
+            href="/settings/chainlink"
+          />
+        </SettingsSection>
 
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="Truck" className="h-4 w-4" />
-                  Vendors
-                </CardTitle>
-                <CardDescription className="text-xs">Manage vendors and distributors</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/vendors">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Manage Vendors
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Product & Inventory */}
-        <div>
-          <Label className="text-base font-semibold mb-4 block">Product & Inventory</Label>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="FolderTree" className="h-4 w-4" />
-                  Subcategories
-                </CardTitle>
-                <CardDescription className="text-xs">Organize products with subcategories</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/subcategories">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Manage Subcategories
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="Link" className="h-4 w-4" />
-                  Chainlink Pricing
-                </CardTitle>
-                <CardDescription className="text-xs">Configure material pricing for estimates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/chainlink">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Chainlink Settings
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Customization */}
-        <div>
-          <Label className="text-base font-semibold mb-4 block">Customization</Label>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="LayoutDashboard" className="h-4 w-4" />
-                  Dashboard
-                </CardTitle>
-                <CardDescription className="text-xs">Customize widgets and alert thresholds</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/dashboard">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Dashboard Settings
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="Paintbrush" className="h-4 w-4" />
-                  Appearance
-                </CardTitle>
-                <CardDescription className="text-xs">Customize the look and feel</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/settings/appearance">
-                  <Button variant="outline" size="sm" className="w-full justify-between">
-                    Theme Settings
-                    <Icon name="ChevronRight" className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <SettingsSection title="Customization">
+          <SettingsCard
+            icon="LayoutDashboard"
+            title="Dashboard"
+            description="Choose which widgets and alerts appear on your dashboard"
+            href="/settings/dashboard"
+          />
+          <SettingsCard
+            icon="Paintbrush"
+            title="Appearance"
+            description="Switch between light and dark mode and customize the theme"
+            href="/settings/appearance"
+          />
+        </SettingsSection>
       </div>
     </>
   );
