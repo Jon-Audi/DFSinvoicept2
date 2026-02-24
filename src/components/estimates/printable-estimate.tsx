@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 // Define the props for PrintableEstimate
 interface PrintableEstimateProps {
@@ -21,10 +22,11 @@ interface PrintableEstimateProps {
   subtotal?: number;
   total?: number;
   disclaimer?: string;
+  createdBy?: string;
 }
 
 const PrintableEstimate = React.forwardRef<HTMLDivElement, PrintableEstimateProps>(
-  ({ logoUrl, estimateNumber, date, poNumber, customerName, customerPhone, customerEmail, items = [], subtotal = 0, total = 0, disclaimer }, ref) => {
+  ({ logoUrl, estimateNumber, date, poNumber, customerName, customerPhone, customerEmail, items = [], subtotal = 0, total = 0, disclaimer, createdBy }, ref) => {
   return (
     <div ref={ref} className="print-only-container">
       <div className="print-only p-8">
@@ -55,6 +57,7 @@ const PrintableEstimate = React.forwardRef<HTMLDivElement, PrintableEstimateProp
           <p><strong>Estimate #:</strong> {estimateNumber}</p>
           <p><strong>Date:</strong> {date}</p>
           {poNumber && <p><strong>P.O. #:</strong> {poNumber}</p>}
+          {createdBy && <p><strong>Prepared By:</strong> {getEmployeeNameFromEmail(createdBy)}</p>}
           <p><strong>Estimate For:</strong> {customerName}</p>
           {customerPhone && <p><strong>Phone:</strong> {customerPhone}</p>}
           {customerEmail && <p><strong>Email:</strong> {customerEmail}</p>}

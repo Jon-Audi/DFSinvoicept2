@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { PAYMENT_METHODS } from '@/lib/constants';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 const COMPANY_SETTINGS_DOC_ID = "main";
 
@@ -1309,7 +1310,77 @@ export default function ReportsPage() {
             </Table>
         );
     }
-    
+
+    if (reportType === 'sales') {
+        const invoices = generatedReportData as Invoice[];
+        return (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Invoice #</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Created By</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {invoices.map(invoice => (
+                        <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                            <TableCell>{format(new Date(invoice.date), 'P')}</TableCell>
+                            <TableCell>{invoice.customerName || 'N/A'}</TableCell>
+                            <TableCell>{getEmployeeNameFromEmail(invoice.createdBy)}</TableCell>
+                            <TableCell className="text-right">${invoice.total.toFixed(2)}</TableCell>
+                            <TableCell>{invoice.status}</TableCell>
+                        </TableRow>
+                    ))}
+                    {invoices.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No invoices found for this period.</TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        );
+    }
+
+    if (reportType === 'orders') {
+        const orders = generatedReportData as Order[];
+        return (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Order #</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Created By</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {orders.map(order => (
+                        <TableRow key={order.id}>
+                            <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                            <TableCell>{format(new Date(order.date), 'P')}</TableCell>
+                            <TableCell>{order.customerName || 'N/A'}</TableCell>
+                            <TableCell>{getEmployeeNameFromEmail(order.createdBy)}</TableCell>
+                            <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                            <TableCell>{order.status}</TableCell>
+                        </TableRow>
+                    ))}
+                    {orders.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No orders found for this period.</TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        );
+    }
+
     return null;
   };
 

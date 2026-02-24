@@ -499,6 +499,7 @@ export default function EstimatesPage() {
       total: estimate.total,
       logoUrl: absoluteLogoUrl,
       disclaimer: companySettings?.estimateDisclaimer,
+      createdBy: estimate.createdBy,
     };
     setEstimateToPrint(estimateDataForPrint);
 

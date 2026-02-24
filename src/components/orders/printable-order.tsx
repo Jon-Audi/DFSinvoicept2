@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Order, CompanySettings, Customer } from '@/types';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 interface PrintableOrderProps {
   order: Order | null;
@@ -57,6 +58,7 @@ const PrintableOrder = React.forwardRef<HTMLDivElement, PrintableOrderProps>(
               <p className="text-md"><span className="font-semibold">Status:</span> {order.status}</p>
               {order.expectedDeliveryDate && <p className="text-md"><span className="font-semibold">Expected Delivery:</span> {formatDate(order.expectedDeliveryDate)}</p>}
               {order.readyForPickUpDate && <p className="text-md"><span className="font-semibold">Ready for Pickup:</span> {formatDate(order.readyForPickUpDate)}</p>}
+              {order.createdBy && <p className="text-md"><span className="font-semibold">Prepared By:</span> {getEmployeeNameFromEmail(order.createdBy)}</p>}
             </div>
           </div>
 

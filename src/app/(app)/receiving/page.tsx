@@ -53,7 +53,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
 const RECEIVING_STATUSES: ReceivingStatus[] = ['Expected', 'In Transit', 'Partially Received', 'Received', 'Discrepancy', 'Voided'];
 const RECEIVING_TYPES: ReceivingType[] = ['Vendor Order', 'Customer Return', 'Transfer', 'Adjustment'];
@@ -589,6 +589,24 @@ export default function ReceivingPage() {
     discrepancy: receivingOrders.filter(o => o.status === 'Discrepancy').length,
   }), [receivingOrders]);
 
+  // Upcoming & overdue delivery notifications
+  const deliveryAlerts = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const active = receivingOrders.filter(o =>
+      (o.status === 'Expected' || o.status === 'In Transit') && o.expectedDeliveryDate
+    );
+    const overdue = active.filter(o => {
+      const eta = parseISO(o.expectedDeliveryDate!);
+      return differenceInCalendarDays(eta, today) < 0;
+    });
+    const upcoming = active.filter(o => {
+      const days = differenceInCalendarDays(parseISO(o.expectedDeliveryDate!), today);
+      return days >= 0 && days <= 7;
+    });
+    return { overdue, upcoming };
+  }, [receivingOrders]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -605,6 +623,50 @@ export default function ReceivingPage() {
           New Receiving Order
         </Button>
       </PageHeader>
+
+      {/* Delivery Alerts */}
+      {(deliveryAlerts.overdue.length > 0 || deliveryAlerts.upcoming.length > 0) && (
+        <div className="space-y-3 mb-6">
+          {deliveryAlerts.overdue.length > 0 && (
+            <div className="flex items-start gap-3 p-4 rounded-lg border border-destructive/40 bg-destructive/10">
+              <Icon name="AlertTriangle" className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-destructive text-sm mb-1">
+                  {deliveryAlerts.overdue.length} Overdue {deliveryAlerts.overdue.length === 1 ? 'Delivery' : 'Deliveries'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {deliveryAlerts.overdue.map(o => (
+                    <Badge key={o.id} variant="destructive" className="text-xs font-normal cursor-pointer" onClick={() => setStatusFilter(o.status)}>
+                      {o.vendorName} — was due {format(parseISO(o.expectedDeliveryDate!), 'MMM d')}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {deliveryAlerts.upcoming.length > 0 && (
+            <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20">
+              <Icon name="Clock" className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-amber-700 dark:text-amber-400 text-sm mb-1">
+                  {deliveryAlerts.upcoming.length} {deliveryAlerts.upcoming.length === 1 ? 'Delivery' : 'Deliveries'} Expected This Week
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {deliveryAlerts.upcoming.map(o => {
+                    const days = differenceInCalendarDays(parseISO(o.expectedDeliveryDate!), new Date());
+                    const label = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+                    return (
+                      <Badge key={o.id} className="text-xs font-normal bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 cursor-pointer hover:bg-amber-200" onClick={() => setStatusFilter(o.status)}>
+                        {o.vendorName} — {label} ({format(parseISO(o.expectedDeliveryDate!), 'MMM d')})
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-5 mb-6">

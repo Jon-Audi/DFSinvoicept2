@@ -4,6 +4,7 @@
 import React from 'react';
 import type { Order, CompanySettings } from '@/types';
 import { format } from 'date-fns';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 interface PrintableOrderReportProps {
   orders: Order[];
@@ -71,6 +72,7 @@ const PrintableOrderReport = React.forwardRef<HTMLDivElement, PrintableOrderRepo
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Order #</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Date</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Customer</th>
+                  <th className="text-left p-1.5 border border-gray-300 font-semibold">Created By</th>
                   <th className="text-right p-1.5 border border-gray-300 font-semibold">Amount</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Status</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Order State</th>
@@ -82,6 +84,7 @@ const PrintableOrderReport = React.forwardRef<HTMLDivElement, PrintableOrderRepo
                     <td className="p-1.5 border border-gray-300">{order.orderNumber}</td>
                     <td className="p-1.5 border border-gray-300">{formatDateDisplay(order.date)}</td>
                     <td className="p-1.5 border border-gray-300">{order.customerName || 'N/A'}</td>
+                    <td className="p-1.5 border border-gray-300">{getEmployeeNameFromEmail(order.createdBy)}</td>
                     <td className="text-right p-1.5 border border-gray-300">${order.total.toFixed(2)}</td>
                     <td className="p-1.5 border border-gray-300">{order.status}</td>
                     <td className="p-1.5 border border-gray-300">{order.orderState}</td>
@@ -89,7 +92,7 @@ const PrintableOrderReport = React.forwardRef<HTMLDivElement, PrintableOrderRepo
                 ))}
                 {orders.length === 0 && (
                   <tr key="no-orders-row">
-                    <td colSpan={6} className="p-1.5 border border-gray-300 text-center text-gray-500">No orders found for this period.</td>
+                    <td colSpan={7} className="p-1.5 border border-gray-300 text-center text-gray-500">No orders found for this period.</td>
                   </tr>
                 )}
               </tbody>

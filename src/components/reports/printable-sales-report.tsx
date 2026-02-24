@@ -4,6 +4,7 @@
 import React from 'react';
 import type { Invoice, CompanySettings } from '@/types';
 import { format } from 'date-fns';
+import { getEmployeeNameFromEmail } from '@/lib/employee-utils';
 
 interface PrintableSalesReportProps {
   invoices: Invoice[];
@@ -71,6 +72,7 @@ export const PrintableSalesReport = React.forwardRef<HTMLDivElement, PrintableSa
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Invoice #</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Date</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Customer</th>
+                  <th className="text-left p-1.5 border border-gray-300 font-semibold">Created By</th>
                   <th className="text-right p-1.5 border border-gray-300 font-semibold">Amount</th>
                   <th className="text-left p-1.5 border border-gray-300 font-semibold">Status</th>
                 </tr>
@@ -81,13 +83,14 @@ export const PrintableSalesReport = React.forwardRef<HTMLDivElement, PrintableSa
                     <td className="p-1.5 border border-gray-300">{invoice.invoiceNumber}</td>
                     <td className="p-1.5 border border-gray-300">{formatDateDisplay(invoice.date)}</td>
                     <td className="p-1.5 border border-gray-300">{invoice.customerName || 'N/A'}</td>
+                    <td className="p-1.5 border border-gray-300">{getEmployeeNameFromEmail(invoice.createdBy)}</td>
                     <td className="text-right p-1.5 border border-gray-300">${invoice.total.toFixed(2)}</td>
                     <td className="p-1.5 border border-gray-300">{invoice.status}</td>
                   </tr>
                 ))}
                 {invoices.length === 0 && (
                   <tr key="no-invoices-row">
-                    <td colSpan={5} className="p-1.5 border border-gray-300 text-center text-gray-500">No invoices found for this period.</td>
+                    <td colSpan={6} className="p-1.5 border border-gray-300 text-center text-gray-500">No invoices found for this period.</td>
                   </tr>
                 )}
               </tbody>

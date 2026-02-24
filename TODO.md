@@ -3,20 +3,23 @@
 ## Upcoming Implementations
 
 ### High Priority
-- [ ] **Back of House Orders/Receiving Management System**
-  - [ ] Create new "Receiving" or "Warehouse" page in navigation
-  - [ ] Add ability to create/add orders from office
-  - [ ] Display order tracking with fields:
-    - Customer Name
+- [x] **Back of House Orders/Receiving Management System**
+  - [x] Create new "Receiving" or "Warehouse" page in navigation
+  - [x] Add ability to create/add orders from office
+  - [x] Display order tracking with fields:
+    - Vendor Name (prioritized)
     - PO Number
     - Date Ordered
     - Ordered From (supplier/vendor)
     - Expected Delivery Date (to yard)
-  - [ ] Add packing slip viewing/upload functionality
-  - [ ] Add order status tracking (Ordered, In Transit, Received, etc.)
-  - [ ] Add search and filter capabilities
-  - [ ] Add notification system for upcoming deliveries
-  - [ ] Consider adding barcode scanning for receiving
+  - [x] Add packing slip viewing/upload functionality
+  - [x] Add order status tracking (Expected, In Transit, Partially Received, Received, Discrepancy, Voided)
+  - [x] Add search and filter capabilities (by category/subcategory)
+  - [x] Touch-friendly iPad/tablet interface (matching Shop tab pattern)
+  - [x] Inline received quantity editing per line item
+  - [x] Real-time status updates via Firebase
+  - [x] Add notification system for upcoming deliveries
+  - [ ] Consider adding barcode scanning for receiving (skipped - not needed)
 
 - [x] **Invoice Finalization Feature**
   - [x] Add "Finalize" button/toggle to invoice interface
@@ -35,12 +38,17 @@
   - [x] Display employee names on Estimates (creator/assigned)
   - [x] Display employee names on Orders (creator/assigned)
   - [x] Display employee names on Invoices (creator/assigned)
-  - [ ] Display employee names in Reports/Analytics
-  - [ ] Add employee name to printable documents
+  - [x] Display employee names in Reports/Analytics
+  - [x] Add employee name to printable documents
   - [x] Added "Created By" field to all document types
 
 ### Medium Priority
-- [ ]
+- [ ] **iOS App Store Deployment**
+  - [x] Configure Capacitor for iOS builds
+  - [x] Add native plugins (camera, filesystem, keyboard, etc.)
+  - [x] Set up hybrid approach with Vercel URL
+  - [ ] Add app icons and splash screen assets
+  - [ ] Build and submit to App Store (requires Mac)
 
 ### Low Priority
 - [ ]
@@ -63,6 +71,10 @@
 - [x] Deploy development branch to production
 - [x] **Mobile/Tablet Responsiveness Improvements** - Fixed viewport zoom, improved responsive layouts, added touch-friendly UI
 - [x] **Inventory Improvements** - Inventory now only deducts on Invoices (not Orders/Estimates), added real-time stock display on all ticket forms with visual warnings for out-of-stock items
+- [x] **Shop Tab Touch-Friendly Interface** - Card-based UI with detail sheets, inline editing
+- [x] **Receiving Tab Touch-Friendly Interface** - Matching Shop tab pattern, warehouse-focused (no pricing)
+- [x] **Dark Mode Color Fixes** - Fixed unreadable bright colors in dark mode for Shop and Receiving
+- [x] **Bulk Payment Firebase Fix** - Fixed undefined field values causing addDoc errors
 
 ---
 
