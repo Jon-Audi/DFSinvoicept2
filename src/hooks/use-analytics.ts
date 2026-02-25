@@ -6,9 +6,11 @@ import {
   getAnalyticsSummary,
   getRevenueTrends,
   getTopProducts,
+  getRevenueByCustomer,
   type AnalyticsSummary,
   type RevenueDataPoint,
-  type ProductSalesData
+  type ProductSalesData,
+  type CustomerRevenueData,
 } from '@/lib/analytics';
 
 // Query keys for cache management
@@ -16,6 +18,7 @@ export const analyticsKeys = {
   all: ['analytics'] as const,
   summary: (days?: number) => [...analyticsKeys.all, 'summary', days] as const,
   revenue: (days: number) => [...analyticsKeys.all, 'revenue', days] as const,
+  revenueByCustomer: (days: number) => [...analyticsKeys.all, 'revenueByCustomer', days] as const,
   topProducts: (limit: number, days?: number) => [...analyticsKeys.all, 'topProducts', limit, days] as const,
 };
 
@@ -56,6 +59,26 @@ export function useRevenueTrends(days: number = 30) {
     enabled: !!db,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+}
+
+/**
+ * Hook to fetch revenue grouped by customer with caching
+ */
+export function useRevenueByCustomer(days: number = 30) {
+  const { db } = useFirebase();
+
+  return useQuery({
+    queryKey: analyticsKeys.revenueByCustomer(days),
+    queryFn: async (): Promise<CustomerRevenueData[]> => {
+      if (!db) throw new Error('Database not initialized');
+      return await getRevenueByCustomer(db, days);
+    },
+    enabled: !!db,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

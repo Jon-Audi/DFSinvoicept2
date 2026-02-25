@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/icons';
-import { useRevenueTrends } from '@/hooks/use-analytics';
+import { useRevenueTrends, useRevenueByCustomer } from '@/hooks/use-analytics';
 import { formatCurrency, formatChartDate } from '@/lib/analytics';
 import {
   AreaChart,
@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 
 type TimePeriod = 7 | 30 | 60 | 90;
-type MetricType = 'revenue' | 'invoices';
+type MetricType = 'revenue' | 'invoices' | 'customers';
 
 interface RevenueChartProps {
   defaultPeriod?: TimePeriod;
@@ -28,8 +28,8 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(defaultPeriod);
   const [metricType, setMetricType] = useState<MetricType>('revenue');
 
-  // Use cached revenue trends data with React Query
   const { data = [], isLoading } = useRevenueTrends(timePeriod);
+  const { data: customerData = [], isLoading: isLoadingCustomers } = useRevenueByCustomer(timePeriod);
 
   const totalRevenue = data.reduce((sum, point) => sum + point.revenue, 0);
   const totalInvoices = data.reduce((sum, point) => sum + point.invoices, 0);
@@ -69,9 +69,11 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <CardTitle>{metricType === 'revenue' ? 'Revenue Trends' : 'Order Volume'}</CardTitle>
+            <CardTitle>
+              {metricType === 'revenue' ? 'Revenue Trends' : metricType === 'invoices' ? 'Order Volume' : 'Revenue by Customer'}
+            </CardTitle>
             <CardDescription>
-              {metricType === 'revenue' ? 'Track your money coming in' : 'Track number of orders'}
+              {metricType === 'revenue' ? 'Track your money coming in' : metricType === 'invoices' ? 'Track number of orders' : `Top customers by payments received`}
             </CardDescription>
           </div>
         </div>
@@ -92,6 +94,14 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
             >
               <Icon name="ShoppingCart" className="h-4 w-4 mr-1" />
               Orders
+            </Button>
+            <Button
+              variant={metricType === 'customers' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMetricType('customers')}
+            >
+              <Icon name="Users" className="h-4 w-4 mr-1" />
+              By Customer
             </Button>
           </div>
           <div className="flex gap-2">
@@ -127,7 +137,54 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {metricType === 'customers' ? (
+          isLoadingCustomers ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
+            </div>
+          ) : customerData.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No payments recorded in this period.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Money In</p>
+                  <p className="text-2xl font-bold">{formatCurrency(customerData.reduce((s, c) => s + c.revenue, 0))}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Customers</p>
+                  <p className="text-2xl font-bold">{customerData.length}</p>
+                </div>
+              </div>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                {customerData.map((customer, index) => {
+                  const maxRevenue = customerData[0].revenue;
+                  const pct = maxRevenue > 0 ? (customer.revenue / maxRevenue) * 100 : 0;
+                  return (
+                    <div key={customer.customerId || index} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-muted-foreground w-5 shrink-0">#{index + 1}</span>
+                          <span className="font-medium truncate">{customer.customerName}</span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <span className="text-muted-foreground text-xs">{customer.invoiceCount} inv</span>
+                          <span className="font-semibold">{formatCurrency(customer.revenue)}</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )
+        ) : isLoading ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -153,9 +210,7 @@ export function RevenueChart({ defaultPeriod = 30 }: RevenueChartProps) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">
-                  {metricType === 'revenue' ? 'Avg per Day' : 'Avg per Day'}
-                </p>
+                <p className="text-sm text-muted-foreground">Avg per Day</p>
                 <p className="text-2xl font-bold">
                   {metricType === 'revenue'
                     ? formatCurrency(totalRevenue / timePeriod)

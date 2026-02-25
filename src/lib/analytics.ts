@@ -8,6 +8,13 @@ export interface RevenueDataPoint {
   invoices: number;
 }
 
+export interface CustomerRevenueData {
+  customerId: string;
+  customerName: string;
+  revenue: number;
+  invoiceCount: number;
+}
+
 export interface ProductSalesData {
   productId: string;
   productName: string;
@@ -88,6 +95,50 @@ export async function getRevenueTrends(
   }
 
   return dataPoints;
+}
+
+/**
+ * Get revenue totals grouped by customer for a specific time period
+ */
+export async function getRevenueByCustomer(
+  db: Firestore,
+  days: number = 30
+): Promise<CustomerRevenueData[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  startDate.setHours(0, 0, 0, 0);
+
+  const snapshot = await getDocs(collection(db, 'invoices'));
+  const invoices: Invoice[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Invoice));
+
+  const byCustomer = new Map<string, CustomerRevenueData>();
+
+  invoices.forEach(invoice => {
+    if (!invoice.payments || invoice.payments.length === 0) return;
+
+    let invoiceRevenue = 0;
+    invoice.payments.forEach(payment => {
+      const paymentDate = new Date(payment.date);
+      if (paymentDate >= startDate) {
+        invoiceRevenue += payment.amount || 0;
+      }
+    });
+
+    if (invoiceRevenue === 0) return;
+
+    const key = invoice.customerId || invoice.customerName || 'unknown';
+    const existing = byCustomer.get(key) || {
+      customerId: invoice.customerId || '',
+      customerName: invoice.customerName || 'Unknown Customer',
+      revenue: 0,
+      invoiceCount: 0,
+    };
+    existing.revenue += invoiceRevenue;
+    existing.invoiceCount += 1;
+    byCustomer.set(key, existing);
+  });
+
+  return Array.from(byCustomer.values()).sort((a, b) => b.revenue - a.revenue);
 }
 
 /**
