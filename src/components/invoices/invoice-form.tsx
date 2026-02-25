@@ -985,6 +985,8 @@ export function InvoiceForm({
             <p className="text-sm font-medium text-destructive">{form.formState.errors.lineItems.root.message}</p>
         )}
 
+        </fieldset>{/* End of line-items lock — payments are always editable below */}
+
         <Separator /><h3 className="text-lg font-medium">Payments</h3>
         {localPayments.length > 0 && (
           <div className="space-y-2 mb-4">
@@ -1070,17 +1072,13 @@ export function InvoiceForm({
         <FormField control={form.control} name="notes" render={({ field }) => (
           <FormItem><FormLabel>Invoice Notes (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Thank you for your business!" {...field} rows={3} /></FormControl><FormMessage /></FormItem>
         )} />
-        </fieldset>
 
         <div className="flex justify-end gap-2 pt-4">
           {onClose && <Button type="button" variant="outline" onClick={onClose}>{isReadOnly ? 'Close' : 'Cancel'}</Button>}
-          {/* Hide Save/Create button if read-only */}
-          {!isReadOnly && (
-            <Button type="submit" disabled={form.formState.isSubmitting || isDataLoading}>
-              {form.formState.isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
-              {invoice || initialData ? 'Save Changes' : 'Create Invoice'}
-            </Button>
-          )}
+          <Button type="submit" disabled={form.formState.isSubmitting || isDataLoading}>
+            {form.formState.isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
+            {isReadOnly ? 'Save Payments' : (invoice || initialData ? 'Save Changes' : 'Create Invoice')}
+          </Button>
         </div>
       </form>
       {isBulkAddDialogOpen && (

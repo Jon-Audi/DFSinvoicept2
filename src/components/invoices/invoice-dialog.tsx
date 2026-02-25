@@ -255,7 +255,7 @@ export function InvoiceDialog({
                   <Icon name="Lock" className="h-5 w-5" />
                   <div>
                     <p className="font-semibold text-sm">This invoice is finalized</p>
-                    <p className="text-xs text-blue-600">This invoice is locked and cannot be edited. Click &quot;Unfinalize&quot; above to make changes.</p>
+                    <p className="text-xs text-blue-600">Line items are locked — no materials can be added or removed. Payments and refunds can still be recorded. Click &quot;Unfinalize&quot; to edit line items.</p>
                   </div>
                 </div>
               </div>
