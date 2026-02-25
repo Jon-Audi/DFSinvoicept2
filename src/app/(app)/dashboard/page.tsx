@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { useAuth } from '@/contexts/auth-context';
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, onSnapshot } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -48,31 +48,28 @@ export default function DashboardPage() {
   const [unpaidInvoices, setUnpaidInvoices] = useState<Invoice[]>([]);
   const [isLoadingUnpaidInvoices, setIsLoadingUnpaidInvoices] = useState(true);
 
-  // Load user preferences (one-time fetch, not real-time)
+  // Load user preferences with real-time listener so settings changes apply instantly
   useEffect(() => {
     if (!db || !user?.uid) {
       setIsLoadingPreferences(false);
       return;
     }
 
-    const fetchPreferences = async () => {
-      try {
-        const docRef = doc(db, 'dashboardPreferences', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setPreferences({ ...DEFAULT_PREFERENCES, ...docSnap.data() } as DashboardPreferences);
-        } else {
-          setPreferences(DEFAULT_PREFERENCES);
-        }
-      } catch (error) {
-        console.error('Error loading dashboard preferences:', error);
+    const docRef = doc(db, 'dashboardPreferences', user.uid);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setPreferences({ ...DEFAULT_PREFERENCES, ...docSnap.data() } as DashboardPreferences);
+      } else {
         setPreferences(DEFAULT_PREFERENCES);
-      } finally {
-        setIsLoadingPreferences(false);
       }
-    };
+      setIsLoadingPreferences(false);
+    }, (error) => {
+      console.error('Error loading dashboard preferences:', error);
+      setPreferences(DEFAULT_PREFERENCES);
+      setIsLoadingPreferences(false);
+    });
 
-    fetchPreferences();
+    return unsubscribe;
   }, [db, user]);
 
   // Fetch dashboard data (one-time fetch for better performance)
