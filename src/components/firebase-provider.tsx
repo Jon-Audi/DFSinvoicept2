@@ -20,7 +20,16 @@ const requiredEnvVars = [
 ] as const;
 
 if (typeof window !== 'undefined') {
-  const missing = requiredEnvVars.filter(key => !process.env[key]);
+  // Use direct property access — Next.js replaces NEXT_PUBLIC_* vars at build time
+  // and dynamic process.env[key] access doesn't work in the browser bundle
+  const missing = [
+    !process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 'NEXT_PUBLIC_FIREBASE_API_KEY',
+    !process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+    !process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET && 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    !process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID && 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    !process.env.NEXT_PUBLIC_FIREBASE_APP_ID && 'NEXT_PUBLIC_FIREBASE_APP_ID',
+  ].filter(Boolean);
   if (missing.length > 0) {
     console.error('Missing required Firebase environment variables:', missing);
   }
@@ -36,13 +45,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 } as const;
 
-// Validate Firebase config
-if (typeof window !== 'undefined') {
-  console.log('Firebase config loaded:', {
-    hasApiKey: !!firebaseConfig.apiKey,
-    projectId: firebaseConfig.projectId
-  });
-}
 
 interface FirebaseContextType {
   app: FirebaseApp | null;

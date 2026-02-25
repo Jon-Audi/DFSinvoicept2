@@ -200,8 +200,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Revenue Chart and Top Products */}
-      {(preferences.showRevenueChart || preferences.showTopProducts) && (
+      {/* Revenue Chart and Top Products — gated on !isLoadingPreferences so charts
+           mount with the user's saved period, not the fallback default */}
+      {!isLoadingPreferences && (preferences.showRevenueChart || preferences.showTopProducts) && (
         <div className="grid gap-6 mb-6 lg:grid-cols-2">
           {preferences.showRevenueChart && (
             <RevenueChart defaultPeriod={preferences.defaultChartPeriod} />
