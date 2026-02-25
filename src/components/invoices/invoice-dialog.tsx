@@ -144,14 +144,22 @@ export function InvoiceDialog({
     const roundedBalanceDue = parseFloat((currentTotal - roundedTotalAmountPaid).toFixed(2));
     const EPSILON = 0.005;
 
+    // An invoice with a negative total is a return/credit memo
+    const isReturnInvoice = currentTotal < -EPSILON;
+
     let determinedStatus: Invoice['status'];
     if (formDataFromForm.status === 'Voided') {
       determinedStatus = 'Voided';
+    } else if (isReturnInvoice) {
+      // Return invoices: never auto-set to Paid — preserve the user's chosen status
+      // so the credit appears in outstanding reports until it is manually resolved
+      determinedStatus = formDataFromForm.status;
     } else if (currentTotal > EPSILON && roundedBalanceDue <= EPSILON) {
       determinedStatus = 'Paid';
     } else if (currentTotal > EPSILON && roundedTotalAmountPaid > 0 && roundedBalanceDue > EPSILON) {
       determinedStatus = 'Partially Paid';
     } else if (currentTotal <= EPSILON && roundedBalanceDue <= EPSILON) {
+      // Zero-total invoice (e.g., fully comped) — mark Paid
       determinedStatus = 'Paid';
     } else {
       determinedStatus = formDataFromForm.status;
@@ -172,6 +180,7 @@ export function InvoiceDialog({
         amountPaid: roundedTotalAmountPaid,
         balanceDue: roundedBalanceDue,
         distributor: formDataFromForm.distributor,
+        ...(isReturnInvoice && { isReturn: true }),
     };
 
     if (formDataFromForm.dueDate) invoicePayload.dueDate = formDataFromForm.dueDate.toISOString();

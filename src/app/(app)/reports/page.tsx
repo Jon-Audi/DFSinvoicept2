@@ -573,9 +573,13 @@ export default function ReportsPage() {
         
         const qInvoices = query(invoicesRef, ...qConstraints);
         const invoicesSnapshot = await getDocs(qInvoices);
-        
+
         const customerInvoiceDetails: any[] = [];
-        invoicesSnapshot.forEach(docSnap => {
+        const seenInvoiceIds = new Set<string>();
+
+        const pushInvoiceDetail = (docSnap: any, isReturnCredit = false) => {
+          if (seenInvoiceIds.has(docSnap.id)) return;
+          seenInvoiceIds.add(docSnap.id);
           const invoice = docSnap.data() as Invoice;
           const customer = customers.find(c => c.id === invoice.customerId);
           customerInvoiceDetails.push({
@@ -587,11 +591,38 @@ export default function ReportsPage() {
             status: invoice.status,
             invoiceDate: invoice.date,
             dueDate: invoice.dueDate,
-            balanceDue: invoice.balanceDue || 0,
+            balanceDue: invoice.balanceDue ?? 0,
             invoiceTotal: invoice.total,
             amountPaid: invoice.amountPaid || 0,
+            isReturn: isReturnCredit || invoice.isReturn || false,
           });
-        });
+        };
+
+        invoicesSnapshot.forEach(docSnap => pushInvoiceDetail(docSnap));
+
+        // For "unpaid only" and "picked up" filters, also fetch return/credit invoices
+        // (negative balanceDue) so they appear as credits against the customer's balance.
+        // These are excluded from the main query because balanceDue < 0, but they are
+        // real obligations the business owes customers.
+        if (outstandingInvoiceFilter === 'all' || outstandingInvoiceFilter === 'pickedUp') {
+          const returnsConstraints: any[] = [where('balanceDue', '<', 0)];
+          if (selectedCustomerId !== 'all') {
+            returnsConstraints.push(where('customerId', '==', selectedCustomerId));
+          }
+          const qReturns = query(invoicesRef, ...returnsConstraints);
+          const returnsSnapshot = await getDocs(qReturns);
+          returnsSnapshot.forEach(docSnap => {
+            const inv = docSnap.data() as Invoice;
+            if (inv.status === 'Voided') return; // skip voided returns
+            // For picked-up filter: only include returns for customers who have picked-up invoices
+            if (outstandingInvoiceFilter === 'pickedUp') {
+              const hasPickedUp = customerInvoiceDetails.some(d => d.customerId === inv.customerId);
+              if (!hasPickedUp) return;
+            }
+            pushInvoiceDetail(docSnap, true);
+          });
+        }
+
         data = customerInvoiceDetails.sort((a,b) => toTime(b.invoiceDate) - toTime(a.invoiceDate));
       
       } else if (targetReportType === 'payments') {

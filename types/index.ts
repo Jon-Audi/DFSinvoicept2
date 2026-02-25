@@ -178,6 +178,7 @@ export interface Invoice extends BaseDocument {
   payments: Payment[]; // Ensure payments is always an array, even if empty
   amountPaid: number;   // Ensure amountPaid is always present
   balanceDue: number;   // Ensure balanceDue is always present
+  isReturn?: boolean;   // True when invoice total is negative (return/credit memo)
   readyForPickUpDate?: string;
   pickedUpDate?: string;
   distributor?: string;
@@ -261,11 +262,13 @@ export interface CustomerInvoiceDetail {
   invoiceId: string;
   invoiceNumber: string;
   poNumber?: string;
+  status?: string;
   invoiceDate: string; // ISO string
   dueDate?: string;   // ISO string
   balanceDue: number;
   invoiceTotal: number; // Added for clarity in reports
   amountPaid: number;   // Added for clarity in reports
+  isReturn?: boolean;   // True for return/credit invoices (negative total)
 }
 
 // New type for the Payments Report

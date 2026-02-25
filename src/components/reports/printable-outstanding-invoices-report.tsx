@@ -85,20 +85,41 @@ export const PrintableOutstandingInvoicesReport = React.forwardRef<HTMLDivElemen
                     </tr>
                   </thead>
                   <tbody>
-                    {group.invoices.map((invoice, index) => (
-                      <tr key={invoice.invoiceId || `invoice-row-${index}`}>
-                        <td className="p-1.5 border border-gray-300">{invoice.invoiceNumber}</td>
+                    {group.invoices.sort((a, b) => {
+                      // Sort returns to the bottom of each customer's section
+                      if (a.isReturn && !b.isReturn) return 1;
+                      if (!a.isReturn && b.isReturn) return -1;
+                      return 0;
+                    }).map((invoice, index) => (
+                      <tr
+                        key={invoice.invoiceId || `invoice-row-${index}`}
+                        style={invoice.isReturn ? { backgroundColor: '#f0fdf4' } : undefined}
+                      >
+                        <td className="p-1.5 border border-gray-300">
+                          {invoice.invoiceNumber}
+                          {invoice.isReturn && (
+                            <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: '#16a34a', border: '1px solid #16a34a', borderRadius: '3px', padding: '1px 4px' }}>
+                              RETURN
+                            </span>
+                          )}
+                        </td>
                         <td className="p-1.5 border border-gray-300">{invoice.poNumber || 'N/A'}</td>
-                        <td className="p-1.5 border border-gray-300">{(invoice as any).status || 'Unknown'}</td>
+                        <td className="p-1.5 border border-gray-300">{invoice.status || 'Unknown'}</td>
                         <td className="p-1.5 border border-gray-300">{format(new Date(invoice.invoiceDate), "MM/dd/yy")}</td>
                         <td className="p-1.5 border border-gray-300">{invoice.dueDate ? format(new Date(invoice.dueDate), "MM/dd/yy") : 'N/A'}</td>
-                        <td className="text-right p-1.5 border border-gray-300">${invoice.invoiceTotal.toFixed(2)}</td>
+                        <td className="text-right p-1.5 border border-gray-300" style={invoice.isReturn ? { color: '#16a34a' } : undefined}>
+                          {invoice.isReturn ? `(${Math.abs(invoice.invoiceTotal).toFixed(2)})` : `$${invoice.invoiceTotal.toFixed(2)}`}
+                        </td>
                         <td className="text-right p-1.5 border border-gray-300">${invoice.amountPaid.toFixed(2)}</td>
-                        <td className="text-right p-1.5 border border-gray-300 font-semibold">${invoice.balanceDue.toFixed(2)}</td>
+                        <td className="text-right p-1.5 border border-gray-300 font-semibold" style={invoice.isReturn ? { color: '#16a34a' } : undefined}>
+                          {invoice.isReturn ? `(${Math.abs(invoice.balanceDue).toFixed(2)})` : `$${invoice.balanceDue.toFixed(2)}`}
+                        </td>
                       </tr>
                     ))}
                     <tr key={`summary-${sectionKey}`} className="bg-gray-50">
-                      <td colSpan={7} className="text-right p-1.5 border border-gray-300 font-bold">Customer Total Outstanding:</td>
+                      <td colSpan={7} className="text-right p-1.5 border border-gray-300 font-bold">
+                        {group.invoices.some(i => i.isReturn) ? 'Customer Net Balance (after credits):' : 'Customer Total Outstanding:'}
+                      </td>
                       <td className="text-right p-1.5 border border-gray-300 font-bold">${group.totalCustomerBalance.toFixed(2)}</td>
                     </tr>
                   </tbody>
@@ -114,7 +135,8 @@ export const PrintableOutstandingInvoicesReport = React.forwardRef<HTMLDivElemen
           {Object.keys(groupedInvoices).length > 1 && (
             <section className="mt-6 pt-3 border-t-2 border-gray-500">
               <div className="text-right">
-                <p className="text-lg font-bold">Grand Total Outstanding (All Displayed Customers): ${grandTotalOutstanding.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mb-1">Return credits shown in green are subtracted from customer balances</p>
+                <p className="text-lg font-bold">Grand Total Net Outstanding (All Displayed Customers): ${grandTotalOutstanding.toFixed(2)}</p>
               </div>
             </section>
           )}
