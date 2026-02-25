@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 import { Toaster } from "@/components/ui/toaster";
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const inter = Inter({
@@ -38,6 +39,7 @@ export default function RootLayout({
           {children}
           <Toaster />
           <SpeedInsights />
+          <Analytics />
         </Providers>
       </body>
     </html>
