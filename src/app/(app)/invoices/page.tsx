@@ -60,6 +60,7 @@ import { BulkPaymentDialog } from "@/components/invoices/bulk-payment-dialog";
 import { PrintableBulkPaymentReceipt } from "@/components/invoices/printable-bulk-payment-receipt";
 import { BulkPaymentToastAction } from "@/components/invoices/bulk-payment-toast-action";
 import { BulkPaymentsListDialog } from "@/components/invoices/bulk-payments-list-dialog";
+import { CreditApplicationDialog } from "@/components/invoices/credit-application-dialog";
 import { useInvalidateAnalytics } from "@/hooks/use-analytics";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -124,7 +125,9 @@ export default function InvoicesPage() {
 
   const [invoiceForViewingItems, setInvoiceForViewingItems] = useState<Invoice | null>(null);
   const [isLineItemsViewerOpen, setIsLineItemsViewerOpen] = useState(false);
-  
+
+  const [creditReturnInvoice, setCreditReturnInvoice] = useState<Invoice | null>(null);
+
   const handleViewItems = (invoice: Invoice) => {
     setInvoiceForViewingItems(invoice);
     setIsLineItemsViewerOpen(true);
@@ -413,6 +416,80 @@ export default function InvoicesPage() {
     if (isConvertingInvoice) {
       setIsConvertingInvoice(false);
       setConversionInvoiceData(null);
+    }
+  };
+
+  // ---------- APPLY RETURN CREDIT TO AN INVOICE ----------
+  const handleApplyCredit = async (targetInvoice: Invoice, amount: number) => {
+    if (!db || !creditReturnInvoice) return;
+    const EPSILON = 0.005;
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const returnRef = doc(db, 'invoices', creditReturnInvoice.id);
+        const targetRef = doc(db, 'invoices', targetInvoice.id);
+
+        // Read both docs fresh to avoid stale data
+        const [returnSnap, targetSnap] = await Promise.all([
+          transaction.get(returnRef),
+          transaction.get(targetRef),
+        ]);
+
+        if (!returnSnap.exists()) throw new Error('Return invoice not found.');
+        if (!targetSnap.exists()) throw new Error('Target invoice not found.');
+
+        const freshReturn = returnSnap.data() as Invoice;
+        const freshTarget = targetSnap.data() as Invoice;
+
+        const newCreditApplied = parseFloat(((freshReturn.creditApplied || 0) + amount).toFixed(2));
+        const newReturnBalanceDue = parseFloat((freshReturn.total + newCreditApplied).toFixed(2));
+        const returnFullyApplied = newReturnBalanceDue >= -EPSILON;
+
+        const creditPayment: Payment = {
+          id: crypto.randomUUID(),
+          date: new Date().toISOString(),
+          amount,
+          method: 'Credit Applied',
+          notes: `Credit from Return ${creditReturnInvoice.invoiceNumber}`,
+          creditFromInvoiceId: creditReturnInvoice.id,
+          creditFromInvoiceNumber: creditReturnInvoice.invoiceNumber,
+        };
+
+        const newTargetAmountPaid = parseFloat(((freshTarget.amountPaid || 0) + amount).toFixed(2));
+        const newTargetBalanceDue = parseFloat((freshTarget.total - newTargetAmountPaid).toFixed(2));
+        const targetPaid = newTargetBalanceDue <= EPSILON;
+        const targetPartial = !targetPaid && newTargetAmountPaid > EPSILON;
+
+        let newTargetStatus: Invoice['status'] = freshTarget.status;
+        if (targetPaid) newTargetStatus = 'Paid';
+        else if (targetPartial) newTargetStatus = 'Partially Paid';
+
+        transaction.update(returnRef, {
+          creditApplied: newCreditApplied,
+          balanceDue: newReturnBalanceDue,
+          ...(returnFullyApplied ? { status: 'Paid' } : {}),
+        });
+
+        transaction.update(targetRef, {
+          payments: [...(freshTarget.payments || []), creditPayment],
+          amountPaid: newTargetAmountPaid,
+          balanceDue: newTargetBalanceDue,
+          status: newTargetStatus,
+        });
+      });
+
+      toast({
+        title: 'Credit Applied',
+        description: `$${amount.toFixed(2)} credit from ${creditReturnInvoice.invoiceNumber} applied to ${targetInvoice.invoiceNumber}.`,
+      });
+      invalidateAnalytics();
+    } catch (error: any) {
+      toast({
+        title: 'Error Applying Credit',
+        description: error.message || 'Could not apply credit.',
+        variant: 'destructive',
+      });
+      throw error; // re-throw so dialog can clear its loading state
     }
   };
 
@@ -1053,6 +1130,7 @@ export default function InvoicesPage() {
             onToggleFinalize={(inv) => {
               void handleToggleFinalize(inv);
             }}
+            onApplyCredit={(returnInv) => setCreditReturnInvoice(returnInv)}
             onPrint={(inv) => {
               void handlePrepareAndPrintInvoice(inv);
             }}
@@ -1079,6 +1157,16 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+
+      {creditReturnInvoice && (
+        <CreditApplicationDialog
+          returnInvoice={creditReturnInvoice}
+          allInvoices={invoices}
+          open={!!creditReturnInvoice}
+          onClose={() => setCreditReturnInvoice(null)}
+          onApply={handleApplyCredit}
+        />
+      )}
 
       {selectedInvoiceForEmail && (
         <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>

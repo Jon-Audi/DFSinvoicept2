@@ -62,6 +62,7 @@ interface InvoiceTableProps {
   onPrintPackingSlip: (invoice: Invoice) => void;
   onSendToPacking: (invoice: Invoice) => void;
   onToggleFinalize: (invoice: Invoice) => void;
+  onApplyCredit: (returnInvoice: Invoice) => void;
   formatDate: (dateString: string | Date | undefined, options?: Intl.DateTimeFormatOptions) => string;
   customers: Customer[];
   products: Product[];
@@ -87,6 +88,7 @@ export const InvoiceTable = React.memo(function InvoiceTable({
   onPrintPackingSlip,
   onSendToPacking,
   onToggleFinalize,
+  onApplyCredit,
   formatDate,
   customers,
   products,
@@ -318,6 +320,20 @@ export const InvoiceTable = React.memo(function InvoiceTable({
                     <DropdownMenuItem onSelect={() => setSharingInvoice(invoice)}>
                       <Icon name="Share2" className="mr-2 h-4 w-4" /> Share with Employee
                     </DropdownMenuItem>
+
+                    {invoice.isReturn && invoice.status !== 'Voided' &&
+                      (Math.abs(invoice.total) - (invoice.creditApplied || 0)) > 0.005 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => onApplyCredit(invoice)}
+                          className="text-green-700 focus:text-green-700 focus:bg-green-50"
+                        >
+                          <Icon name="CreditCard" className="mr-2 h-4 w-4" />
+                          Apply Credit ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(invoice.total) - (invoice.creditApplied || 0))} available)
+                        </DropdownMenuItem>
+                      </>
+                    )}
 
                     <DropdownMenuSeparator />
 

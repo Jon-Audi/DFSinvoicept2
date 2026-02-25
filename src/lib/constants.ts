@@ -7,7 +7,7 @@ export const CUSTOMER_TYPES: CustomerType[] = ['Fence Contractor', 'Landscaper',
 export const EMAIL_CONTACT_TYPES: EmailContactType[] = ['Main Contact', 'Accounts Payable', 'Owner', 'Billing', 'Shipping', 'Other'];
 export const USER_ROLES: UserRole[] = ['Admin', 'User', 'Yard Staff']; // Added 'Yard Staff'
 
-export const PAYMENT_METHODS: PaymentMethod[] = ['Cash', 'Check', 'Credit Card', 'Bank Transfer', 'Other'];
+export const PAYMENT_METHODS: PaymentMethod[] = ['Cash', 'Check', 'Credit Card', 'Bank Transfer', 'Credit Applied', 'Other'];
 
 export const ALL_CATEGORIES_MARKUP_KEY = "__ALL_CATEGORIES__";
 

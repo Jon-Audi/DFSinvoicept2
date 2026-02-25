@@ -98,7 +98,7 @@ export interface LineItem {
 }
 
 
-export type PaymentMethod = 'Cash' | 'Check' | 'Credit Card' | 'Bank Transfer' | 'Other';
+export type PaymentMethod = 'Cash' | 'Check' | 'Credit Card' | 'Bank Transfer' | 'Credit Applied' | 'Other';
 
 export interface Payment {
   id: string;
@@ -107,6 +107,8 @@ export interface Payment {
   method: PaymentMethod;
   notes?: string;
   bulkPaymentId?: string; // ID linking to bulk payment record
+  creditFromInvoiceId?: string;     // When method is 'Credit Applied': source return invoice ID
+  creditFromInvoiceNumber?: string; // Human-readable reference for the source return
 }
 
 export type DocumentStatus =
@@ -178,7 +180,8 @@ export interface Invoice extends BaseDocument {
   payments: Payment[]; // Ensure payments is always an array, even if empty
   amountPaid: number;   // Ensure amountPaid is always present
   balanceDue: number;   // Ensure balanceDue is always present
-  isReturn?: boolean;   // True when invoice total is negative (return/credit memo)
+  isReturn?: boolean;       // True when invoice total is negative (return/credit memo)
+  creditApplied?: number;   // For return invoices: running total of credit applied to other invoices
   readyForPickUpDate?: string;
   pickedUpDate?: string;
   distributor?: string;
