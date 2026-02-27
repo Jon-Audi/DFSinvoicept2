@@ -89,17 +89,23 @@ export default function CostingReviewPage() {
 
   const documentsToReview = useMemo((): ReviewableDocument[] => {
     const docs: ReviewableDocument[] = [];
-    const hasMissingCost = (item: LineItem) => item.isNonStock && (!item.cost || item.cost === 0);
+    // Only non-stock items missing cost; skip returns (cost not meaningful for accounting)
+    const hasMissingCost = (item: LineItem) =>
+      item.isNonStock && !item.isReturn && (!item.cost || item.cost === 0);
 
     orders.forEach(order => {
+      // Skip voided orders — no point costing them
+      if (order.status === 'Voided') return;
       if (order.lineItems.some(hasMissingCost)) {
         docs.push({ ...order, docType: 'Order' });
       }
     });
 
     invoices.forEach(invoice => {
+      // Skip voided invoices
+      if (invoice.status === 'Voided') return;
       if (invoice.lineItems.some(hasMissingCost)) {
-         docs.push({ ...invoice, docType: 'Invoice' });
+        docs.push({ ...invoice, docType: 'Invoice' });
       }
     });
 
@@ -111,9 +117,11 @@ export default function CostingReviewPage() {
     setIsProcessing(order.id);
     try {
       await runTransaction(db, async (transaction) => {
+          // Strip the synthetic docType field before writing to Firestore
           const { id, ...orderData } = order;
+          const { docType: _docType, ...cleanOrderData } = orderData as any;
           const orderRef = doc(db, 'orders', id);
-          transaction.set(orderRef, orderData, { merge: true });
+          transaction.set(orderRef, cleanOrderData, { merge: true });
       });
       toast({ title: "Order Updated", description: `Order #${(order as any).orderNumber} has been updated.` });
       if (editingDoc?.id === order.id) setEditingDoc(null);
@@ -123,15 +131,17 @@ export default function CostingReviewPage() {
       setIsProcessing(null);
     }
   };
-  
+
   const handleSaveInvoice = async (invoice: Invoice) => {
     if (!db) return;
     setIsProcessing(invoice.id);
     try {
       await runTransaction(db, async (transaction) => {
+          // Strip the synthetic docType field before writing to Firestore
           const { id, ...invoiceData } = invoice;
+          const { docType: _docType, ...cleanInvoiceData } = invoiceData as any;
           const invoiceRef = doc(db, 'invoices', id);
-          transaction.set(invoiceRef, invoiceData, { merge: true });
+          transaction.set(invoiceRef, cleanInvoiceData, { merge: true });
       });
       toast({ title: "Invoice Updated", description: `Invoice #${(invoice as any).invoiceNumber} has been updated.` });
       if (editingDoc?.id === invoice.id) setEditingDoc(null);
@@ -161,13 +171,21 @@ export default function CostingReviewPage() {
     };
     
     const updatedLineItems = docToCost.lineItems.map(item => {
-      if (item.isNonStock && (!item.cost || item.cost === 0)) {
-        // Find the associated product category if the item was added to the list, or use a default.
+      // Skip return items and items that already have a cost
+      if (item.isNonStock && !item.isReturn && (!item.cost || item.cost === 0)) {
         const product = products.find(p => p.id === item.productId);
         const categoryForMarkup = item.newProductCategory || product?.category || undefined;
-        
+
         const markupPercent = getMarkupForCategory(categoryForMarkup);
-        const calculatedCost = item.unitPrice / (1 + markupPercent / 100);
+        const divisor = 1 + markupPercent / 100;
+
+        // Guard against divide-by-zero (e.g. markup = -100%)
+        if (divisor <= 0) {
+          toast({ title: "Auto-Cost Warning", description: `Skipped an item — markup of ${markupPercent}% would result in invalid cost.`, variant: "destructive" });
+          return item;
+        }
+
+        const calculatedCost = item.unitPrice / divisor;
 
         return {
           ...item,
@@ -222,33 +240,52 @@ export default function CostingReviewPage() {
                 <TableHead>Number</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead className="text-center">Items Missing Cost</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documentsToReview.length > 0 ? documentsToReview.map((doc) => (
+              {documentsToReview.length > 0 ? documentsToReview.map((doc) => {
+                const missingCount = doc.lineItems.filter(
+                  item => item.isNonStock && !item.isReturn && (!item.cost || item.cost === 0)
+                ).length;
+                const isFinalized = (doc as Invoice).isFinalized === true;
+                return (
                 <TableRow key={doc.id}>
                   <TableCell>
-                    <Badge variant={doc.docType === 'Order' ? 'secondary' : 'outline'}>
-                      {doc.docType}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={doc.docType === 'Order' ? 'secondary' : 'outline'}>
+                        {doc.docType}
+                      </Badge>
+                      {isFinalized && (
+                        <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs w-fit">
+                          <Icon name="Lock" className="mr-1 h-3 w-3" />Finalized
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{(doc as Order).orderNumber || (doc as Invoice).invoiceNumber}</TableCell>
                   <TableCell>{doc.customerName}</TableCell>
                   <TableCell>{new Date(doc.date).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="destructive" className="text-xs">
+                      {missingCount} {missingCount === 1 ? 'item' : 'items'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
-                     <Button variant="secondary" size="sm" onClick={() => handleAutoCost(doc)} disabled={isProcessing === doc.id}>
+                    <Button variant="secondary" size="sm" onClick={() => handleAutoCost(doc)} disabled={isProcessing === doc.id}>
                       {isProcessing === doc.id ? <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" /> : <Icon name="Calculator" className="mr-2 h-4 w-4" />}
-                       Auto-Cost
+                      Auto-Cost
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setEditingDoc(doc)} disabled={!!isProcessing}>
                       <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
                     </Button>
                   </TableCell>
                 </TableRow>
-              )) : (
+                );
+              }) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground p-6">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground p-6">
                         No documents require costing at this time.
                     </TableCell>
                 </TableRow>
