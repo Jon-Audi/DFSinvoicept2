@@ -733,7 +733,7 @@ export default function ChainlinkSettingsPage() {
     if (!wizardSuggestions) return null;
     const matched = !!wizardSuggestions[wizKey];
     return (
-      <div className="grid grid-cols-[1fr,300px] items-start gap-4 py-3 border-b last:border-0">
+      <div className="flex flex-col sm:grid sm:grid-cols-[1fr,260px] items-start gap-2 sm:gap-4 py-3 border-b last:border-0">
         <div>
           <div className="font-medium text-sm flex items-center gap-2">
             {label}
@@ -771,7 +771,7 @@ export default function ChainlinkSettingsPage() {
 
       {/* Auto-Match Wizard Dialog */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-        <DialogContent className="max-w-4xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <DialogContent className="max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
           <DialogHeader>
             <DialogTitle>Auto-Match Products Wizard</DialogTitle>
             <DialogDescription>
@@ -898,67 +898,38 @@ export default function ChainlinkSettingsPage() {
                 <div>
                   <h3 className="text-base font-semibold mb-1">Fabric</h3>
                   <p className="text-xs text-muted-foreground mb-3">Select fabric product per height and color combination.</p>
-                  <Tabs defaultValue="residential">
+                  <Tabs defaultValue="galvanized">
                     <TabsList className="mb-3">
-                      <TabsTrigger value="residential">Residential (3–6&apos;)</TabsTrigger>
-                      <TabsTrigger value="commercial">Commercial (6–10&apos;)</TabsTrigger>
+                      <TabsTrigger value="galvanized">Galvanized</TabsTrigger>
+                      <TabsTrigger value="green">Green</TabsTrigger>
+                      <TabsTrigger value="black">Black</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="residential">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-16">Height</TableHead>
-                            <TableHead>Galvanized</TableHead>
-                            <TableHead>Green</TableHead>
-                            <TableHead>Black</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {RES_HEIGHTS.map(height => (
-                            <TableRow key={height}>
-                              <TableCell className="font-medium">{height}&apos;</TableCell>
-                              {FENCE_COLORS.map(color => (
-                                <TableCell key={color} className="p-2">
+                    {FENCE_COLORS.map(color => (
+                      <TabsContent key={color} value={color}>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-20">Height</TableHead>
+                              <TableHead>Product</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {FENCE_HEIGHTS.map(height => (
+                              <TableRow key={height}>
+                                <TableCell className="font-medium">{height}&apos;</TableCell>
+                                <TableCell className="p-2">
                                   <ProductSelector
                                     products={products}
                                     currentValue={wizardSuggestions[`fabric_${color}_${height}`] ?? ''}
                                     onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`fabric_${color}_${height}`]: val } : prev)}
                                   />
                                 </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TabsContent>
-                    <TabsContent value="commercial">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-16">Height</TableHead>
-                            <TableHead>Galvanized</TableHead>
-                            <TableHead>Green</TableHead>
-                            <TableHead>Black</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {COMM_HEIGHTS.map(height => (
-                            <TableRow key={height}>
-                              <TableCell className="font-medium">{height}&apos;</TableCell>
-                              {FENCE_COLORS.map(color => (
-                                <TableCell key={color} className="p-2">
-                                  <ProductSelector
-                                    products={products}
-                                    currentValue={wizardSuggestions[`fabric_${color}_${height}`] ?? ''}
-                                    onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`fabric_${color}_${height}`]: val } : prev)}
-                                  />
-                                </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TabsContent>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
+                    ))}
                   </Tabs>
                 </div>
 
