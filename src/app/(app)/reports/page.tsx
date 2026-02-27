@@ -15,8 +15,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, isValid, startOfWeek, endOfWeek, addWeeks, isBefore, getISOWeek, subMonths, startOfQuarter, endOfQuarter } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
-import { collection, query, where, getDocs, Timestamp, doc, getDoc as getFirestoreDoc, orderBy } from 'firebase/firestore';
-import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem, ProfitSummaryItem, TopSellingProductsReportItem } from '@/types';
+import { collection, query, where, getDocs, Timestamp, doc, getDoc as getFirestoreDoc, orderBy, runTransaction } from 'firebase/firestore';
+import type { Invoice, Order, Customer, CompanySettings, CustomerInvoiceDetail, PaymentReportItem, Payment, WeeklySummaryReportItem, PaymentByTypeReportItem, ProfitReportItem, CustomerStatementReportData, CustomerStatementItem, SalesByCustomerReportItem, Product, ProductionHistoryItem, ReadyForPickupReportItem, ProfitSummaryItem, TopSellingProductsReportItem, Vendor } from '@/types';
 import { PrintableSalesReport } from '@/components/reports/printable-sales-report';
 import PrintableOrderReport from '@/components/reports/printable-order-report';
 import { PrintableOutstandingInvoicesReport } from '@/components/reports/printable-outstanding-invoices-report';
@@ -30,6 +30,8 @@ import { PrintableSalesByCustomerReport } from '@/components/reports/printable-s
 import { PrintableProductionReport } from '@/components/reports/printable-production-report';
 import { PrintableReadyForPickupReport } from '@/components/reports/printable-ready-for-pickup-report';
 import { PrintableTopSellingProductsReport } from '@/components/reports/printable-top-selling-products-report';
+import { InvoiceDialog } from '@/components/invoices/invoice-dialog';
+import { OrderDialog } from '@/components/orders/order-dialog';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +61,13 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [productCategories, setProductCategories] = useState<string[]>([]);
+  const [productSubcategories, setProductSubcategories] = useState<string[]>([]);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [categories, setCategories] = useState<string[]>([]);
@@ -78,42 +87,39 @@ export default function ReportsPage() {
   }, []);
 
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const fetchReferenceData = async () => {
       if (!db) return;
       setIsLoadingCustomers(true);
       try {
-        const customersSnapshot = await getDocs(collection(db, 'customers'));
+        const [customersSnap, productsSnap, vendorsSnap] = await Promise.all([
+          getDocs(collection(db, 'customers')),
+          getDocs(collection(db, 'products')),
+          getDocs(collection(db, 'vendors')),
+        ]);
         const fetchedCustomers: Customer[] = [];
-        customersSnapshot.forEach(docSnap => fetchedCustomers.push({ id: docSnap.id, ...docSnap.data() } as Customer));
+        customersSnap.forEach(docSnap => fetchedCustomers.push({ id: docSnap.id, ...docSnap.data() } as Customer));
         setCustomers(fetchedCustomers.sort((a, b) => (a.companyName || `${a.firstName} ${a.lastName}`).localeCompare(b.companyName || `${b.firstName} ${b.lastName}`)));
+        const fetchedProducts = productsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+        setProducts(fetchedProducts);
+        setProductCategories(Array.from(new Set(fetchedProducts.map(p => p.category))).sort());
+        setProductSubcategories(Array.from(new Set(fetchedProducts.map(p => p.subcategory).filter(Boolean) as string[])).sort());
+        setVendors(vendorsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Vendor)));
       } catch (error) {
-        toast({ title: "Error", description: "Could not fetch customers.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not fetch reference data.", variant: "destructive" });
       } finally {
         setIsLoadingCustomers(false);
       }
     };
-    fetchCustomers();
+    fetchReferenceData();
   }, [db, toast]);
 
+  // Categories for the Top Selling Products filter — derived from the products loaded on mount
+  // and also populated here from the already-fetched products state when it changes.
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (!db) return;
-      try {
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const uniqueCategories = new Set<string>();
-        productsSnapshot.forEach(docSnap => {
-          const product = docSnap.data() as Product;
-          if (product.category) {
-            uniqueCategories.add(product.category);
-          }
-        });
-        setCategories(Array.from(uniqueCategories).sort());
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    fetchCategories();
-  }, [db]);
+    if (products.length > 0) {
+      setCategories(Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort());
+    }
+  }, [products]);
 
   const handleDatePresetChange = (preset: DatePreset) => {
     setActiveDatePreset(preset);
@@ -801,6 +807,58 @@ export default function ReportsPage() {
     }
   };
 
+  const handleOpenDocument = async (id: string, type: 'Invoice' | 'Order') => {
+    if (!db) return;
+    setIsLoadingDoc(true);
+    try {
+      const ref = doc(db, type === 'Invoice' ? 'invoices' : 'orders', id);
+      const snap = await getFirestoreDoc(ref);
+      if (snap.exists()) {
+        const data = { id: snap.id, ...snap.data() };
+        if (type === 'Invoice') setViewingInvoice(data as Invoice);
+        else setViewingOrder(data as Order);
+      } else {
+        toast({ title: "Not found", description: `${type} not found.`, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: `Could not load ${type}.`, variant: "destructive" });
+    } finally {
+      setIsLoadingDoc(false);
+    }
+  };
+
+  const handleSaveInvoice = async (invoice: Invoice) => {
+    if (!db) return;
+    try {
+      await runTransaction(db, async (transaction) => {
+        const { id, ...invoiceData } = invoice;
+        const invoiceRef = doc(db, 'invoices', id);
+        transaction.set(invoiceRef, invoiceData, { merge: true });
+      });
+      toast({ title: "Invoice Updated", description: `Invoice #${invoice.invoiceNumber} has been saved.` });
+      setViewingInvoice(null);
+      handleGenerateReport();
+    } catch {
+      toast({ title: "Error", description: "Could not save invoice.", variant: "destructive" });
+    }
+  };
+
+  const handleSaveOrder = async (order: Order) => {
+    if (!db) return;
+    try {
+      await runTransaction(db, async (transaction) => {
+        const { id, ...orderData } = order;
+        const orderRef = doc(db, 'orders', id);
+        transaction.set(orderRef, orderData, { merge: true });
+      });
+      toast({ title: "Order Updated", description: `Order #${order.orderNumber} has been saved.` });
+      setViewingOrder(null);
+      handleGenerateReport();
+    } catch {
+      toast({ title: "Error", description: "Could not save order.", variant: "destructive" });
+    }
+  };
+
   const handlePrintReport = async (printReportType: ReportType) => {
     const dataForPrintCheck = (printReportType === 'profitabilitySummary') ? generatedProfitabilitySummaryData : generatedReportData;
     if (!dataForPrintCheck || (Array.isArray(dataForPrintCheck) && dataForPrintCheck.length === 0) || (dataForPrintCheck && (dataForPrintCheck as any).transactions && (dataForPrintCheck as any).transactions.length === 0)) {
@@ -1029,9 +1087,14 @@ export default function ReportsPage() {
                 </TableRow></TableHeader>
                 <TableBody>
                     {items.map((item) => (
-                        <TableRow key={item.documentId}>
+                        <TableRow key={item.documentId} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(item.documentId, item.documentType as 'Invoice' | 'Order')}>
                             <TableCell>{item.documentType}</TableCell>
-                            <TableCell>{item.documentNumber}</TableCell>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {item.documentNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell>{item.customerName}</TableCell>
                             <TableCell>{item.readyForPickUpDate ? format(new Date(item.readyForPickUpDate), 'P') : 'N/A'}</TableCell>
                             <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
@@ -1175,8 +1238,13 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                     {profitReportItems.map(item => (
-                        <TableRow key={item.invoiceId}>
-                            <TableCell>{item.invoiceNumber}</TableCell>
+                        <TableRow key={item.invoiceId} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(item.invoiceId, 'Invoice')}>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {item.invoiceNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell>{format(new Date(item.invoiceDate), 'P')}</TableCell>
                             <TableCell>{item.customerName}</TableCell>
                             <TableCell className="text-right">${item.invoiceTotal.toFixed(2)}</TableCell>
@@ -1216,9 +1284,14 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                     {reportData.map((item) => (
-                        <TableRow key={item.invoiceId}>
+                        <TableRow key={item.invoiceId} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(item.invoiceId, 'Invoice')}>
                             <TableCell>{item.customerName}</TableCell>
-                            <TableCell className="font-medium">{item.invoiceNumber}</TableCell>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {item.invoiceNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell className="text-muted-foreground">{item.poNumber || 'N/A'}</TableCell>
                             <TableCell>
                               <Badge variant={item.balanceDue > 0 ? 'destructive' : 'default'}>
@@ -1265,8 +1338,13 @@ export default function ReportsPage() {
                     const paid = (invoice.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
                     const outstanding = (invoice.total || 0) - paid;
                     return (
-                        <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                        <TableRow key={invoice.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(invoice.id, 'Invoice')}>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {invoice.invoiceNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell>{invoice.customerName || 'N/A'}</TableCell>
                             <TableCell>{format(new Date(invoice.date), 'P')}</TableCell>
                             <TableCell>
@@ -1358,8 +1436,13 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                     {invoices.map(invoice => (
-                        <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                        <TableRow key={invoice.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(invoice.id, 'Invoice')}>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {invoice.invoiceNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell>{format(new Date(invoice.date), 'P')}</TableCell>
                             <TableCell>{invoice.customerName || 'N/A'}</TableCell>
                             <TableCell>{getEmployeeNameFromEmail(invoice.createdBy)}</TableCell>
@@ -1393,8 +1476,13 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                     {orders.map(order => (
-                        <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                        <TableRow key={order.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpenDocument(order.id, 'Order')}>
+                            <TableCell className="font-medium">
+                              <span className="flex items-center gap-1.5 text-primary hover:underline">
+                                {order.orderNumber}
+                                <Icon name="ExternalLink" className="h-3 w-3 opacity-60" />
+                              </span>
+                            </TableCell>
                             <TableCell>{format(new Date(order.date), 'P')}</TableCell>
                             <TableCell>{order.customerName || 'N/A'}</TableCell>
                             <TableCell>{getEmployeeNameFromEmail(order.createdBy)}</TableCell>
@@ -1468,171 +1556,65 @@ export default function ReportsPage() {
           <CardTitle>Report Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-semibold mb-3 block">Select Report Type</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Financial Reports */}
-                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'sales' || reportType === 'salesByCustomer' || reportType === 'quarterlySummary' || reportType === 'topSellingProducts' ? "ring-2 ring-primary" : "")}>
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Icon name="DollarSign" className="h-4 w-4" />
-                      Sales & Revenue
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 space-y-1">
-                    <Button
-                      variant={reportType === 'sales' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('sales'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Sales Report
-                    </Button>
-                    <Button
-                      variant={reportType === 'salesByCustomer' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('salesByCustomer'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      By Customer
-                    </Button>
-                    <Button
-                      variant={reportType === 'topSellingProducts' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('topSellingProducts'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); setSelectedCategory('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Top Selling Products
-                    </Button>
-                    <Button
-                      variant={reportType === 'quarterlySummary' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('quarterlySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisQuarter'); }}
-                    >
-                      Quarterly Summary
-                    </Button>
-                  </CardContent>
-                </Card>
+          <div className="space-y-3">
+            <Label className="text-base font-semibold block">Select Report Type</Label>
+            <Tabs
+              value={
+                ['sales', 'salesByCustomer', 'topSellingProducts', 'quarterlySummary'].includes(reportType) ? 'sales' :
+                ['profitability', 'profitabilitySummary'].includes(reportType) ? 'profitability' :
+                ['payments', 'paymentByType', 'weeklySummary'].includes(reportType) ? 'payments' :
+                'operations'
+              }
+            >
+              <TabsList className="grid grid-cols-4 w-full">
+                <TabsTrigger value="sales" onClick={() => { if (!['sales','salesByCustomer','topSellingProducts','quarterlySummary'].includes(reportType)) { setReportType('sales'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); } }}>
+                  <Icon name="DollarSign" className="mr-1.5 h-4 w-4" />Sales
+                </TabsTrigger>
+                <TabsTrigger value="profitability" onClick={() => { if (!['profitability','profitabilitySummary'].includes(reportType)) { setReportType('profitability'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); } }}>
+                  <Icon name="TrendingUp" className="mr-1.5 h-4 w-4" />Profitability
+                </TabsTrigger>
+                <TabsTrigger value="payments" onClick={() => { if (!['payments','paymentByType','weeklySummary'].includes(reportType)) { setReportType('payments'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); } }}>
+                  <Icon name="CreditCard" className="mr-1.5 h-4 w-4" />Payments
+                </TabsTrigger>
+                <TabsTrigger value="operations" onClick={() => { if (!['orders','production','readyForPickup','customerBalances','statement'].includes(reportType)) { setReportType('orders'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); } }}>
+                  <Icon name="Package" className="mr-1.5 h-4 w-4" />Operations
+                </TabsTrigger>
+              </TabsList>
 
-                {/* Profitability Reports */}
-                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'profitability' || reportType === 'profitabilitySummary' ? "ring-2 ring-primary" : "")}>
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Icon name="TrendingUp" className="h-4 w-4" />
-                      Profitability
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 space-y-1">
-                    <Button
-                      variant={reportType === 'profitability' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('profitability'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Detailed Report
-                    </Button>
-                    <Button
-                      variant={reportType === 'profitabilitySummary' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('profitabilitySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Summary
-                    </Button>
-                  </CardContent>
-                </Card>
+              <TabsContent value="sales" className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant={reportType === 'sales' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('sales'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Sales Report</Button>
+                  <Button variant={reportType === 'salesByCustomer' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('salesByCustomer'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>By Customer</Button>
+                  <Button variant={reportType === 'topSellingProducts' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('topSellingProducts'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); setSelectedCategory('all'); handleDatePresetChange('thisMonth'); }}>Top Selling Products</Button>
+                  <Button variant={reportType === 'quarterlySummary' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('quarterlySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisQuarter'); }}>Quarterly Summary</Button>
+                </div>
+              </TabsContent>
 
-                {/* Payment Reports */}
-                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'payments' || reportType === 'paymentByType' || reportType === 'weeklySummary' ? "ring-2 ring-primary" : "")}>
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Icon name="CreditCard" className="h-4 w-4" />
-                      Payments
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 space-y-1">
-                    <Button
-                      variant={reportType === 'payments' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('payments'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      All Payments
-                    </Button>
-                    <Button
-                      variant={reportType === 'paymentByType' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('paymentByType'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      By Type
-                    </Button>
-                    <Button
-                      variant={reportType === 'weeklySummary' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('weeklySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Weekly Summary
-                    </Button>
-                  </CardContent>
-                </Card>
+              <TabsContent value="profitability" className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant={reportType === 'profitability' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('profitability'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Detailed Report</Button>
+                  <Button variant={reportType === 'profitabilitySummary' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('profitabilitySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Summary</Button>
+                </div>
+              </TabsContent>
 
-                {/* Operations Reports */}
-                <Card className={cn("cursor-pointer transition-all hover:shadow-md", reportType === 'orders' || reportType === 'production' || reportType === 'readyForPickup' || reportType === 'statement' || reportType === 'customerBalances' ? "ring-2 ring-primary" : "")}>
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Icon name="Package" className="h-4 w-4" />
-                      Operations
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 space-y-1">
-                    <Button
-                      variant={reportType === 'orders' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('orders'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Orders
-                    </Button>
-                    <Button
-                      variant={reportType === 'production' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('production'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Production
-                    </Button>
-                    <Button
-                      variant={reportType === 'readyForPickup' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('readyForPickup'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Ready for Pickup
-                    </Button>
-                    <Button
-                      variant={reportType === 'customerBalances' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('customerBalances'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Outstanding
-                    </Button>
-                    <Button
-                      variant={reportType === 'statement' ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => { setReportType('statement'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}
-                    >
-                      Statement
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+              <TabsContent value="payments" className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant={reportType === 'payments' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('payments'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>All Payments</Button>
+                  <Button variant={reportType === 'paymentByType' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('paymentByType'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>By Type</Button>
+                  <Button variant={reportType === 'weeklySummary' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('weeklySummary'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Weekly Summary</Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="operations" className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant={reportType === 'orders' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('orders'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Orders</Button>
+                  <Button variant={reportType === 'production' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('production'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Production</Button>
+                  <Button variant={reportType === 'readyForPickup' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('readyForPickup'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Ready for Pickup</Button>
+                  <Button variant={reportType === 'customerBalances' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('customerBalances'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Outstanding</Button>
+                  <Button variant={reportType === 'statement' ? 'default' : 'outline'} size="sm" onClick={() => { setReportType('statement'); setGeneratedReportData(null); setGeneratedProfitabilitySummaryData(null); setSelectedCustomerId('all'); handleDatePresetChange('thisMonth'); }}>Statement</Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {datePresetsToRender.length > 0 && (
@@ -1788,12 +1770,50 @@ export default function ReportsPage() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>{reportTitleForSummary || 'Generated Report'}</CardTitle>
-             <CardContent className="pt-4 px-0">
-                {renderReportSummary()}
-                <div className="mt-4">{renderReportTable()}</div>
-            </CardContent>
           </CardHeader>
+          <CardContent>
+            {renderReportSummary()}
+            <div className="mt-4">{renderReportTable()}</div>
+          </CardContent>
         </Card>
+      )}
+
+      {isLoadingDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {viewingInvoice && (
+        <InvoiceDialog
+          isOpen={!!viewingInvoice}
+          onOpenChange={(o) => { if (!o) setViewingInvoice(null); }}
+          invoice={viewingInvoice}
+          onSave={handleSaveInvoice}
+          onSaveProduct={() => Promise.resolve()}
+          onSaveCustomer={() => Promise.resolve()}
+          customers={customers}
+          products={products}
+          vendors={vendors}
+          productCategories={productCategories}
+          productSubcategories={productSubcategories}
+        />
+      )}
+
+      {viewingOrder && (
+        <OrderDialog
+          isOpen={!!viewingOrder}
+          onOpenChange={(o) => { if (!o) setViewingOrder(null); }}
+          order={viewingOrder}
+          onSave={handleSaveOrder}
+          onSaveProduct={() => Promise.resolve()}
+          onSaveCustomer={() => Promise.resolve()}
+          customers={customers}
+          products={products}
+          vendors={vendors}
+          productCategories={productCategories}
+          productSubcategories={productSubcategories}
+        />
       )}
 
       <div style={{ display: 'none' }}>
