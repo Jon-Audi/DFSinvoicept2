@@ -609,6 +609,29 @@ export function InvoiceForm({
     }
   };
 
+  const handleAutoCostItem = (index: number) => {
+    const DEFAULT_MARKUP_PERCENT = 35;
+    const customerId = form.getValues('customerId');
+    const unitPrice = form.getValues(`lineItems.${index}.unitPrice`) || 0;
+    const newProductCategory = form.getValues(`lineItems.${index}.newProductCategory` as any);
+    const productId = form.getValues(`lineItems.${index}.productId`);
+    if (unitPrice <= 0) return;
+    const customer = customers.find(c => c.id === customerId);
+    const product = products.find(p => p.id === productId);
+    const categoryForMarkup = newProductCategory || product?.category;
+    let markupPercent = DEFAULT_MARKUP_PERCENT;
+    if (customer?.specificMarkups?.length) {
+      const specificRule = customer.specificMarkups.find(m => m.categoryName === categoryForMarkup);
+      const allCategoriesRule = customer.specificMarkups.find(m => m.categoryName === ALL_CATEGORIES_MARKUP_KEY);
+      if (specificRule) markupPercent = specificRule.markupPercentage;
+      else if (allCategoriesRule) markupPercent = allCategoriesRule.markupPercentage;
+    }
+    const divisor = 1 + markupPercent / 100;
+    if (divisor <= 0) return;
+    form.setValue(`lineItems.${index}.cost`, parseFloat((unitPrice / divisor).toFixed(2)));
+    form.setValue(`lineItems.${index}.markupPercentage`, markupPercent);
+  };
+
   const handleClearForm = () => {
     // Clear saved draft
     clearSavedFormData(AUTO_SAVE_KEY);
@@ -847,6 +870,12 @@ export function InvoiceForm({
                             <FormItem><FormLabel>Unit Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} onChange={e => handleNonStockPriceChange(index, parseFloat(e.target.value) || 0, 'price')} /></FormControl><FormMessage /></FormItem>
                         )} />
                     </div>
+                    {!isReturn && (!currentLineItem?.cost || currentLineItem.cost === 0) && unitPrice > 0 && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleAutoCostItem(index)} className="text-xs gap-1.5 h-7">
+                        <Icon name="Calculator" className="h-3.5 w-3.5" />
+                        Auto-Cost from Price
+                      </Button>
+                    )}
                      <FormField
                     control={form.control}
                     name={`lineItems.${index}.addToProductList`}
