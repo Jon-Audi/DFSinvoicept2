@@ -809,7 +809,7 @@ export default function ChainlinkSettingsPage() {
 
       {/* Auto-Match Wizard Dialog */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-        <DialogContent className="max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        <DialogContent className="max-w-4xl flex flex-col" style={{ maxHeight: '90vh' }}>
           <DialogHeader>
             <DialogTitle>Auto-Match Products Wizard</DialogTitle>
             <DialogDescription>
