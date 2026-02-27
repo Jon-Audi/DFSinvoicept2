@@ -86,6 +86,7 @@ import {
   KeyRound,
   UserPlus,
   Type,
+  Wand2,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -179,6 +180,7 @@ const iconComponents = {
   KeyRound,
   UserPlus,
   Type,
+  Wand2,
 };
 
 type IconProps = {

@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from '@/components/firebase-provider';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
@@ -23,6 +24,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tabs,
   TabsContent,
@@ -49,14 +58,125 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ChainlinkProductMapping, ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkFenceColor, Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CHAINLINK_SETTINGS_DOC_ID = "chainlinkProductMapping";
 const FENCE_HEIGHTS: ChainlinkFenceHeight[] = ['3', '4', '5', '6', '7', '8', '9', '10'];
 const FENCE_COLORS: ChainlinkFenceColor[] = ['galvanized', 'green', 'black'];
+const RES_HEIGHTS: ChainlinkFenceHeight[] = ['3', '4', '5', '6'];
+const COMM_HEIGHTS: ChainlinkFenceHeight[] = ['6', '7', '8', '9', '10'];
+const COMM_SM_HEIGHTS: ChainlinkFenceHeight[] = ['6', '7'];
+const COMM_LG_HEIGHTS: ChainlinkFenceHeight[] = ['8', '9', '10'];
 
-// Product selector component
+// ─── Wizard Types ─────────────────────────────────────────────────────────────
+
+interface WizardSuggestions {
+  // Residential posts (2" OD terminal, 1 5/8" SS20 line)
+  resTerminalPost: string;
+  resLinePost: string;
+  // Commercial heights 6-7' (2 1/2" SS40 terminal, 2" SS20 line)
+  commSmTerminalPost: string;
+  commSmLinePost: string;
+  // Commercial heights 8-10' (3" SS40 terminal, 2 1/2" line)
+  commLgTerminalPost: string;
+  commLgLinePost: string;
+  // Rails
+  resTopRail: string;
+  commTopRail: string;
+  bottomRail: string;
+  railEnds: string;
+  // Hardware
+  tieWire: string;
+  loopCap: string;
+  postCap: string;
+  braceBand: string;
+  tensionBar: string;
+  tensionBand: string;
+  nutAndBolt: string;
+  // Gate components
+  singleGate: string;
+  doubleGate: string;
+  pedestrianGate: string;
+  gateHardwareSet: string;
+  gateLatch: string;
+  gateHinge: string;
+  // Extras
+  privacySlats: string;
+  barbedWire: string;
+  // Fabric per color × height (fabric_{color}_{height})
+  [key: string]: string;
+}
+
+// ─── Auto-Match Logic ──────────────────────────────────────────────────────────
+
+function findBestMatch(products: Product[], keywords: string[]): string {
+  let bestId = '';
+  let bestScore = 0;
+  for (const product of products) {
+    const name = product.name.toLowerCase();
+    let score = 0;
+    for (const kw of keywords) {
+      if (name.includes(kw.toLowerCase())) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = product.id;
+    }
+  }
+  return bestId;
+}
+
+function buildWizardSuggestions(products: Product[]): WizardSuggestions {
+  const match = (keywords: string[]) => findBestMatch(products, keywords);
+
+  const fabricSuggestions: Record<string, string> = {};
+  FENCE_COLORS.forEach(color => {
+    FENCE_HEIGHTS.forEach(height => {
+      fabricSuggestions[`fabric_${color}_${height}`] = match([
+        height + "'",
+        'fabric',
+        color === 'galvanized' ? 'galv' : color,
+        'chainlink',
+        'chain link',
+        'fence fabric',
+      ]);
+    });
+  });
+
+  return {
+    resTerminalPost: match(['2"', 'terminal', 'post']),
+    resLinePost: match(['1 5/8', 'line', 'post', 'ss20']),
+    commSmTerminalPost: match(['2 1/2', 'terminal', 'post', 'ss40']),
+    commSmLinePost: match(['2"', 'line', 'post', 'ss20']),
+    commLgTerminalPost: match(['3"', 'terminal', 'post', 'ss40']),
+    commLgLinePost: match(['2 1/2', 'line', 'post']),
+    resTopRail: match(['1 3/8', 'top rail', '065']),
+    commTopRail: match(['1 5/8', 'top rail', '21']),
+    bottomRail: match(['bottom rail']),
+    railEnds: match(['rail end']),
+    tieWire: match(['tie wire']),
+    loopCap: match(['loop cap', 'loop']),
+    postCap: match(['post cap']),
+    braceBand: match(['brace band']),
+    tensionBar: match(['tension bar']),
+    tensionBand: match(['tension band']),
+    nutAndBolt: match(['nut', 'bolt']),
+    singleGate: match(['single gate']),
+    doubleGate: match(['double gate']),
+    pedestrianGate: match(['pedestrian', 'walk gate', 'man gate']),
+    gateHardwareSet: match(['gate hardware', 'hardware set']),
+    gateLatch: match(['latch']),
+    gateHinge: match(['hinge']),
+    privacySlats: match(['privacy', 'slat']),
+    barbedWire: match(['barbed', 'barb wire']),
+    ...fabricSuggestions,
+  };
+}
+
+// ─── Product Selector Component ───────────────────────────────────────────────
+
 interface ProductSelectorProps {
   products: Product[];
   currentValue: string;
@@ -130,6 +250,8 @@ function ProductSelector({ products, currentValue, onSelect }: ProductSelectorPr
   );
 }
 
+// ─── Main Page Component ──────────────────────────────────────────────────────
+
 export default function ChainlinkSettingsPage() {
   const { db } = useFirebase();
   const [residentialMapping, setResidentialMapping] = useState<Record<string, Record<string, ChainlinkProductMapping>>>({});
@@ -138,6 +260,10 @@ export default function ChainlinkSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  // Wizard state
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardSuggestions, setWizardSuggestions] = useState<WizardSuggestions | null>(null);
 
   useEffect(() => {
     if (!db) return;
@@ -159,32 +285,29 @@ export default function ChainlinkSettingsPage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // Convert old format to new color-based format if needed
           const residentialData = data.residential || {};
           const commercialData = data.commercial || {};
-          
-          // Convert to color-based structure if not already
-          const convertToColorBased = (mappings: any) => {
+
+          const convertToColorBased = (mappings: Record<string, unknown>, fenceType: ChainlinkFenceType) => {
             const converted: Record<string, Record<string, ChainlinkProductMapping>> = {};
             FENCE_COLORS.forEach(color => {
               converted[color] = {};
               FENCE_HEIGHTS.forEach(height => {
                 const key = `${height}-${color}`;
-                converted[color][height] = mappings[key] || mappings[height] || {
-                  id: `${mappings.fenceType || 'residential'}-${height}-${color}`,
+                converted[color][height] = (mappings[key] as ChainlinkProductMapping) || (mappings[height] as ChainlinkProductMapping) || {
+                  id: `${fenceType}-${height}-${color}`,
                   fenceHeight: height,
-                  fenceType: mappings.fenceType || 'residential',
-                  color: color,
+                  fenceType,
+                  color,
                 };
               });
             });
             return converted;
           };
-          
-          setResidentialMapping(convertToColorBased({ ...residentialData, fenceType: 'residential' }));
-          setCommercialMapping(convertToColorBased({ ...commercialData, fenceType: 'commercial' }));
+
+          setResidentialMapping(convertToColorBased(residentialData, 'residential'));
+          setCommercialMapping(convertToColorBased(commercialData, 'commercial'));
         } else {
-          // Initialize with default empty mappings
           initializeDefaultMappings();
         }
       } catch (error) {
@@ -205,7 +328,7 @@ export default function ChainlinkSettingsPage() {
     FENCE_COLORS.forEach(color => {
       defaultResidential[color] = {};
       defaultCommercial[color] = {};
-      
+
       FENCE_HEIGHTS.forEach(height => {
         defaultResidential[color][height] = {
           id: `residential-${height}-${color}`,
@@ -299,6 +422,108 @@ export default function ChainlinkSettingsPage() {
     }
   };
 
+  // ─── Wizard Handlers ──────────────────────────────────────────────────────
+
+  const handleOpenWizard = () => {
+    const suggestions = buildWizardSuggestions(products);
+    setWizardSuggestions(suggestions);
+    setIsWizardOpen(true);
+  };
+
+  const handleApplyWizard = () => {
+    if (!wizardSuggestions) return;
+
+    const s = wizardSuggestions;
+
+    // Build complete new mappings from current state
+    const newRes: Record<string, Record<string, ChainlinkProductMapping>> = JSON.parse(JSON.stringify(residentialMapping));
+    const newComm: Record<string, Record<string, ChainlinkProductMapping>> = JSON.parse(JSON.stringify(commercialMapping));
+
+    const applyField = (
+      target: Record<string, Record<string, ChainlinkProductMapping>>,
+      type: ChainlinkFenceType,
+      heights: ChainlinkFenceHeight[],
+      colors: ChainlinkFenceColor[],
+      fields: string[],
+      productId: string
+    ) => {
+      if (!productId) return;
+      colors.forEach(color => {
+        if (!target[color]) target[color] = {};
+        heights.forEach(height => {
+          if (!target[color][height]) {
+            target[color][height] = { id: `${type}-${height}-${color}`, fenceHeight: height, fenceType: type, color };
+          }
+          fields.forEach(f => {
+            (target[color][height] as unknown as Record<string, unknown>)[f] = productId;
+          });
+        });
+      });
+    };
+
+    const ALL_COLORS = FENCE_COLORS;
+
+    // Posts
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.resTerminalPost);
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.resLinePost);
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.commSmTerminalPost);
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.commSmLinePost);
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.commLgTerminalPost);
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.commLgLinePost);
+
+    // Rails
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['topRailProductId'], s.resTopRail);
+    applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['topRailProductId'], s.commTopRail);
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['bottomRailProductId'], s.bottomRail);
+    applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['bottomRailProductId'], s.bottomRail);
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['railEndsProductId'], s.railEnds);
+    applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['railEndsProductId'], s.railEnds);
+
+    // Universal hardware (same for all type/height/color)
+    const universalFields: [keyof WizardSuggestions, string][] = [
+      ['tieWire', 'tieWireProductId'],
+      ['loopCap', 'loopCapProductId'],
+      ['postCap', 'postCapProductId'],
+      ['braceBand', 'braceBandProductId'],
+      ['tensionBar', 'tensionBarProductId'],
+      ['tensionBand', 'tensionBandProductId'],
+      ['nutAndBolt', 'nutAndBoltProductId'],
+      ['singleGate', 'singleGateFrameProductId'],
+      ['doubleGate', 'doubleGateFrameProductId'],
+      ['pedestrianGate', 'pedestrianGateFrameProductId'],
+      ['gateHardwareSet', 'gateHardwareSetProductId'],
+      ['gateLatch', 'gateLatchProductId'],
+      ['gateHinge', 'gateHingeProductId'],
+      ['privacySlats', 'privacySlatsProductId'],
+      ['barbedWire', 'barbedWireProductId'],
+    ];
+
+    universalFields.forEach(([key, field]) => {
+      const val = s[key as string] ?? '';
+      applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, [field], val);
+      applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, [field], val);
+    });
+
+    // Fabric per color × height
+    FENCE_COLORS.forEach(color => {
+      FENCE_HEIGHTS.forEach(height => {
+        const val = s[`fabric_${color}_${height}`] ?? '';
+        if (!val) return;
+        const isRes = (RES_HEIGHTS as string[]).includes(height);
+        const isComm = (COMM_HEIGHTS as string[]).includes(height);
+        if (isRes) applyField(newRes, 'residential', [height], [color], ['fabricProductId'], val);
+        if (isComm) applyField(newComm, 'commercial', [height], [color], ['fabricProductId'], val);
+      });
+    });
+
+    setResidentialMapping(newRes);
+    setCommercialMapping(newComm);
+    setIsWizardOpen(false);
+    toast({ title: "Suggestions Applied", description: "All matches applied. Click Save Mappings to persist to the database." });
+  };
+
+  // ─── Render Helpers ───────────────────────────────────────────────────────
+
   const renderProductSelect = (
     type: ChainlinkFenceType,
     height: ChainlinkFenceHeight,
@@ -336,7 +561,7 @@ export default function ChainlinkSettingsPage() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Label className="font-semibold">Color:</Label>
             <Select value={selectedColor} onValueChange={(value) => setSelectedColor(value as ChainlinkFenceColor)}>
@@ -390,10 +615,12 @@ export default function ChainlinkSettingsPage() {
                 <div className="grid grid-cols-[150px,1fr] items-center gap-4">
                   <Label>Bottom Rail</Label>
                   {renderProductSelect(type, selectedHeight, selectedColor, 'bottomRailProductId')}
-                </div>                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
+                </div>
+                <div className="grid grid-cols-[150px,1fr] items-center gap-4">
                   <Label>Rail Ends</Label>
                   {renderProductSelect(type, selectedHeight, selectedColor, 'railEndsProductId')}
-                </div>              </div>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -481,6 +708,8 @@ export default function ChainlinkSettingsPage() {
     );
   };
 
+  // ─── Loading State ─────────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <>
@@ -493,23 +722,264 @@ export default function ChainlinkSettingsPage() {
     );
   }
 
+  // ─── Wizard Row Component (inline helper) ─────────────────────────────────
+
+  const WizardRow = ({ label, specNote, appliesTo, wizKey }: {
+    label: string;
+    specNote?: string;
+    appliesTo: string;
+    wizKey: string;
+  }) => {
+    if (!wizardSuggestions) return null;
+    const matched = !!wizardSuggestions[wizKey];
+    return (
+      <div className="grid grid-cols-[1fr,300px] items-start gap-4 py-3 border-b last:border-0">
+        <div>
+          <div className="font-medium text-sm flex items-center gap-2">
+            {label}
+            {matched && <Badge variant="secondary" className="text-xs">matched</Badge>}
+          </div>
+          {specNote && <div className="text-xs text-muted-foreground mt-0.5">{specNote}</div>}
+          <div className="text-xs text-muted-foreground mt-0.5 italic">{appliesTo}</div>
+        </div>
+        <ProductSelector
+          products={products}
+          currentValue={wizardSuggestions[wizKey] ?? ''}
+          onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [wizKey]: val } : prev)}
+        />
+      </div>
+    );
+  };
+
+  // ─── Main Render ───────────────────────────────────────────────────────────
+
   return (
     <>
       <PageHeader
         title="Chainlink Product Mapping"
         description="Map your products to chainlink fence components for automatic estimation."
       >
+        <Button variant="outline" onClick={handleOpenWizard} disabled={products.length === 0}>
+          <Icon name="Wand2" className="mr-2 h-4 w-4" />
+          Auto-Match Wizard
+        </Button>
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
           Save Mappings
         </Button>
       </PageHeader>
 
+      {/* Auto-Match Wizard Dialog */}
+      <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
+        <DialogContent className="max-w-4xl flex flex-col" style={{ maxHeight: '90vh' }}>
+          <DialogHeader>
+            <DialogTitle>Auto-Match Products Wizard</DialogTitle>
+            <DialogDescription>
+              Your product catalog has been scanned and suggestions matched by keyword. Review and adjust before applying to all fence configurations.
+            </DialogDescription>
+          </DialogHeader>
+
+          {wizardSuggestions && (
+            <ScrollArea className="flex-1 overflow-y-auto pr-4" style={{ maxHeight: 'calc(90vh - 180px)' }}>
+              <div className="space-y-8 py-2">
+
+                {/* Posts */}
+                <div>
+                  <h3 className="text-base font-semibold mb-1">Post Specifications</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Grouped by pipe spec — each selection fills all matching heights and colors.</p>
+                  <div className="rounded-md border px-4">
+                    <WizardRow
+                      label="Residential Terminal / Corner / Gate Post"
+                      specNote='2" OD — fills terminal, corner & gate post slots'
+                      appliesTo="Residential 3–6', all colors"
+                      wizKey="resTerminalPost"
+                    />
+                    <WizardRow
+                      label="Residential Line Post"
+                      specNote='1 5/8" SS20'
+                      appliesTo="Residential 3–6', all colors"
+                      wizKey="resLinePost"
+                    />
+                    <WizardRow
+                      label="Commercial Terminal / Corner / Gate Post (6–7')"
+                      specNote='2 1/2" SS40'
+                      appliesTo="Commercial 6–7', all colors"
+                      wizKey="commSmTerminalPost"
+                    />
+                    <WizardRow
+                      label="Commercial Line Post (6–7')"
+                      specNote='2" SS20'
+                      appliesTo="Commercial 6–7', all colors"
+                      wizKey="commSmLinePost"
+                    />
+                    <WizardRow
+                      label="Commercial Terminal / Corner / Gate Post (8–10')"
+                      specNote='3" SS40'
+                      appliesTo="Commercial 8–10', all colors"
+                      wizKey="commLgTerminalPost"
+                    />
+                    <WizardRow
+                      label="Commercial Line Post (8–10')"
+                      specNote='2 1/2"'
+                      appliesTo="Commercial 8–10', all colors"
+                      wizKey="commLgLinePost"
+                    />
+                  </div>
+                </div>
+
+                {/* Rails */}
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Rails & Connectivity</h3>
+                  <div className="rounded-md border px-4">
+                    <WizardRow
+                      label="Top Rail (Residential)"
+                      specNote={`1 3/8" × 21' (065 wall)`}
+                      appliesTo="Residential 3–6', all colors"
+                      wizKey="resTopRail"
+                    />
+                    <WizardRow
+                      label="Top Rail (Commercial)"
+                      specNote={`1 5/8" × 21'`}
+                      appliesTo="Commercial 6–10', all colors"
+                      wizKey="commTopRail"
+                    />
+                    <WizardRow
+                      label="Bottom Rail"
+                      appliesTo="All heights & colors, both types"
+                      wizKey="bottomRail"
+                    />
+                    <WizardRow
+                      label="Rail Ends"
+                      appliesTo="All heights & colors, both types"
+                      wizKey="railEnds"
+                    />
+                  </div>
+                </div>
+
+                {/* Hardware */}
+                <div>
+                  <h3 className="text-base font-semibold mb-1">Hardware</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Applied to all heights, colors, and fence types.</p>
+                  <div className="rounded-md border px-4">
+                    <WizardRow label="Tie Wire" appliesTo="All configurations" wizKey="tieWire" />
+                    <WizardRow label="Loop Cap" appliesTo="All configurations" wizKey="loopCap" />
+                    <WizardRow label="Post Cap" appliesTo="All configurations" wizKey="postCap" />
+                    <WizardRow label="Brace Band" appliesTo="All configurations" wizKey="braceBand" />
+                    <WizardRow label="Tension Bar" appliesTo="All configurations" wizKey="tensionBar" />
+                    <WizardRow label="Tension Band" appliesTo="All configurations" wizKey="tensionBand" />
+                    <WizardRow label="Nut & Bolt" appliesTo="All configurations" wizKey="nutAndBolt" />
+                  </div>
+                </div>
+
+                {/* Gate Components */}
+                <div>
+                  <h3 className="text-base font-semibold mb-1">Gate Components</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Applied to all heights, colors, and fence types.</p>
+                  <div className="rounded-md border px-4">
+                    <WizardRow label="Single Gate Frame" appliesTo="All configurations" wizKey="singleGate" />
+                    <WizardRow label="Double Gate Frame" appliesTo="All configurations" wizKey="doubleGate" />
+                    <WizardRow label="Pedestrian Gate Frame" appliesTo="All configurations" wizKey="pedestrianGate" />
+                    <WizardRow label="Gate Hardware Set" appliesTo="All configurations" wizKey="gateHardwareSet" />
+                    <WizardRow label="Gate Latch" appliesTo="All configurations" wizKey="gateLatch" />
+                    <WizardRow label="Gate Hinge" appliesTo="All configurations" wizKey="gateHinge" />
+                  </div>
+                </div>
+
+                {/* Extras */}
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Extras</h3>
+                  <div className="rounded-md border px-4">
+                    <WizardRow label="Privacy Slats" appliesTo="All configurations" wizKey="privacySlats" />
+                    <WizardRow label="Barbed Wire" appliesTo="All configurations" wizKey="barbedWire" />
+                  </div>
+                </div>
+
+                {/* Fabric */}
+                <div>
+                  <h3 className="text-base font-semibold mb-1">Fabric</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Select fabric product per height and color combination.</p>
+                  <Tabs defaultValue="residential">
+                    <TabsList className="mb-3">
+                      <TabsTrigger value="residential">Residential (3–6&apos;)</TabsTrigger>
+                      <TabsTrigger value="commercial">Commercial (6–10&apos;)</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="residential">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-16">Height</TableHead>
+                            <TableHead>Galvanized</TableHead>
+                            <TableHead>Green</TableHead>
+                            <TableHead>Black</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {RES_HEIGHTS.map(height => (
+                            <TableRow key={height}>
+                              <TableCell className="font-medium">{height}&apos;</TableCell>
+                              {FENCE_COLORS.map(color => (
+                                <TableCell key={color} className="p-2">
+                                  <ProductSelector
+                                    products={products}
+                                    currentValue={wizardSuggestions[`fabric_${color}_${height}`] ?? ''}
+                                    onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`fabric_${color}_${height}`]: val } : prev)}
+                                  />
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TabsContent>
+                    <TabsContent value="commercial">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-16">Height</TableHead>
+                            <TableHead>Galvanized</TableHead>
+                            <TableHead>Green</TableHead>
+                            <TableHead>Black</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {COMM_HEIGHTS.map(height => (
+                            <TableRow key={height}>
+                              <TableCell className="font-medium">{height}&apos;</TableCell>
+                              {FENCE_COLORS.map(color => (
+                                <TableCell key={color} className="p-2">
+                                  <ProductSelector
+                                    products={products}
+                                    currentValue={wizardSuggestions[`fabric_${color}_${height}`] ?? ''}
+                                    onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`fabric_${color}_${height}`]: val } : prev)}
+                                  />
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+              </div>
+            </ScrollArea>
+          )}
+
+          <DialogFooter className="border-t pt-4 mt-2 flex-shrink-0">
+            <Button variant="outline" onClick={() => setIsWizardOpen(false)}>Cancel</Button>
+            <Button onClick={handleApplyWizard} disabled={!wizardSuggestions}>
+              Apply All Suggestions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle>Product Assignments by Fence Type</CardTitle>
           <CardDescription>
-            Select products from your inventory for each chainlink component. Prices will be pulled from your product database.
+            Select products from your inventory for each chainlink component. Use the <strong>Auto-Match Wizard</strong> to scan your catalog and fill all slots at once.
           </CardDescription>
         </CardHeader>
         <CardContent>
