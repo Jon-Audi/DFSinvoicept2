@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/icons';
@@ -638,6 +639,13 @@ export default function ChainlinkEstimationPage() {
     }
   };
 
+  // Print ref for gate cut sheet
+  const gatePrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintGate = useReactToPrint({
+    contentRef: gatePrintRef,
+    documentTitle: `Gate-Cut-Sheet${gateJobName ? `-${gateJobName}` : ''}`,
+  });
+
   const handleCalculateGate = () => {
     const w = parseFloat(gateWidthIn);
     const h = parseFloat(gateHeightIn);
@@ -667,6 +675,116 @@ export default function ChainlinkEstimationPage() {
     setIncludeHBrace(false);
     setIncludeVBrace(false);
     setGateResult(null);
+  };
+
+  const convertGateToEstimate = async () => {
+    if (!gateResult) return;
+
+    // Try to load hardware products from chainlink mapping
+    let hardwareProducts: { hinges?: Product; latch?: Product; hardwareSet?: Product } = {};
+    if (db) {
+      try {
+        const settingsSnap = await getDoc(doc(db, 'settings', 'chainlinkProductMapping'));
+        if (settingsSnap.exists()) {
+          const mappingData = settingsSnap.data();
+          const mapping: ChainlinkProductMapping | undefined = mappingData[fenceType]?.[fenceColor]?.[fenceHeight];
+          if (mapping) {
+            const productsSnap = await getDocs(collection(db, 'products'));
+            const productsMap = new Map<string, Product>();
+            productsSnap.forEach(d => productsMap.set(d.id, { ...d.data() as Omit<Product, 'id'>, id: d.id }));
+            if (mapping.gateHingeProductId) hardwareProducts.hinges = productsMap.get(mapping.gateHingeProductId);
+            if (mapping.gateLatchProductId) hardwareProducts.latch = productsMap.get(mapping.gateLatchProductId);
+            if (mapping.gateHardwareSetProductId) hardwareProducts.hardwareSet = productsMap.get(mapping.gateHardwareSetProductId);
+          }
+        }
+      } catch { /* use non-stock items */ }
+    }
+
+    const hingeCount = gateResult.leafs === 2 ? 4 : 2;
+    const lineItems: LineItem[] = [];
+
+    // Frame pipe — always non-stock (no pipe product mapped by diameter)
+    lineItems.push({
+      id: crypto.randomUUID(),
+      productName: `Gate Frame Pipe ${frameDiameter} OD`,
+      quantity: gateResult.totalPipeFeet,
+      unit: 'ft',
+      unitPrice: 0,
+      total: 0,
+      isNonStock: true,
+      cost: 0,
+      markupPercentage: 0,
+    });
+
+    // Hinges
+    if (hardwareProducts.hinges) {
+      lineItems.push({
+        id: crypto.randomUUID(),
+        productId: hardwareProducts.hinges.id,
+        productName: hardwareProducts.hinges.name,
+        quantity: hingeCount,
+        unit: hardwareProducts.hinges.unit || 'ea',
+        unitPrice: hardwareProducts.hinges.price || 0,
+        total: (hardwareProducts.hinges.price || 0) * hingeCount,
+        cost: hardwareProducts.hinges.cost || 0,
+        markupPercentage: hardwareProducts.hinges.markupPercentage || 0,
+        isNonStock: false,
+      });
+    } else {
+      lineItems.push({ id: crypto.randomUUID(), productName: 'Gate Hinges', quantity: hingeCount, unit: 'ea', unitPrice: 0, total: 0, isNonStock: true, cost: 0 });
+    }
+
+    // Latch
+    if (hardwareProducts.latch) {
+      lineItems.push({
+        id: crypto.randomUUID(),
+        productId: hardwareProducts.latch.id,
+        productName: hardwareProducts.latch.name,
+        quantity: 1,
+        unit: hardwareProducts.latch.unit || 'ea',
+        unitPrice: hardwareProducts.latch.price || 0,
+        total: hardwareProducts.latch.price || 0,
+        cost: hardwareProducts.latch.cost || 0,
+        markupPercentage: hardwareProducts.latch.markupPercentage || 0,
+        isNonStock: false,
+      });
+    } else {
+      lineItems.push({ id: crypto.randomUUID(), productName: 'Gate Latch', quantity: 1, unit: 'ea', unitPrice: 0, total: 0, isNonStock: true, cost: 0 });
+    }
+
+    // Hardware set
+    if (hardwareProducts.hardwareSet) {
+      lineItems.push({
+        id: crypto.randomUUID(),
+        productId: hardwareProducts.hardwareSet.id,
+        productName: hardwareProducts.hardwareSet.name,
+        quantity: 1,
+        unit: hardwareProducts.hardwareSet.unit || 'ea',
+        unitPrice: hardwareProducts.hardwareSet.price || 0,
+        total: hardwareProducts.hardwareSet.price || 0,
+        cost: hardwareProducts.hardwareSet.cost || 0,
+        markupPercentage: hardwareProducts.hardwareSet.markupPercentage || 0,
+        isNonStock: false,
+      });
+    } else {
+      lineItems.push({ id: crypto.randomUUID(), productName: 'Gate Hardware Set', quantity: 1, unit: 'ea', unitPrice: 0, total: 0, isNonStock: true, cost: 0 });
+    }
+
+    const widthLabel = calcMode === 'opening'
+      ? `${gateWidthIn}" opening → ${gateResult.leafWidthInches}" frame per leaf`
+      : `${gateWidthIn}" frame per leaf`;
+    const notes = [
+      `Gate Cut Sheet${gateJobName ? ` — ${gateJobName}` : ''}`,
+      `${gateResult.leafs === 2 ? 'Double' : 'Single'} Gate | ${frameDiameter} OD frame`,
+      `${widthLabel} × ${gateHeightIn}" tall`,
+      `Post Spacing: ${gateResult.postSpacingInches}"`,
+      `Cut List:`,
+      ...gateResult.cutList.map(c => `  ${c.qty}x ${c.lengthInches}" — ${c.description}`),
+      `Total pipe: ${gateResult.totalPipeFeet} ft`,
+    ].join('\n');
+
+    setInitialFormData({ lineItems: lineItems as EstimateFormData['lineItems'], notes });
+    setIsEstimateDialogOpen(true);
   };
 
   return (
@@ -1273,15 +1391,6 @@ export default function ChainlinkEstimationPage() {
 
         {/* ── Gate Cut Sheet Tab ── */}
         <TabsContent value="gates">
-          <style>{`
-            @media print {
-              .no-print { display: none !important; }
-              .print-only { display: block !important; }
-              body { background: white; }
-            }
-            .print-only { display: none; }
-          `}</style>
-
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Gate Configuration Input */}
             <Card className="no-print">
@@ -1410,7 +1519,7 @@ export default function ChainlinkEstimationPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">Cut Sheet</CardTitle>
-                        <Button variant="outline" size="sm" onClick={() => window.print()}>
+                        <Button variant="outline" size="sm" onClick={handlePrintGate}>
                           <Icon name="Printer" className="mr-2 h-4 w-4" />
                           Print
                         </Button>
@@ -1454,7 +1563,21 @@ export default function ChainlinkEstimationPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Printable Cut Sheet */}
+                  {/* Convert to Estimate */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Convert to Document</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Button className="w-full" variant="outline" onClick={convertGateToEstimate}>
+                        <Icon name="FileText" className="mr-2 h-4 w-4" />
+                        Convert to Estimate
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Printable Cut Sheet — rendered via useReactToPrint */}
+                  <div ref={gatePrintRef} className="print-only-container">
                   <div className="print-only" style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', borderBottom: '2px solid #000', paddingBottom: '8px' }}>
                       <div>
@@ -1548,7 +1671,8 @@ export default function ChainlinkEstimationPage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </div>{/* end print-only */}
+                  </div>{/* end print-only-container */}
                 </>
               ) : (
                 <Card>
