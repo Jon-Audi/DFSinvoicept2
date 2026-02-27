@@ -73,27 +73,13 @@ const COMM_LG_HEIGHTS: ChainlinkFenceHeight[] = ['8', '9', '10'];
 // ─── Wizard Types ─────────────────────────────────────────────────────────────
 
 interface WizardSuggestions {
-  // Residential posts (2" OD terminal, 1 5/8" SS20 line)
-  resTerminalPost: string;
-  resLinePost: string;
-  // Commercial heights 6-7' (2 1/2" SS40 terminal, 2" SS20 line)
-  commSmTerminalPost: string;
-  commSmLinePost: string;
-  // Commercial heights 8-10' (3" SS40 terminal, 2 1/2" line)
-  commLgTerminalPost: string;
-  commLgLinePost: string;
   // Rails
   resTopRail: string;
   commTopRail: string;
   bottomRail: string;
-  railEnds: string;
-  // Hardware
+  // Universal hardware
   tieWire: string;
-  loopCap: string;
-  postCap: string;
-  braceBand: string;
   tensionBar: string;
-  tensionBand: string;
   nutAndBolt: string;
   // Gate components
   singleGate: string;
@@ -105,7 +91,11 @@ interface WizardSuggestions {
   // Extras
   privacySlats: string;
   barbedWire: string;
-  // Fabric per color × height (fabric_{color}_{height})
+  // Dynamic keys:
+  //  Posts per height:   post_res_terminal_{h}, post_res_line_{h}
+  //                      post_comm_terminal_{h}, post_comm_line_{h}
+  //  Fittings per spec:  fitting_res_{field}, fitting_commSm_{field}, fitting_commLg_{field}
+  //  Fabric:             fabric_{color}_{height}
   [key: string]: string;
 }
 
@@ -130,38 +120,67 @@ function findBestMatch(products: Product[], keywords: string[]): string {
 
 function buildWizardSuggestions(products: Product[]): WizardSuggestions {
   const match = (keywords: string[]) => findBestMatch(products, keywords);
+  const postLen = (h: string) => String(parseInt(h) + 2);
+
+  // Posts per height: product names include the actual post length (height + 2' burial)
+  const postSuggestions: Record<string, string> = {};
+  for (const h of RES_HEIGHTS) {
+    const len = postLen(h);
+    postSuggestions[`post_res_terminal_${h}`] = match(['2"', 'terminal', 'post', len + "'"]);
+    postSuggestions[`post_res_line_${h}`]     = match(['1 5/8', 'line', 'post', len + "'"]);
+  }
+  for (const h of COMM_SM_HEIGHTS) {
+    const len = postLen(h);
+    postSuggestions[`post_comm_terminal_${h}`] = match(['2 1/2', 'terminal', 'post', len + "'"]);
+    postSuggestions[`post_comm_line_${h}`]     = match(['2"', 'line', 'post', len + "'"]);
+  }
+  for (const h of COMM_LG_HEIGHTS) {
+    const len = postLen(h);
+    postSuggestions[`post_comm_terminal_${h}`] = match(['3"', 'terminal', 'post', len + "'"]);
+    postSuggestions[`post_comm_line_${h}`]     = match(['2 1/2', 'line', 'post', len + "'"]);
+  }
+
+  // Fittings matched by the pipe diameter they attach to
+  const fittingSuggestions: Record<string, string> = {
+    // Residential: 2" terminal / 1 5/8" line / 1 3/8" top rail
+    fitting_res_tensionBand: match(['2"', 'tension band']),
+    fitting_res_braceBand:   match(['2"', 'brace band']),
+    fitting_res_postCap:     match(['2"', 'post cap']),
+    fitting_res_loopCap:     match(['1 5/8', 'loop cap']),
+    fitting_res_railEnds:    match(['1 3/8', 'rail end']),
+    // Commercial 6-7': 2 1/2" terminal / 2" line / 1 5/8" top rail
+    fitting_commSm_tensionBand: match(['2 1/2', 'tension band']),
+    fitting_commSm_braceBand:   match(['2 1/2', 'brace band']),
+    fitting_commSm_postCap:     match(['2 1/2', 'post cap']),
+    fitting_commSm_loopCap:     match(['2"', 'loop cap']),
+    fitting_commSm_railEnds:    match(['1 5/8', 'rail end']),
+    // Commercial 8-10': 3" terminal / 2 1/2" line / 1 5/8" top rail
+    fitting_commLg_tensionBand: match(['3"', 'tension band']),
+    fitting_commLg_braceBand:   match(['3"', 'brace band']),
+    fitting_commLg_postCap:     match(['3"', 'post cap']),
+    fitting_commLg_loopCap:     match(['2 1/2', 'loop cap']),
+    fitting_commLg_railEnds:    match(['1 5/8', 'rail end']),
+  };
 
   const fabricSuggestions: Record<string, string> = {};
   FENCE_COLORS.forEach(color => {
     FENCE_HEIGHTS.forEach(height => {
       fabricSuggestions[`fabric_${color}_${height}`] = match([
-        height + "'",
-        'fabric',
+        height + "'", 'fabric',
         color === 'galvanized' ? 'galv' : color,
-        'chainlink',
-        'chain link',
-        'fence fabric',
+        'chainlink', 'chain link',
       ]);
     });
   });
 
   return {
-    resTerminalPost: match(['2"', 'terminal', 'post']),
-    resLinePost: match(['1 5/8', 'line', 'post', 'ss20']),
-    commSmTerminalPost: match(['2 1/2', 'terminal', 'post', 'ss40']),
-    commSmLinePost: match(['2"', 'line', 'post', 'ss20']),
-    commLgTerminalPost: match(['3"', 'terminal', 'post', 'ss40']),
-    commLgLinePost: match(['2 1/2', 'line', 'post']),
+    ...postSuggestions,
+    ...fittingSuggestions,
     resTopRail: match(['1 3/8', 'top rail', '065']),
     commTopRail: match(['1 5/8', 'top rail', '21']),
     bottomRail: match(['bottom rail']),
-    railEnds: match(['rail end']),
     tieWire: match(['tie wire']),
-    loopCap: match(['loop cap', 'loop']),
-    postCap: match(['post cap']),
-    braceBand: match(['brace band']),
     tensionBar: match(['tension bar']),
-    tensionBand: match(['tension band']),
     nutAndBolt: match(['nut', 'bolt']),
     singleGate: match(['single gate']),
     doubleGate: match(['double gate']),
@@ -463,30 +482,49 @@ export default function ChainlinkSettingsPage() {
 
     const ALL_COLORS = FENCE_COLORS;
 
-    // Posts
-    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.resTerminalPost);
-    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.resLinePost);
-    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.commSmTerminalPost);
-    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.commSmLinePost);
-    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s.commLgTerminalPost);
-    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['linePostProductId'], s.commLgLinePost);
+    // Posts per height (products have specific lengths: fence height + 2' burial)
+    RES_HEIGHTS.forEach(h => {
+      applyField(newRes, 'residential', [h], ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s[`post_res_terminal_${h}`] ?? '');
+      applyField(newRes, 'residential', [h], ALL_COLORS, ['linePostProductId'], s[`post_res_line_${h}`] ?? '');
+    });
+    COMM_SM_HEIGHTS.forEach(h => {
+      applyField(newComm, 'commercial', [h], ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s[`post_comm_terminal_${h}`] ?? '');
+      applyField(newComm, 'commercial', [h], ALL_COLORS, ['linePostProductId'], s[`post_comm_line_${h}`] ?? '');
+    });
+    COMM_LG_HEIGHTS.forEach(h => {
+      applyField(newComm, 'commercial', [h], ALL_COLORS, ['terminalPostProductId', 'cornerPostProductId', 'gatePostProductId'], s[`post_comm_terminal_${h}`] ?? '');
+      applyField(newComm, 'commercial', [h], ALL_COLORS, ['linePostProductId'], s[`post_comm_line_${h}`] ?? '');
+    });
 
     // Rails
     applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['topRailProductId'], s.resTopRail);
     applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['topRailProductId'], s.commTopRail);
     applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['bottomRailProductId'], s.bottomRail);
     applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['bottomRailProductId'], s.bottomRail);
-    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['railEndsProductId'], s.railEnds);
-    applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, ['railEndsProductId'], s.railEnds);
 
-    // Universal hardware (same for all type/height/color)
-    const universalFields: [keyof WizardSuggestions, string][] = [
+    // Fittings by pipe spec group (matched to diameter of pipe they attach to)
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['tensionBandProductId'], s.fitting_res_tensionBand ?? '');
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['braceBandProductId'],   s.fitting_res_braceBand   ?? '');
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['postCapProductId'],     s.fitting_res_postCap     ?? '');
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['loopCapProductId'],     s.fitting_res_loopCap     ?? '');
+    applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, ['railEndsProductId'],    s.fitting_res_railEnds    ?? '');
+
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['tensionBandProductId'], s.fitting_commSm_tensionBand ?? '');
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['braceBandProductId'],   s.fitting_commSm_braceBand   ?? '');
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['postCapProductId'],     s.fitting_commSm_postCap     ?? '');
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['loopCapProductId'],     s.fitting_commSm_loopCap     ?? '');
+    applyField(newComm, 'commercial', COMM_SM_HEIGHTS, ALL_COLORS, ['railEndsProductId'],    s.fitting_commSm_railEnds    ?? '');
+
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['tensionBandProductId'], s.fitting_commLg_tensionBand ?? '');
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['braceBandProductId'],   s.fitting_commLg_braceBand   ?? '');
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['postCapProductId'],     s.fitting_commLg_postCap     ?? '');
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['loopCapProductId'],     s.fitting_commLg_loopCap     ?? '');
+    applyField(newComm, 'commercial', COMM_LG_HEIGHTS, ALL_COLORS, ['railEndsProductId'],    s.fitting_commLg_railEnds    ?? '');
+
+    // Universal hardware (same product for all types/heights/colors)
+    const universalFields: [string, string][] = [
       ['tieWire', 'tieWireProductId'],
-      ['loopCap', 'loopCapProductId'],
-      ['postCap', 'postCapProductId'],
-      ['braceBand', 'braceBandProductId'],
       ['tensionBar', 'tensionBarProductId'],
-      ['tensionBand', 'tensionBandProductId'],
       ['nutAndBolt', 'nutAndBoltProductId'],
       ['singleGate', 'singleGateFrameProductId'],
       ['doubleGate', 'doubleGateFrameProductId'],
@@ -499,7 +537,7 @@ export default function ChainlinkSettingsPage() {
     ];
 
     universalFields.forEach(([key, field]) => {
-      const val = s[key as string] ?? '';
+      const val = s[key] ?? '';
       applyField(newRes, 'residential', RES_HEIGHTS, ALL_COLORS, [field], val);
       applyField(newComm, 'commercial', COMM_HEIGHTS, ALL_COLORS, [field], val);
     });
@@ -785,45 +823,106 @@ export default function ChainlinkSettingsPage() {
 
                 {/* Posts */}
                 <div>
-                  <h3 className="text-base font-semibold mb-1">Post Specifications</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Grouped by pipe spec — each selection fills all matching heights and colors.</p>
-                  <div className="rounded-md border px-4">
-                    <WizardRow
-                      label="Residential Terminal / Corner / Gate Post"
-                      specNote='2" OD — fills terminal, corner & gate post slots'
-                      appliesTo="Residential 3–6', all colors"
-                      wizKey="resTerminalPost"
-                    />
-                    <WizardRow
-                      label="Residential Line Post"
-                      specNote='1 5/8" SS20'
-                      appliesTo="Residential 3–6', all colors"
-                      wizKey="resLinePost"
-                    />
-                    <WizardRow
-                      label="Commercial Terminal / Corner / Gate Post (6–7')"
-                      specNote='2 1/2" SS40'
-                      appliesTo="Commercial 6–7', all colors"
-                      wizKey="commSmTerminalPost"
-                    />
-                    <WizardRow
-                      label="Commercial Line Post (6–7')"
-                      specNote='2" SS20'
-                      appliesTo="Commercial 6–7', all colors"
-                      wizKey="commSmLinePost"
-                    />
-                    <WizardRow
-                      label="Commercial Terminal / Corner / Gate Post (8–10')"
-                      specNote='3" SS40'
-                      appliesTo="Commercial 8–10', all colors"
-                      wizKey="commLgTerminalPost"
-                    />
-                    <WizardRow
-                      label="Commercial Line Post (8–10')"
-                      specNote='2 1/2"'
-                      appliesTo="Commercial 8–10', all colors"
-                      wizKey="commLgLinePost"
-                    />
+                  <h3 className="text-base font-semibold mb-1">Fence Posts</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Matched per height — post length = fence height + 2&apos; (burial). Fills terminal, corner &amp; gate post slots.</p>
+                  <div className="space-y-4">
+
+                    {/* Residential */}
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">Residential — 2&quot; terminal / 1 5/8&quot; SS20 line</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-14">Height</TableHead>
+                            <TableHead>Terminal / Corner / Gate Post</TableHead>
+                            <TableHead>Line Post</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {RES_HEIGHTS.map(h => {
+                            const len = parseInt(h) + 2;
+                            return (
+                              <TableRow key={h}>
+                                <TableCell className="font-medium">{h}&apos;</TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">2&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_res_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_res_terminal_${h}`]: val } : prev)} />
+                                </TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">1 5/8&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_res_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_res_line_${h}`]: val } : prev)} />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Commercial 6-7' */}
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">Commercial 6–7&apos; — 2 1/2&quot; SS40 terminal / 2&quot; SS20 line</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-14">Height</TableHead>
+                            <TableHead>Terminal / Corner / Gate Post</TableHead>
+                            <TableHead>Line Post</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {COMM_SM_HEIGHTS.map(h => {
+                            const len = parseInt(h) + 2;
+                            return (
+                              <TableRow key={h}>
+                                <TableCell className="font-medium">{h}&apos;</TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">2 1/2&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_terminal_${h}`]: val } : prev)} />
+                                </TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">2&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_line_${h}`]: val } : prev)} />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Commercial 8-10' */}
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">Commercial 8–10&apos; — 3&quot; SS40 terminal / 2 1/2&quot; line</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-14">Height</TableHead>
+                            <TableHead>Terminal / Corner / Gate Post</TableHead>
+                            <TableHead>Line Post</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {COMM_LG_HEIGHTS.map(h => {
+                            const len = parseInt(h) + 2;
+                            return (
+                              <TableRow key={h}>
+                                <TableCell className="font-medium">{h}&apos;</TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">3&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_terminal_${h}`]: val } : prev)} />
+                                </TableCell>
+                                <TableCell className="p-1.5">
+                                  <div className="text-xs text-muted-foreground mb-1">2 1/2&quot; × {len}&apos;</div>
+                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_line_${h}`]: val } : prev)} />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
                   </div>
                 </div>
 
@@ -856,18 +955,54 @@ export default function ChainlinkSettingsPage() {
                   </div>
                 </div>
 
-                {/* Hardware */}
+                {/* Fittings by pipe spec */}
                 <div>
-                  <h3 className="text-base font-semibold mb-1">Hardware</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Applied to all heights, colors, and fence types.</p>
+                  <h3 className="text-base font-semibold mb-1">Fittings by Pipe Size</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Each fitting is matched to the pipe diameter it attaches to.</p>
+                  <Tabs defaultValue="fitting_res">
+                    <TabsList className="mb-3">
+                      <TabsTrigger value="fitting_res">Residential (2&quot;)</TabsTrigger>
+                      <TabsTrigger value="fitting_commSm">Comm 6–7&apos; (2 1/2&quot;)</TabsTrigger>
+                      <TabsTrigger value="fitting_commLg">Comm 8–10&apos; (3&quot;)</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="fitting_res">
+                      <div className="rounded-md border px-4">
+                        <WizardRow label="Tension Band" specNote='2" (terminal post)' appliesTo="Residential 3–6'" wizKey="fitting_res_tensionBand" />
+                        <WizardRow label="Brace Band"   specNote='2" (terminal post)' appliesTo="Residential 3–6'" wizKey="fitting_res_braceBand" />
+                        <WizardRow label="Post Cap"     specNote='2" (terminal post)' appliesTo="Residential 3–6'" wizKey="fitting_res_postCap" />
+                        <WizardRow label="Loop Cap"     specNote='1 5/8" (line post)' appliesTo="Residential 3–6'" wizKey="fitting_res_loopCap" />
+                        <WizardRow label="Rail Ends"    specNote='1 3/8" (top rail)'  appliesTo="Residential 3–6'" wizKey="fitting_res_railEnds" />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="fitting_commSm">
+                      <div className="rounded-md border px-4">
+                        <WizardRow label="Tension Band" specNote='2 1/2" (terminal post)' appliesTo="Commercial 6–7'" wizKey="fitting_commSm_tensionBand" />
+                        <WizardRow label="Brace Band"   specNote='2 1/2" (terminal post)' appliesTo="Commercial 6–7'" wizKey="fitting_commSm_braceBand" />
+                        <WizardRow label="Post Cap"     specNote='2 1/2" (terminal post)' appliesTo="Commercial 6–7'" wizKey="fitting_commSm_postCap" />
+                        <WizardRow label="Loop Cap"     specNote='2" (line post)'          appliesTo="Commercial 6–7'" wizKey="fitting_commSm_loopCap" />
+                        <WizardRow label="Rail Ends"    specNote='1 5/8" (top rail)'       appliesTo="Commercial 6–7'" wizKey="fitting_commSm_railEnds" />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="fitting_commLg">
+                      <div className="rounded-md border px-4">
+                        <WizardRow label="Tension Band" specNote='3" (terminal post)'   appliesTo="Commercial 8–10'" wizKey="fitting_commLg_tensionBand" />
+                        <WizardRow label="Brace Band"   specNote='3" (terminal post)'   appliesTo="Commercial 8–10'" wizKey="fitting_commLg_braceBand" />
+                        <WizardRow label="Post Cap"     specNote='3" (terminal post)'   appliesTo="Commercial 8–10'" wizKey="fitting_commLg_postCap" />
+                        <WizardRow label="Loop Cap"     specNote='2 1/2" (line post)'   appliesTo="Commercial 8–10'" wizKey="fitting_commLg_loopCap" />
+                        <WizardRow label="Rail Ends"    specNote='1 5/8" (top rail)'    appliesTo="Commercial 8–10'" wizKey="fitting_commLg_railEnds" />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+                {/* Universal Hardware */}
+                <div>
+                  <h3 className="text-base font-semibold mb-1">Universal Hardware</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Same product for all fence types and heights.</p>
                   <div className="rounded-md border px-4">
-                    <WizardRow label="Tie Wire" appliesTo="All configurations" wizKey="tieWire" />
-                    <WizardRow label="Loop Cap" appliesTo="All configurations" wizKey="loopCap" />
-                    <WizardRow label="Post Cap" appliesTo="All configurations" wizKey="postCap" />
-                    <WizardRow label="Brace Band" appliesTo="All configurations" wizKey="braceBand" />
+                    <WizardRow label="Tie Wire"    appliesTo="All configurations" wizKey="tieWire" />
                     <WizardRow label="Tension Bar" appliesTo="All configurations" wizKey="tensionBar" />
-                    <WizardRow label="Tension Band" appliesTo="All configurations" wizKey="tensionBand" />
-                    <WizardRow label="Nut & Bolt" appliesTo="All configurations" wizKey="nutAndBolt" />
+                    <WizardRow label="Nut & Bolt"  appliesTo="All configurations" wizKey="nutAndBolt" />
                   </div>
                 </div>
 
