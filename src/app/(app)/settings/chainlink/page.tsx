@@ -824,103 +824,85 @@ export default function ChainlinkSettingsPage() {
                 {/* Posts */}
                 <div>
                   <h3 className="text-base font-semibold mb-1">Fence Posts</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Matched per height — post length = fence height + 2&apos; (burial). Fills terminal, corner &amp; gate post slots.</p>
+                  <p className="text-xs text-muted-foreground mb-3">Matched per height — post length = fence height + 2&apos; (burial). Terminal fills terminal, corner &amp; gate post slots.</p>
                   <div className="space-y-4">
 
                     {/* Residential */}
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">Residential — 2&quot; terminal / 1 5/8&quot; SS20 line</div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-14">Height</TableHead>
-                            <TableHead>Terminal / Corner / Gate Post</TableHead>
-                            <TableHead>Line Post</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {RES_HEIGHTS.map(h => {
-                            const len = parseInt(h) + 2;
-                            return (
-                              <TableRow key={h}>
-                                <TableCell className="font-medium">{h}&apos;</TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">2&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_res_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_res_terminal_${h}`]: val } : prev)} />
-                                </TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">1 5/8&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_res_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_res_line_${h}`]: val } : prev)} />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                      <div className="rounded-md border px-4">
+                        {RES_HEIGHTS.map(h => {
+                          const len = parseInt(h) + 2;
+                          return (
+                            <React.Fragment key={h}>
+                              <WizardRow
+                                label={`${h}' Terminal / Corner / Gate Post`}
+                                specNote={`2" × ${len}'`}
+                                appliesTo="Fills terminal, corner & gate post slots"
+                                wizKey={`post_res_terminal_${h}`}
+                              />
+                              <WizardRow
+                                label={`${h}' Line Post`}
+                                specNote={`1 5/8" SS20 × ${len}'`}
+                                appliesTo="Fills line post slot"
+                                wizKey={`post_res_line_${h}`}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Commercial 6-7' */}
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">Commercial 6–7&apos; — 2 1/2&quot; SS40 terminal / 2&quot; SS20 line</div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-14">Height</TableHead>
-                            <TableHead>Terminal / Corner / Gate Post</TableHead>
-                            <TableHead>Line Post</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {COMM_SM_HEIGHTS.map(h => {
-                            const len = parseInt(h) + 2;
-                            return (
-                              <TableRow key={h}>
-                                <TableCell className="font-medium">{h}&apos;</TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">2 1/2&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_terminal_${h}`]: val } : prev)} />
-                                </TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">2&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_line_${h}`]: val } : prev)} />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                      <div className="rounded-md border px-4">
+                        {COMM_SM_HEIGHTS.map(h => {
+                          const len = parseInt(h) + 2;
+                          return (
+                            <React.Fragment key={h}>
+                              <WizardRow
+                                label={`${h}' Terminal / Corner / Gate Post`}
+                                specNote={`2 1/2" SS40 × ${len}'`}
+                                appliesTo="Fills terminal, corner & gate post slots"
+                                wizKey={`post_comm_terminal_${h}`}
+                              />
+                              <WizardRow
+                                label={`${h}' Line Post`}
+                                specNote={`2" SS20 × ${len}'`}
+                                appliesTo="Fills line post slot"
+                                wizKey={`post_comm_line_${h}`}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Commercial 8-10' */}
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">Commercial 8–10&apos; — 3&quot; SS40 terminal / 2 1/2&quot; line</div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-14">Height</TableHead>
-                            <TableHead>Terminal / Corner / Gate Post</TableHead>
-                            <TableHead>Line Post</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {COMM_LG_HEIGHTS.map(h => {
-                            const len = parseInt(h) + 2;
-                            return (
-                              <TableRow key={h}>
-                                <TableCell className="font-medium">{h}&apos;</TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">3&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_terminal_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_terminal_${h}`]: val } : prev)} />
-                                </TableCell>
-                                <TableCell className="p-1.5">
-                                  <div className="text-xs text-muted-foreground mb-1">2 1/2&quot; × {len}&apos;</div>
-                                  <ProductSelector products={products} currentValue={wizardSuggestions[`post_comm_line_${h}`] ?? ''} onSelect={(val) => setWizardSuggestions(prev => prev ? { ...prev, [`post_comm_line_${h}`]: val } : prev)} />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                      <div className="rounded-md border px-4">
+                        {COMM_LG_HEIGHTS.map(h => {
+                          const len = parseInt(h) + 2;
+                          return (
+                            <React.Fragment key={h}>
+                              <WizardRow
+                                label={`${h}' Terminal / Corner / Gate Post`}
+                                specNote={`3" SS40 × ${len}'`}
+                                appliesTo="Fills terminal, corner & gate post slots"
+                                wizKey={`post_comm_terminal_${h}`}
+                              />
+                              <WizardRow
+                                label={`${h}' Line Post`}
+                                specNote={`2 1/2" × ${len}'`}
+                                appliesTo="Fills line post slot"
+                                wizKey={`post_comm_line_${h}`}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
                     </div>
 
                   </div>
