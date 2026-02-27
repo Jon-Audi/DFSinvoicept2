@@ -1069,7 +1069,7 @@ export function InvoiceForm({
             </div>
             <FormField control={form.control} name="currentPaymentMethod" render={({ field }) => (
                 <FormItem><FormLabel>Payment Method</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""}>
+                <Select onValueChange={(value) => { field.onChange(value); if (!form.getValues("currentPaymentNotes")) { form.setValue("currentPaymentNotes", value); } }} value={field.value || ""}>
                 <FormControl><SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger></FormControl>
                 <SelectContent>{PAYMENT_METHODS.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}</SelectContent>
                 </Select><FormMessage />

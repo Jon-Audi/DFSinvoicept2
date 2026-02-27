@@ -1,4 +1,139 @@
-import type { ChainlinkEstimationInput, ChainlinkEstimationResult } from '@/types';
+import type { ChainlinkEstimationInput, ChainlinkEstimationResult, ChainlinkFenceHeight, ChainlinkFenceType } from '@/types';
+
+// ─── Pipe Specifications ────────────────────────────────────────────────────
+
+const PIPE_SPECS: Record<string, { terminal: string; line: string; topRail: string }> = {
+  'residential-3':  { terminal: '2"',          line: '1 5/8" SS20', topRail: "1 3/8\" x 21' (065 wall)" },
+  'residential-4':  { terminal: '2"',          line: '1 5/8" SS20', topRail: "1 3/8\" x 21' (065 wall)" },
+  'residential-5':  { terminal: '2"',          line: '1 5/8" SS20', topRail: "1 3/8\" x 21' (065 wall)" },
+  'residential-6':  { terminal: '2"',          line: '1 5/8" SS20', topRail: "1 3/8\" x 21' (065 wall)" },
+  'commercial-6':   { terminal: '2 1/2" SS40', line: '2" SS20',     topRail: "1 5/8\" x 21'" },
+  'commercial-7':   { terminal: '2 1/2" SS40', line: '2" SS20',     topRail: "1 5/8\" x 21'" },
+  'commercial-8':   { terminal: '3" SS40',     line: '2 1/2"',      topRail: "1 5/8\" x 21'" },
+  'commercial-9':   { terminal: '3" SS40',     line: '2 1/2"',      topRail: "1 5/8\" x 21'" },
+  'commercial-10':  { terminal: '3" SS40',     line: '2 1/2"',      topRail: "1 5/8\" x 21'" },
+};
+
+export function getPipeSpecs(height: ChainlinkFenceHeight, type: ChainlinkFenceType) {
+  const specs = PIPE_SPECS[`${type}-${height}`];
+  if (!specs) return null;
+  return { ...specs, postLength: parseInt(height) + 2 };
+}
+
+// ─── Gate Cut Calculator ────────────────────────────────────────────────────
+
+export interface GateCutInput {
+  calculationMode: 'opening' | 'frame';
+  gateWidthInches: number;
+  gateHeightInches: number;
+  frameDiameter: '1 3/8"' | '1 5/8"' | '2"';
+  gateType: 'single' | 'double';
+  includeHorizontalBrace: boolean;
+  includeVerticalBrace: boolean;
+}
+
+export interface GateCutResult {
+  leafs: number;
+  leafWidthInches: number;
+  frameHeightInches: number;
+  postSpacingInches: number;
+  requiredOpeningInches?: number;
+  uprightsLengthInches: number;
+  horizontalsLengthInches: number;
+  horizontalBraceLengthInches?: number;
+  verticalBracePieces?: { count: number; lengthInches: number };
+  totalPipeFeet: number;
+  needsHorizontalBrace: boolean;
+  needsVerticalBrace: boolean;
+  cutList: Array<{ qty: number; lengthInches: number; description: string }>;
+}
+
+export function calculateGateCuts(data: GateCutInput): GateCutResult {
+  const { calculationMode, gateWidthInches, gateHeightInches, frameDiameter, gateType, includeHorizontalBrace, includeVerticalBrace } = data;
+
+  // Deductions for post-to-post vs frame sizing
+  let totalDeduction = 0;
+  let numericDiameter = 0;
+  let cornerFittingDeduction = 0;
+  if (frameDiameter === '1 3/8"') {
+    totalDeduction = 3; numericDiameter = 1.375; cornerFittingDeduction = 1.5 * 2;
+  } else if (frameDiameter === '1 5/8"') {
+    totalDeduction = 3.5; numericDiameter = 1.625; cornerFittingDeduction = 1.75 * 2;
+  } else {
+    totalDeduction = 4; numericDiameter = 2; cornerFittingDeduction = 2 * 2;
+  }
+
+  const isDouble = gateType === 'double';
+  const leafs = isDouble ? 2 : 1;
+  const doubleGateGap = isDouble ? 1 : 0;
+
+  let frameWidth: number;
+  let postSpacing: number;
+  let requiredOpeningInches: number | undefined;
+
+  if (calculationMode === 'opening') {
+    frameWidth = gateWidthInches - totalDeduction;
+    postSpacing = gateWidthInches;
+  } else {
+    frameWidth = gateWidthInches;
+    postSpacing = gateWidthInches + totalDeduction;
+    requiredOpeningInches = postSpacing;
+  }
+
+  const adjustedWidth = frameWidth - doubleGateGap;
+  const leafWidth = parseFloat((adjustedWidth / leafs).toFixed(2));
+  const frameHeight = gateHeightInches;
+
+  const uprightsLength = frameHeight;
+  const horizontalsLength = parseFloat((leafWidth - cornerFittingDeduction).toFixed(2));
+
+  const needsHBrace = frameHeight > 48;
+  const needsVBrace = leafWidth > 60;
+
+  let hBraceLength: number | undefined;
+  let vBracePieces: { count: number; lengthInches: number } | undefined;
+
+  if (needsHBrace && includeHorizontalBrace) {
+    hBraceLength = parseFloat((leafWidth - (numericDiameter * 2)).toFixed(2));
+  }
+
+  if (needsVBrace && includeVerticalBrace) {
+    const internalHeight = frameHeight - (numericDiameter * 2);
+    const bracePieceLength = parseFloat(((internalHeight - (hBraceLength !== undefined ? numericDiameter : 0)) / 2).toFixed(2));
+    vBracePieces = { count: 2, lengthInches: bracePieceLength };
+  }
+
+  // Build cut list
+  const cutList: GateCutResult['cutList'] = [];
+  cutList.push({ qty: 2 * leafs, lengthInches: uprightsLength, description: 'Frame Uprights' });
+  cutList.push({ qty: 2 * leafs, lengthInches: horizontalsLength, description: 'Frame Horizontals' });
+  if (hBraceLength !== undefined) {
+    cutList.push({ qty: 1 * leafs, lengthInches: hBraceLength, description: 'Horizontal Brace' });
+  }
+  if (vBracePieces) {
+    cutList.push({ qty: vBracePieces.count * leafs, lengthInches: vBracePieces.lengthInches, description: 'Vertical Brace' });
+  }
+
+  // Total pipe in feet
+  const totalPipeInches = cutList.reduce((sum, p) => sum + p.qty * p.lengthInches, 0);
+  const totalPipeFeet = parseFloat((totalPipeInches / 12).toFixed(2));
+
+  return {
+    leafs,
+    leafWidthInches: leafWidth,
+    frameHeightInches: frameHeight,
+    postSpacingInches: parseFloat(postSpacing.toFixed(2)),
+    requiredOpeningInches: requiredOpeningInches !== undefined ? parseFloat(requiredOpeningInches.toFixed(2)) : undefined,
+    uprightsLengthInches: uprightsLength,
+    horizontalsLengthInches: horizontalsLength,
+    horizontalBraceLengthInches: hBraceLength,
+    verticalBracePieces: vBracePieces,
+    totalPipeFeet,
+    needsHorizontalBrace: needsHBrace,
+    needsVerticalBrace: needsVBrace,
+    cutList,
+  };
+}
 
 /**
  * Calculate chainlink fence material requirements based on input parameters

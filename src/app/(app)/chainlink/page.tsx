@@ -32,7 +32,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ChainlinkFenceHeight, ChainlinkFenceType, ChainlinkFenceColor, ChainlinkRun, ChainlinkEstimationResult, ChainlinkMaterialPricing, ChainlinkProductMapping, Product, LineItem, Customer } from '@/types';
-import { calculateChainlinkMaterials, calculateChainlinkCost } from '@/lib/chainlink-calculator';
+import { calculateChainlinkMaterials, calculateChainlinkCost, getPipeSpecs, calculateGateCuts } from '@/lib/chainlink-calculator';
+import type { GateCutInput, GateCutResult } from '@/lib/chainlink-calculator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, onSnapshot, addDoc } from 'firebase/firestore';
 import { EstimateDialog } from '@/components/estimates/estimate-dialog';
@@ -85,6 +87,17 @@ export default function ChainlinkEstimationPage() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [initialFormData, setInitialFormData] = useState<{ lineItems: EstimateFormData['lineItems']; notes: string } | null>(null);
+
+  // Gate cut sheet state
+  const [gateJobName, setGateJobName] = useState('');
+  const [gateType, setGateType] = useState<'single' | 'double'>('single');
+  const [calcMode, setCalcMode] = useState<'opening' | 'frame'>('opening');
+  const [gateWidthIn, setGateWidthIn] = useState('');
+  const [gateHeightIn, setGateHeightIn] = useState('');
+  const [frameDiameter, setFrameDiameter] = useState<GateCutInput['frameDiameter']>('1 5/8"');
+  const [includeHBrace, setIncludeHBrace] = useState(false);
+  const [includeVBrace, setIncludeVBrace] = useState(false);
+  const [gateResult, setGateResult] = useState<GateCutResult | null>(null);
 
   // Load customers
   useEffect(() => {
@@ -625,6 +638,37 @@ export default function ChainlinkEstimationPage() {
     }
   };
 
+  const handleCalculateGate = () => {
+    const w = parseFloat(gateWidthIn);
+    const h = parseFloat(gateHeightIn);
+    if (!w || w <= 0 || !h || h <= 0) {
+      toast({ title: "Invalid Input", description: "Please enter valid width and height (in inches).", variant: "destructive" });
+      return;
+    }
+    const res = calculateGateCuts({
+      calculationMode: calcMode,
+      gateWidthInches: w,
+      gateHeightInches: h,
+      frameDiameter,
+      gateType,
+      includeHorizontalBrace: includeHBrace,
+      includeVerticalBrace: includeVBrace,
+    });
+    setGateResult(res);
+  };
+
+  const handleClearGate = () => {
+    setGateJobName('');
+    setGateType('single');
+    setCalcMode('opening');
+    setGateWidthIn('');
+    setGateHeightIn('');
+    setFrameDiameter('1 5/8"');
+    setIncludeHBrace(false);
+    setIncludeVBrace(false);
+    setGateResult(null);
+  };
+
   return (
     <>
       <PageHeader
@@ -632,6 +676,14 @@ export default function ChainlinkEstimationPage() {
         description="Calculate material requirements and costs for chainlink fence installations."
       />
 
+      <Tabs defaultValue="estimator">
+        <TabsList className="mb-6">
+          <TabsTrigger value="estimator">Fence Estimator</TabsTrigger>
+          <TabsTrigger value="gates">Gate Cut Sheet</TabsTrigger>
+        </TabsList>
+
+        {/* ── Fence Estimator Tab ── */}
+        <TabsContent value="estimator">
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Input Form */}
         <Card>
@@ -895,6 +947,47 @@ export default function ChainlinkEstimationPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Pipe Specifications */}
+          {result && (() => {
+            const specs = getPipeSpecs(fenceHeight, fenceType);
+            if (!specs) return null;
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Pipe Specifications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Post Type</TableHead>
+                        <TableHead>Pipe Size</TableHead>
+                        <TableHead className="text-right">Post Length</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Terminal Posts <span className="text-muted-foreground text-xs">(ends, corners, gates)</span></TableCell>
+                        <TableCell className="font-medium">{specs.terminal}</TableCell>
+                        <TableCell className="text-right">{specs.postLength}&apos;</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Line Posts <span className="text-muted-foreground text-xs">(interior)</span></TableCell>
+                        <TableCell className="font-medium">{specs.line}</TableCell>
+                        <TableCell className="text-right">{specs.postLength}&apos;</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Top Rail</TableCell>
+                        <TableCell className="font-medium">{specs.topRail}</TableCell>
+                        <TableCell className="text-right">21&apos; sticks</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Material List */}
           <Card>
@@ -1176,6 +1269,301 @@ export default function ChainlinkEstimationPage() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        {/* ── Gate Cut Sheet Tab ── */}
+        <TabsContent value="gates">
+          <style>{`
+            @media print {
+              .no-print { display: none !important; }
+              .print-only { display: block !important; }
+              body { background: white; }
+            }
+            .print-only { display: none; }
+          `}</style>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Gate Configuration Input */}
+            <Card className="no-print">
+              <CardHeader>
+                <CardTitle>Gate Configuration</CardTitle>
+                <CardDescription>Calculate pipe cuts for a custom welded gate frame</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Job Name */}
+                <div className="space-y-2">
+                  <Label>Job Name <span className="text-muted-foreground text-xs">(optional, for print header)</span></Label>
+                  <Input placeholder="e.g., Smith Residence" value={gateJobName} onChange={e => setGateJobName(e.target.value)} />
+                </div>
+
+                {/* Gate Type */}
+                <div className="space-y-2">
+                  <Label>Gate Type</Label>
+                  <Select value={gateType} onValueChange={(v) => setGateType(v as 'single' | 'double')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Single Gate</SelectItem>
+                      <SelectItem value="double">Double Gate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Calculation Mode */}
+                <div className="space-y-2">
+                  <Label>Measurement Input</Label>
+                  <Select value={calcMode} onValueChange={(v) => setCalcMode(v as 'opening' | 'frame')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="opening">Opening Size (inside post to inside post)</SelectItem>
+                      <SelectItem value="frame">Frame / True Size</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Width */}
+                <div className="space-y-2">
+                  <Label>{calcMode === 'opening' ? 'Opening Width' : 'Frame Width'} (inches)</Label>
+                  <Input type="number" min="1" step="0.25" placeholder="e.g., 48" value={gateWidthIn} onChange={e => setGateWidthIn(e.target.value)} />
+                </div>
+
+                {/* Height */}
+                <div className="space-y-2">
+                  <Label>Gate Height (inches)</Label>
+                  <Input type="number" min="1" step="0.25" placeholder="e.g., 72" value={gateHeightIn} onChange={e => setGateHeightIn(e.target.value)} />
+                </div>
+
+                {/* Frame Diameter */}
+                <div className="space-y-2">
+                  <Label>Frame Pipe Diameter</Label>
+                  <Select value={frameDiameter} onValueChange={(v) => setFrameDiameter(v as GateCutInput['frameDiameter'])}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='1 3/8"'>1 3/8"</SelectItem>
+                      <SelectItem value='1 5/8"'>1 5/8"</SelectItem>
+                      <SelectItem value='2"'>2"</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Brace Options */}
+                <div className="space-y-3 pt-2 border-t">
+                  <Label className="text-sm font-medium">Brace Options</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 rounded-md border p-3">
+                      <input
+                        type="checkbox"
+                        id="hBrace"
+                        checked={includeHBrace}
+                        onChange={e => setIncludeHBrace(e.target.checked)}
+                        className="mt-0.5 rounded border-gray-300"
+                      />
+                      <div>
+                        <Label htmlFor="hBrace" className="text-sm font-normal cursor-pointer">Include Horizontal Brace</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {parseFloat(gateHeightIn || '0') > 48
+                            ? <span className="text-amber-600 font-medium">Recommended — gate is over 48&quot; tall</span>
+                            : 'Recommended for gates over 48" tall'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-md border p-3">
+                      <input
+                        type="checkbox"
+                        id="vBrace"
+                        checked={includeVBrace}
+                        onChange={e => setIncludeVBrace(e.target.checked)}
+                        className="mt-0.5 rounded border-gray-300"
+                      />
+                      <div>
+                        <Label htmlFor="vBrace" className="text-sm font-normal cursor-pointer">Include Vertical Brace</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {(() => {
+                            const w = parseFloat(gateWidthIn || '0');
+                            const leafW = gateType === 'double' ? (w - (calcMode === 'opening' ? 3.5 : 0) - 1) / 2 : w - (calcMode === 'opening' ? 3.5 : 0);
+                            return leafW > 60
+                              ? <span className="text-amber-600 font-medium">Recommended — leaf is over 60&quot; wide</span>
+                              : 'Recommended for gate leaves over 60" wide';
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleCalculateGate} className="flex-1">
+                    <Icon name="Calculator" className="mr-2 h-4 w-4" />
+                    Calculate Cuts
+                  </Button>
+                  <Button variant="outline" onClick={handleClearGate}>Clear</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results */}
+            <div className="space-y-6">
+              {gateResult ? (
+                <>
+                  {/* Screen results */}
+                  <Card className="no-print">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Cut Sheet</CardTitle>
+                        <Button variant="outline" size="sm" onClick={() => window.print()}>
+                          <Icon name="Printer" className="mr-2 h-4 w-4" />
+                          Print
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Summary */}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{gateResult.leafs === 2 ? 'Double' : 'Single'} Gate</span></div>
+                        <div><span className="text-muted-foreground">Frame pipe:</span> <span className="font-medium">{frameDiameter} OD</span></div>
+                        <div><span className="text-muted-foreground">Post spacing:</span> <span className="font-medium">{gateResult.postSpacingInches}&quot;</span></div>
+                        {gateResult.requiredOpeningInches && (
+                          <div><span className="text-muted-foreground">Required opening:</span> <span className="font-medium">{gateResult.requiredOpeningInches}&quot;</span></div>
+                        )}
+                        <div><span className="text-muted-foreground">Frame width:</span> <span className="font-medium">{gateResult.leafWidthInches}&quot; per leaf</span></div>
+                        <div><span className="text-muted-foreground">Frame height:</span> <span className="font-medium">{gateResult.frameHeightInches}&quot;</span></div>
+                      </div>
+                      {/* Cut List */}
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">Qty</TableHead>
+                            <TableHead>Length</TableHead>
+                            <TableHead>Description</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {gateResult.cutList.map((item, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{item.qty}</TableCell>
+                              <TableCell className="font-mono">{item.lengthInches}&quot;</TableCell>
+                              <TableCell>{item.description}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2">
+                            <TableCell colSpan={2} className="font-semibold">Total Pipe</TableCell>
+                            <TableCell className="font-semibold">{gateResult.totalPipeFeet} ft</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+
+                  {/* Printable Cut Sheet */}
+                  <div className="print-only" style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px', padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', borderBottom: '2px solid #000', paddingBottom: '8px' }}>
+                      <div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>GATE CUT SHEET</div>
+                        {gateJobName && <div style={{ marginTop: '4px', fontSize: '14px' }}>Job: {gateJobName}</div>}
+                        <div style={{ marginTop: '4px', color: '#555' }}>
+                          {gateResult.leafs === 2 ? 'Double' : 'Single'} Gate &nbsp;|&nbsp; {frameDiameter} OD frame &nbsp;|&nbsp; {calcMode === 'opening' ? 'Opening size input' : 'Frame size input'}
+                        </div>
+                        <div style={{ marginTop: '2px', color: '#555' }}>
+                          Post Spacing: {gateResult.postSpacingInches}&quot;
+                          {gateResult.requiredOpeningInches ? ` | Required Opening: ${gateResult.requiredOpeningInches}"` : ''}
+                          &nbsp;|&nbsp; Frame: {gateResult.leafWidthInches}&quot; × {gateResult.frameHeightInches}&quot; per leaf
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', color: '#555' }}>
+                        {new Date().toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+                      {/* Gate Diagram */}
+                      <div style={{ flexShrink: 0 }}>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>FRAME DIAGRAM (per leaf)</div>
+                        {(() => {
+                          const scaleW = Math.min(160, gateResult.leafWidthInches * 0.8);
+                          const scaleH = Math.min(220, gateResult.frameHeightInches * 0.8);
+                          return (
+                            <div style={{ position: 'relative', width: scaleW + 40, height: scaleH + 40, marginLeft: '20px', marginTop: '10px' }}>
+                              {/* Width label */}
+                              <div style={{ position: 'absolute', top: 0, left: 20, width: scaleW, textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                ←&nbsp;{gateResult.leafWidthInches}&quot;&nbsp;→
+                              </div>
+                              {/* Height label */}
+                              <div style={{ position: 'absolute', top: 20, left: 0, height: scaleH, display: 'flex', alignItems: 'center', fontSize: '10px', fontWeight: 'bold', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                                ↕&nbsp;{gateResult.frameHeightInches}&quot;
+                              </div>
+                              {/* Frame rectangle */}
+                              <div style={{ position: 'absolute', top: 20, left: 20, width: scaleW, height: scaleH, border: '3px solid #000', boxSizing: 'border-box' }}>
+                                {/* H-brace */}
+                                {gateResult.horizontalBraceLengthInches !== undefined && (
+                                  <div style={{ position: 'absolute', top: '50%', left: '5%', right: '5%', height: '2px', background: '#555', borderTop: '2px dashed #555' }} />
+                                )}
+                                {/* V-brace (two pieces) */}
+                                {gateResult.verticalBracePieces && (
+                                  <>
+                                    <div style={{ position: 'absolute', left: '50%', top: '5%', bottom: gateResult.horizontalBraceLengthInches !== undefined ? '52%' : '52%', width: '2px', borderLeft: '2px dashed #555', transform: 'translateX(-50%)' }} />
+                                    <div style={{ position: 'absolute', left: '50%', top: gateResult.horizontalBraceLengthInches !== undefined ? '52%' : '52%', bottom: '5%', width: '2px', borderLeft: '2px dashed #555', transform: 'translateX(-50%)' }} />
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <div style={{ fontSize: '10px', color: '#555', marginTop: '4px', textAlign: 'center' }}>Dashed = optional braces</div>
+                      </div>
+
+                      {/* Cut List */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '6px' }}>CUT LIST</div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead>
+                            <tr style={{ background: '#eee' }}>
+                              <th style={{ border: '1px solid #ccc', padding: '4px 8px', textAlign: 'left', width: '40px' }}>Qty</th>
+                              <th style={{ border: '1px solid #ccc', padding: '4px 8px', textAlign: 'left', width: '80px' }}>Length</th>
+                              <th style={{ border: '1px solid #ccc', padding: '4px 8px', textAlign: 'left' }}>Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {gateResult.cutList.map((item, i) => (
+                              <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                                <td style={{ border: '1px solid #ccc', padding: '4px 8px', fontWeight: 'bold' }}>{item.qty}</td>
+                                <td style={{ border: '1px solid #ccc', padding: '4px 8px', fontFamily: 'monospace', fontWeight: 'bold' }}>{item.lengthInches}&quot;</td>
+                                <td style={{ border: '1px solid #ccc', padding: '4px 8px' }}>{item.description}</td>
+                              </tr>
+                            ))}
+                            <tr style={{ background: '#eee', fontWeight: 'bold' }}>
+                              <td colSpan={2} style={{ border: '1px solid #ccc', padding: '4px 8px' }}>Total Pipe</td>
+                              <td style={{ border: '1px solid #ccc', padding: '4px 8px' }}>{gateResult.totalPipeFeet} ft</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        {gateResult.needsHorizontalBrace && !includeHBrace && (
+                          <div style={{ marginTop: '8px', padding: '4px 8px', background: '#fff3cd', border: '1px solid #ffc107', fontSize: '11px' }}>
+                            Note: Horizontal brace recommended for this gate height
+                          </div>
+                        )}
+                        {gateResult.needsVerticalBrace && !includeVBrace && (
+                          <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fff3cd', border: '1px solid #ffc107', fontSize: '11px' }}>
+                            Note: Vertical brace recommended for this gate width
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <Icon name="ClipboardList" className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Enter gate dimensions and click Calculate</p>
+                    <p className="text-xs mt-1">Cut lengths will appear here</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+      </Tabs>
 
       {/* Hidden dialogs for converting to estimate/order/invoice */}
       {initialFormData && (
