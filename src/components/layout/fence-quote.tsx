@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 const QUOTES = [
   "Good fences make good neighbors — and great invoices.",
   "Every post planted is a problem solved.",
@@ -28,26 +30,16 @@ const QUOTES = [
   "Some days you're the fence. Some days you're the wind. We help you be the fence.",
 ];
 
-function getDailyQuote(): string {
-  const today = new Date();
-  const dayIndex =
-    today.getFullYear() * 10000 +
-    (today.getMonth() + 1) * 100 +
-    today.getDate();
-  return QUOTES[dayIndex % QUOTES.length];
-}
-
 export function FenceQuote() {
-  const quote = getDailyQuote();
+  const [quote, setQuote] = useState(QUOTES[0]);
+
+  useEffect(() => {
+    setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  }, []);
 
   return (
-    <div className="hidden lg:flex flex-col items-center gap-0.5 select-none">
-      <p className="text-xs font-bold text-foreground/80">
-        Be sure to have a wonderful, Fencing Day!
-      </p>
-      <p className="text-xs italic text-muted-foreground/70 truncate max-w-sm xl:max-w-md text-center">
-        &ldquo;{quote}&rdquo;
-      </p>
-    </div>
+    <p className="hidden lg:block text-sm italic text-muted-foreground/80 truncate max-w-sm xl:max-w-md text-center select-none">
+      &ldquo;{quote}&rdquo;
+    </p>
   );
 }

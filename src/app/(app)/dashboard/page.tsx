@@ -191,7 +191,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Welcome back! Here's what's happening today." />
+      <PageHeader title="Dashboard" greeting="Be sure to have a wonderful, Fencing Day!" description="Welcome back! Here's what's happening today." />
 
       {/* Analytics Metrics */}
       {preferences.showAnalyticsMetrics && (
