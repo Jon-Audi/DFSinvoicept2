@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { FenceQuote } from "@/components/layout/fence-quote";
 
 export function AppHeader() {
   const { toast } = useToast();
@@ -33,8 +34,11 @@ export function AppHeader() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <div className="flex-1 flex items-center justify-center md:justify-start min-w-0">
+      <div className="flex items-center justify-center md:justify-start min-w-0">
         <GlobalSearch />
+      </div>
+      <div className="flex-1 flex justify-center px-4">
+        <FenceQuote />
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
         {user && <NotificationBell />}
